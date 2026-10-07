@@ -10,3 +10,11 @@ simulate/build
 # Python bytecode
 __pycache__/
 *.py[cod]
+
+# ROS workspace outputs and downloaded navigation dependencies
+/build/
+/install/
+/log/
+/third_party/go2_navigation/
+/.venv_go2_real/
+/artifacts/go2_real/

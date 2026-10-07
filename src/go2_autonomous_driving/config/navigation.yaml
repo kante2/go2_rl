@@ -1,0 +1,16 @@
+navigation_bridge:
+  ros__parameters:
+    command_port: 9871
+    telemetry_port: 9872
+    max_forward_speed: 0.5
+    max_lateral_speed: 0.2
+    max_yaw_rate: 0.5
+    goal_tolerance: 0.2
+    sensor_timeout: 0.5
+    command_timeout: 0.3
+keyboard_waypoint:
+  ros__parameters:
+    continuous: true
+    waypoint_distance: 1.0
+    waypoint_update_period: 0.2
+    pose_timeout: 0.5
