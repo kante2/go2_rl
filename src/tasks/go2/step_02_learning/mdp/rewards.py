@@ -13,6 +13,16 @@ from mjlab.utils.lab_api.string import (
   resolve_matching_names_values,
 )
 
+'''
+이 mdp 폴더 안에는, go2하습 환경에서 사용하는
+ 관측 / 보상 / 종료조건 / 목표 명령/ 난이도 조절 , 의 실제 계산 코드를 모아 놓은 곳
+
+mdp : markov decision process <마르코프 의사결정 과정>
+
+-> 보상/ 비용 계산  <방금 움직임이 얼마나 좋았는지 판단>
+
+'''
+
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
 

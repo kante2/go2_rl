@@ -1,14 +1,18 @@
 """Register the assembled Go2 flat and rough tasks with mjlab."""
-
+# 외부 라이브러리인 mjlab의 tasks/registry.py에 정의된 함수
+# /home/kante/unitree_rl_mjlab/setup.py 에서 mjlab==1.2.0으로 의존성을 지정함
 from mjlab.tasks.registry import register_mjlab_task
 from .step_03_training.runner import VelocityOnPolicyRunner
-
+# /home/kante/unitree_rl_mjlab/src/tasks/go2/step_01_environment/go2_env.py
 from .step_01_environment.go2_env import (
   unitree_go2_flat_env_cfg,
   unitree_go2_rough_env_cfg,
 )
 from .step_03_training.ppo import unitree_go2_ppo_runner_cfg
 
+# 내부에서는 중복 등록을 검사한 뒤, 모듈의 _REGISTRY 딕셔너리(공동딕셔너리) 에 설정을 저장
+# ->
+# 등록이 끝나면 학습 코드(train.py) 에서 같은 라이브러리의 조회 함수를 가져와 사용합니다.
 register_mjlab_task(
   task_id="Unitree-Go2-Rough",
   env_cfg=unitree_go2_rough_env_cfg(),
@@ -24,3 +28,28 @@ register_mjlab_task(
   rl_cfg=unitree_go2_ppo_runner_cfg(),
   runner_cls=VelocityOnPolicyRunner,
 )
+
+# 동록된 환경설정/ PPO설정/ Runner 을 가져오고
+# CLI옵션으로 이번 실행 값을 덮어 쓴다.
+
+'''
+
+registry.py
+= "Unitree-Go2-Flat이라는 이름은
+   이 환경 + 이 PPO 설정 + 이 Runner를 써라"라고 등록
+
+train.py
+= 사용자가 Unitree-Go2-Flat을 선택하면
+   registry에서 그 세 가지를 찾아 실제 학습을 실행
+
+[ 예시 ]
+python scripts/train.py Unitree-Go2-Flat \
+  --env.scene.num-envs 1024 \
+  --agent.logger tensorboard
+
+
+환경 설정  → unitree_go2_flat_env_cfg()
+학습 설정  → unitree_go2_ppo_runner_cfg()
+학습기     → VelocityOnPolicyRunner
+
+'''

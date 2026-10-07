@@ -1,4 +1,8 @@
 """Unitree Go2 constants."""
+''''
+해당 파일은, go2 의 기본 자세와 관절 제어 설정이 들어가있다.
+go2의 몸체/관절/충돌형상은 XML 모델에서 가져온다.
+'''
 
 from pathlib import Path
 

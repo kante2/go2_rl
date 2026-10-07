@@ -21,6 +21,10 @@ if TYPE_CHECKING:
   from mjlab.envs.manager_based_rl_env import ManagerBasedRlEnv
   from mjlab.viewer.debug_visualizer import DebugVisualizer
 
+'''
+목표 속도 명령 생성/ 관리
+-> 어느 방향으로 얼마나 빠르게 움직여야 하는지 판단
+'''
 
 class UniformVelocityCommand(CommandTerm):
   cfg: UniformVelocityCommandCfg

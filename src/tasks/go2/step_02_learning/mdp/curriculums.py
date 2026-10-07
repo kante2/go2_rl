@@ -14,6 +14,10 @@ if TYPE_CHECKING:
 
 _DEFAULT_SCENE_CFG = SceneEntityCfg("robot")
 
+'''
+ curriculum : 학습 과정 관리
+-> 학습 중에 다양한 조건과 목표를 설정하여 에이전트가 점차적으로 더 어려운 과제를 해결하도록 유도
+'''
 
 class VelocityStage(TypedDict):
   step: int

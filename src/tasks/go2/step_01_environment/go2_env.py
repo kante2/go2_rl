@@ -46,6 +46,8 @@ def unitree_go2_rough_env_cfg(
     secondary=ContactMatch(mode="body", pattern="terrain"),
     fields=("found", "force"),
     reduce="netforce",
+    # -> 이 센서 설정으로 인해, 각 발의 접촉력을 합산한 WORLD 좌표계 벡터를 받는다.
+    # X,Y는 월드에 수평방향, Z은 수직 방향 = 로봇이 회전해도 축은 그대로
     num_slots=1,
     track_air_time=True,
   )

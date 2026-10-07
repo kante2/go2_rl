@@ -7,7 +7,28 @@ import torch
 from mjlab.entity import Entity
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import ContactSensor
+'''
+observation : 관측값 계산
+->
+go2입장에서, 지금 내 발 + 보행 주기가 어떤 상태인지 파악
 
+1.foot height           : 각 발의 월드 좌표계 높이
+2.foot air time         : 각 발이 현재 공중에 떠있는 시간
+3.foot contact          : 각 발이 현재 지면에 닿아있는지 여부
+4.foot contact forces   : 각 발의 접촉력의 X,Y,Z성분을 변환한 값
+5.phase                 : 보행 주기의 현재 단계
+
+
+sensor_data.force
+-> 해당 데이터 구조
+forces = env.scene["feet_ground_contact"].data.force
+
+Fx = forces[:, :, 0]  # 각 발의 x축 힘
+Fy = forces[:, :, 1]  # 각 발의 y축 힘
+Fz = forces[:, :, 2]  # 각 발의 z축 힘
+
+
+'''
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
 

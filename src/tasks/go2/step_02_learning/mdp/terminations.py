@@ -9,6 +9,10 @@ from mjlab.sensor import ContactSensor
 if TYPE_CHECKING:
   from mjlab.envs import ManagerBasedRlEnv
 
+'''
+termination : 종료 여부 판정
+-> 에이전트가 특정 조건을 충족하면 학습을 종료
+'''
 
 def illegal_contact(
   env: ManagerBasedRlEnv,
