@@ -1,7 +1,7 @@
 # train
 
 
-# 1.평지 보행 학습 명령어
+# 1-1.평지 보행 학습 명령어
 ##  옵션
 옵션	                             의미
 Unitree-Go2-Flat	                평지에서 목표 속도를 따라가는 보행 학습
@@ -22,6 +22,20 @@ python scripts/train.py Unitree-Go2-Flat \
   --agent.logger tensorboard \
   --agent.run-name go2_flat
 
+
+
+# 1-2 체크포인트 보행 학습 명령어
+cd /workspace/unitree_rl_mjlab
+
+go2-python scripts/train.py Unitree-Go2-Flat \
+  --agent.resume True \
+  --agent.load-run resume_model_10000 \
+  --agent.load-checkpoint model_10000.pt \
+  --agent.max-iterations 5000 \
+  --agent.run-name baseline_resume \
+  --agent.logger tensorboard \
+  --agent.save-interval 500 \
+  --env.scene.num-envs 1024
 
 # 2. 보상설계
 
