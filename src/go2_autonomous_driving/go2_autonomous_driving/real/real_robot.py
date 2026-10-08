@@ -24,7 +24,7 @@ from sensor_msgs_py import point_cloud2
 from unitree_api.msg import Request, Response
 from unitree_go.msg import LowCmd, LowState
 
-from .core import CommandWatchdog
+from ..core import CommandWatchdog
 from .real_control import (PolicyMapping, gravity_body, next_period, pack_low_command,
                            pack_low_state, remote_estop, require_independent_navigation, wire_crc)
 

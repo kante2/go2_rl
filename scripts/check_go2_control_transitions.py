@@ -19,8 +19,8 @@ from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
 import src.tasks  # noqa: F401
 
-from go2_autonomous_driving.control_transitions import JointTargetRamp, VelocityRamp
-from go2_autonomous_driving.real_control import PolicyMapping, gravity_body
+from go2_autonomous_driving.real.control_transitions import JointTargetRamp, VelocityRamp
+from go2_autonomous_driving.real.real_control import PolicyMapping, gravity_body
 
 
 def main():
@@ -55,7 +55,8 @@ def main():
         agent = load_rl_cfg('Unitree-Go2-Flat')
         wrapped = RslRlVecEnvWrapper(env, clip_actions=agent.clip_actions)
         runner = load_runner_cls('Unitree-Go2-Flat')(wrapped, asdict(agent), device='cuda:0')
-        runner.load('model_10000.pt', load_cfg={'actor': True}, strict=True, map_location='cuda:0')
+        checkpoint = Path(__file__).resolve().parents[1] / 'src/go2_autonomous_driving/model_pt/model_10000.pt'
+        runner.load(str(checkpoint), load_cfg={'actor': True}, strict=True, map_location='cuda:0')
         policy = runner.get_inference_policy(device='cuda:0')
         wrapped.reset()
         ramps = [VelocityRamp(config['command_acceleration'],

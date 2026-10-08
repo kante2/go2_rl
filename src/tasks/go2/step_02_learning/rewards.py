@@ -1,7 +1,7 @@
 """Reward weights and parameters; formulas live in mdp/rewards.py."""
 
 # 사용할 보상함수/ 가중치/ 파리미터 설정
-# /home/kante/unitree_rl_mjlab/src/tasks/go2/step_02_learning/mdp/rewards.py
+# /home/kante/go2_rl/src/tasks/go2/step_02_learning/mdp/rewards.py
 #   여기에, 실제 점수를 계산하는 수식
 
 import math
@@ -28,21 +28,21 @@ from . import mdp
 '''
 | 항목 | 가중치 | 유도하는 행동 |
 |---|---:|---|
-| `track_linear_velocity` | +1.0 | 목표 이동 속도 추종, 수직 출렁임 억제 |
-| `track_angular_velocity` | +1.0 | 목표 회전 속도 추종 |
-| `body_orientation_l2` | -1.0 | 몸통을 수평에 가깝게 유지 |
-| `pose` | +1.0 | 명령 속도에 맞는 범위에서 기본 관절 자세 유지 |
-| `body_ang_vel` | -0.05 | 몸통의 앞뒤·좌우 회전 흔들림 억제 |
-| `angular_momentum` | -0.025 | 각운동량 억제 |
-| `is_terminated` | -200.0 | 실패 종료 회피 |
-| `joint_acc_l2` | -0.00000025 | 급격한 관절 가속 억제 |
-| `joint_pos_limits` | -10.0 | 관절의 소프트 제한 범위 이탈 억제 |
-| `action_rate_l2` | -0.05 | 연속된 행동 명령의 급격한 변화 억제 |
-| `foot_gait` | +0.5 | 정해진 발 접촉 리듬 유도 |
-| `foot_clearance` | -1.0 | 움직이는 발의 높이를 목표에 가깝게 유도 |
-| `foot_slip` | -0.25 | 지면에 닿은 발의 미끄러짐 억제 |
-| `soft_landing` | -0.001 | 착지 순간의 접촉력 억제 |
-| `stand_still` | -1.0 | 정지 명령일 때 기본 자세 유지 |
+| `track_linear_velocity`   | +1.0 | 목표 이동 속도 추종, 수직 출렁임 억제 |
+| `track_angular_velocity`  | +1.0 | 목표 회전 속도 추종 |
+| `body_orientation_l2`     | -1.0 | 몸통을 수평에 가깝게 유지 |
+| `pose`                    | +1.0 | 명령 속도에 맞는 범위에서 기본 관절 자세 유지 |
+| `body_ang_vel`            | -0.05 | 몸통의 앞뒤·좌우 회전 흔들림 억제 |
+| `angular_momentum`        | -0.025 | 각운동량 억제 |
+| `is_terminated`           | -200.0 | 실패 종료 회피 |
+| `joint_acc_l2`            | -0.00000025 | 급격한 관절 가속 억제 |
+| `joint_pos_limits`        | -10.0 | 관절의 소프트 제한 범위 이탈 억제 |
+| `action_rate_l2`          | -0.05 | 연속된 행동 명령의 급격한 변화 억제 |
+| `foot_gait`               | +0.5 | 정해진 발 접촉 리듬 유도 |
+| `foot_clearance`          | -1.0 | 움직이는 발의 높이를 목표에 가깝게 유도 |
+| `foot_slip`               | -0.25 | 지면에 닿은 발의 미끄러짐 억제 |
+| `soft_landing`            | -0.001 | 착지 순간의 접촉력 억제 |
+| `stand_still`             | -1.0 | 정지 명령일 때 기본 자세 유지 |
 
  -> 정리
 1. track_linear_velocity, track_angular_velocity

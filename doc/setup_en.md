@@ -53,7 +53,7 @@ conda activate unitree_rl_mjlab
 Clone the repository using Git:
 
 ```bash
-git clone https://github.com/unitreerobotics/unitree_rl_mjlab.git
+git clone https://github.com/unitreerobotics/unitree_rl_mjlab.git go2_rl
 ```
 
 ### 2.2 Install Dependencies
@@ -66,7 +66,7 @@ All other dependencies are specified in the setup.py file.
 Navigate to the project root directory and install them with:
 
 ```bash
-cd unitree_rl_mjlab
+cd go2_rl
 pip install -e .
 ```
 

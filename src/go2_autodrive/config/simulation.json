@@ -1,0 +1,14 @@
+{
+  "checkpoint": "model_pt/model_10000.pt",
+  "command_port": 9871,
+  "telemetry_port": 9872,
+  "max_forward_speed": 0.5,
+  "max_lateral_speed": 0.2,
+  "max_yaw_rate": 0.5,
+  "command_timeout": 0.3,
+  "scan_range": 3.5,
+  "obstacles": [
+    {"position": [2.0, 0.0, 0.3], "half_size": [0.2, 0.35, 0.3]},
+    {"position": [2.0, 1.5, 0.3], "half_size": [0.3, 0.2, 0.3]}
+  ]
+}

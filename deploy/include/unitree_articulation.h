@@ -43,4 +43,4 @@ public:
     LowStatePtr lowstate;
 };
 
-}
+}bash /home/kante/unitree_rl_mjlab/scripts/recover_go2_normal.sh --restore

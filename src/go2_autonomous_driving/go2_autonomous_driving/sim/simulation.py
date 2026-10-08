@@ -9,7 +9,7 @@ import socket
 import time
 import uuid
 
-from .core import CommandWatchdog
+from ..core import CommandWatchdog
 
 
 def box_surface_points(boxes, position, scan_range):
@@ -96,12 +96,14 @@ def run(args):
 
     config_path = args.config
     if config_path is None:
-        config_path = Path(__file__).resolve().parents[1] / "config/simulation.json"
+        config_path = Path(__file__).resolve().parents[2] / "config/simulation.json"
         if not config_path.is_file():
             from ament_index_python.packages import get_package_share_directory
             config_path = Path(get_package_share_directory("go2_autonomous_driving")) / "config/simulation.json"
     config = json.loads(config_path.read_text())
-    checkpoint = args.checkpoint or Path(config["checkpoint"])
+    # Config paths are relative to the config file; explicit CLI paths use cwd.
+    # "checkpoint": "../model_pt/model_10000.pt",  <- torch.load로 PT을 읽고 구조를 확인
+    checkpoint = args.checkpoint or (config_path.parent / config["checkpoint"]).resolve()
     if not checkpoint.is_file():
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint}")
     state = torch.load(checkpoint, weights_only=True, map_location="cpu")

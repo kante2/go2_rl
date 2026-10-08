@@ -1,0 +1,21 @@
+# Only the source needed to build the environment enters the image.
+**
+!setup.py
+!src/
+!src/**
+!scripts/
+!scripts/**
+!docker/
+!docker/Dockerfile
+!docker/requirements.lock
+!docker/container_env.sh
+!docker/ml_python.sh
+**/__pycache__
+**/*.pyc
+**/*.egg-info
+**/build
+**/install
+**/log
+**/.git
+# Model weights are supplied by the project bind mount, not baked into images.
+src/go2_autonomous_driving/model_pt/

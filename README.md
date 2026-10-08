@@ -24,6 +24,9 @@ and sim-to-real deployment.
 
 Please refer to [setup.md](doc/setup_en.md) for installation and configuration steps.
 
+For the Go2 Docker environment, GPU training, simulation keyboard control and real-robot
+closed-loop control with a web viewer, see [the Docker guide](docker/README.md).
+
 
 ## 🔁 Process Overview
 

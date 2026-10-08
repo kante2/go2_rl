@@ -4,7 +4,7 @@ import struct
 import numpy as np
 import pytest
 
-from go2_autonomous_driving.real_control import (PolicyMapping, gravity_body, next_period,
+from go2_autonomous_driving.real.real_control import (PolicyMapping, gravity_body, next_period,
                                                 remote_estop, require_independent_navigation, wire_crc)
 
 

@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from go2_autonomous_driving.core import Velocity
-from go2_autonomous_driving.direct_control import (DirectCommandGate, KeyboardVelocityIntent,
+from go2_autonomous_driving.real.direct_control import (DirectCommandGate, KeyboardVelocityIntent,
                                                    MeasuredStateReceiver, decode_velocity_keys,
                                                    velocity_packet)
 
@@ -94,8 +94,8 @@ def test_arrows_and_yaw_keys_are_distinct():
 def test_filtered_action_feedback_and_tracking_fault_record(config, tmp_path):
     pytest.importorskip('rclpy')
     pytest.importorskip('unitree_go')
-    from go2_autonomous_driving.real_closed_loop import ClosedLoopBackend
-    from go2_autonomous_driving.real_control import PolicyMapping
+    from go2_autonomous_driving.real.real_closed_loop import ClosedLoopBackend
+    from go2_autonomous_driving.real.real_control import PolicyMapping
     project = Path(__file__).resolve().parents[3]
     mapping = PolicyMapping(json.loads((project / 'artifacts/go2_real/policy.json').read_text()))
     fault_path = tmp_path / 'tracking_fault.json'
@@ -131,8 +131,8 @@ def test_filtered_action_feedback_and_tracking_fault_record(config, tmp_path):
 def test_policy_reads_actual_joint_and_imu_feedback_without_navigation(config):
     pytest.importorskip('rclpy')
     pytest.importorskip('unitree_go')
-    from go2_autonomous_driving.real_closed_loop import ClosedLoopBackend
-    from go2_autonomous_driving.real_control import PolicyMapping, gravity_body
+    from go2_autonomous_driving.real.real_closed_loop import ClosedLoopBackend
+    from go2_autonomous_driving.real.real_control import PolicyMapping, gravity_body
     project = Path(__file__).resolve().parents[3]
     mapping = PolicyMapping(json.loads((project / 'artifacts/go2_real/policy.json').read_text()))
     config.update(command_port=0)
@@ -198,8 +198,8 @@ def test_policy_reads_actual_joint_and_imu_feedback_without_navigation(config):
 def test_closed_loop_eases_the_trained_walking_to_standing_boundary(config):
     pytest.importorskip('rclpy')
     pytest.importorskip('unitree_go')
-    from go2_autonomous_driving.real_closed_loop import ClosedLoopBackend
-    from go2_autonomous_driving.real_control import PolicyMapping
+    from go2_autonomous_driving.real.real_closed_loop import ClosedLoopBackend
+    from go2_autonomous_driving.real.real_control import PolicyMapping
     project = Path(__file__).resolve().parents[3]
     mapping = PolicyMapping(json.loads((project / 'artifacts/go2_real/policy.json').read_text()))
     config = dict(config, command_port=0)

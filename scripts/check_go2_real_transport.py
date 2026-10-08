@@ -30,8 +30,8 @@ from rclpy.qos import qos_profile_sensor_data
 from unitree_api.msg import Request, Response
 from unitree_go.msg import LowCmd, LowState
 
-from go2_autonomous_driving.real_control import PolicyMapping, pack_low_command, pack_low_state, wire_crc
-from go2_autonomous_driving.direct_control import MeasuredStateReceiver, velocity_packet
+from go2_autonomous_driving.real.real_control import PolicyMapping, pack_low_command, pack_low_state, wire_crc
+from go2_autonomous_driving.real.direct_control import MeasuredStateReceiver, velocity_packet
 from go2_autonomous_driving.core import Velocity
 
 
@@ -145,8 +145,8 @@ def main():
         node.create_timer(.05, direct_tick)
         try:
             child = subprocess.Popen([
-                sys.executable, '-m', 'go2_autonomous_driving.real_closed_loop',
-                '--checkpoint', str(project / 'model_10000.pt'),
+                sys.executable, '-m', 'go2_autonomous_driving.real.real_closed_loop',
+                '--checkpoint', str(project / 'src/go2_autonomous_driving/model_pt/model_10000.pt'),
                 '--policy-dir', str(project / 'artifacts/go2_real'),
                 '--config', str(path), '--execute', '--seconds', '8',
                 '--fault-log', str(Path(temporary) / 'fault.json'),

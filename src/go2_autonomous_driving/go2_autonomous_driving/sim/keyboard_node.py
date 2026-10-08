@@ -15,7 +15,7 @@ from rclpy.node import Node
 from rclpy.signals import SignalHandlerOptions
 from std_msgs.msg import Bool, Int8
 
-from .core import Pose, WaypointIntent, decode_keys, yaw_from_wxyz
+from ..core import Pose, WaypointIntent, decode_keys, yaw_from_wxyz
 
 
 class KeyboardWaypoint(Node):

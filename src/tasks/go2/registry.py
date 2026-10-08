@@ -1,9 +1,9 @@
 """Register the assembled Go2 flat and rough tasks with mjlab."""
 # 외부 라이브러리인 mjlab의 tasks/registry.py에 정의된 함수
-# /home/kante/unitree_rl_mjlab/setup.py 에서 mjlab==1.2.0으로 의존성을 지정함
+# /home/kante/go2_rl/setup.py 에서 mjlab==1.2.0으로 의존성을 지정함
 from mjlab.tasks.registry import register_mjlab_task
 from .step_03_training.runner import VelocityOnPolicyRunner
-# /home/kante/unitree_rl_mjlab/src/tasks/go2/step_01_environment/go2_env.py
+# /home/kante/go2_rl/src/tasks/go2/step_01_environment/go2_env.py
 from .step_01_environment.go2_env import (
   unitree_go2_flat_env_cfg,
   unitree_go2_rough_env_cfg,

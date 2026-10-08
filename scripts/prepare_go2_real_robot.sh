@@ -25,11 +25,7 @@ if ! .venv_go2_real/bin/python -m pip --version >/dev/null 2>&1; then
   "$go2_pip_python" -m pip install --target "$go2_site_packages" pip
 fi
 .venv_go2_real/bin/python -m pip install 'onnxruntime==1.23.2'
-go2_container="${GO2_MJLAB_CONTAINER:-unitree-rl-mjlab}"
-docker start "$go2_container" >/dev/null
-docker exec -e PYTHONPATH=/workspace/unitree_rl_mjlab \
-  -e PYTHONDONTWRITEBYTECODE=1 -w /workspace/unitree_rl_mjlab \
-  "$go2_container" python scripts/export_go2_real_policy.py "$@"
+bash "$go2_project/scripts/run_go2_docker.sh" python scripts/export_go2_real_policy.py "$@"
 PYTHONPATH="$go2_project/src/go2_autonomous_driving:${PYTHONPATH:-}" \
   .venv_go2_real/bin/python scripts/check_go2_real_policy.py
 echo 'Prepared. Default run_go2_real_closed_loop.sh only reads sensors and runs inference.'

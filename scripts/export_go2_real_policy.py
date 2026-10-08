@@ -17,7 +17,8 @@ import src.tasks  # noqa: F401
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--checkpoint', type=Path, default=Path('model_10000.pt'))
+    parser.add_argument('--checkpoint', type=Path,
+                        default=Path(__file__).resolve().parents[1] / 'src/go2_autonomous_driving/model_pt/model_10000.pt')
     parser.add_argument('--output', type=Path, default=Path('artifacts/go2_real'))
     args = parser.parse_args()
     cfg = load_env_cfg('Unitree-Go2-Flat', play=True)

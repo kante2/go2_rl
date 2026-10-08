@@ -5,7 +5,7 @@ import uuid
 
 import numpy as np
 
-from .core import CommandWatchdog, Velocity, command_packet
+from ..core import CommandWatchdog, Velocity, command_packet
 from .real_control import gravity_body
 
 

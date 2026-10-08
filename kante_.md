@@ -3,6 +3,16 @@
 Go2가 목표 속도를 따라 걷도록 학습하는 코드의 구조와 실행 방법을 정리한다. 지원 태스크는 `Unitree-Go2-Flat`과 `Unitree-Go2-Rough`이며, 별도 표시가 없는 설명과 명령은 Flat 기준이다. 리팩토링은 기존 Go2의 관측·행동·보상·PPO 설정을 유지하면서 파일을 학습 구성 순서로 나눈 것이다.
 
 문서는 **폴더 구성 → 정책·환경 설계 → 실제 학습 반복 → 실행 명령 → 저장·검증 → 수정 위치** 순서로 읽는다. 모든 명령은 프로젝트 루트에서 해당 Python 환경을 활성화한 뒤 실행한다. 아래 설정값은 소스의 기본값이며, 실제 실행에 사용한 값은 각 로그 폴더의 `params/agent.yaml`, `params/env.yaml`에서 확인한다.
+## 0.
+
+docker start unitree-rl-mjlab
+
+docker exec -it -w /workspace/unitree_rl_mjlab unitree-rl-mjlab \
+  python scripts/play.py Unitree-Go2-Flat \
+  --checkpoint-file /workspace/unitree_rl_mjlab/src/go2_autonomous_driving/model_pt/model_10000.pt \
+  --num-envs 1 \
+  --viewer viser
+
 
 ## 1. 폴더 순서로 보는 학습 구성
 

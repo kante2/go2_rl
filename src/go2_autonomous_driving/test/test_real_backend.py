@@ -8,7 +8,7 @@ import pytest
 
 pytest.importorskip('rclpy')
 pytest.importorskip('unitree_go')
-from go2_autonomous_driving.real_robot import Backend
+from go2_autonomous_driving.real.real_robot import Backend
 
 
 def make_backend():

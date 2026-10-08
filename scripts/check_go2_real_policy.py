@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
-from go2_autonomous_driving.real_control import PolicyMapping
+from go2_autonomous_driving.real.real_control import PolicyMapping
 
 
 def main():

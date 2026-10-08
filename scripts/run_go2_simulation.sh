@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
-# Workspace Docker launcher for the go2_autonomous_driving ROS subpackage.
+# MuJoCo physics and the trained policy run together in Docker.
 set -euo pipefail
-
-go2_container="${GO2_MJLAB_CONTAINER:-unitree-rl-mjlab}"
-docker start "$go2_container" >/dev/null
-docker exec -it \
-  -e PYTHONDONTWRITEBYTECODE=1 \
-  -e PYTHONPATH=/workspace/unitree_rl_mjlab/src/go2_autonomous_driving:/workspace/unitree_rl_mjlab \
-  -w /workspace/unitree_rl_mjlab \
-  "$go2_container" python -m go2_autonomous_driving.simulation \
-  --checkpoint /workspace/unitree_rl_mjlab/model_10000.pt "$@"
+go2_scripts="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+exec bash "$go2_scripts/run_go2_docker.sh" python -m go2_autonomous_driving.sim.simulation "$@"

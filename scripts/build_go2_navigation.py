@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import xml.etree.ElementTree as ET
 
 
@@ -26,6 +27,8 @@ def main():
                         default=project / "Navigation-Physical-Experiment")
     parser.add_argument("--workspace-root", type=Path, default=project,
                         help="Store dependencies and build/install/log outside the package")
+    parser.add_argument("--system-pcl", action="store_true",
+                        help="Use installed ROS pcl_msgs/pcl_conversions instead of source builds")
     args = parser.parse_args()
     workspace = args.workspace_root.resolve()
     if workspace == package or package in workspace.parents:
@@ -37,8 +40,9 @@ def main():
         raise SystemExit("Clone Yuxin916/Navigation-Physical-Experiment (jazzy branch) first, or use --planner-root")
     sources = workspace / "third_party/go2_navigation/src"
     sources.mkdir(parents=True, exist_ok=True)
-    clone("https://github.com/ros-perception/pcl_msgs.git", "ros2", sources / "pcl_msgs")
-    clone("https://github.com/ros-perception/perception_pcl.git", "jazzy", sources / "perception_pcl")
+    if not args.system_pcl:
+        clone("https://github.com/ros-perception/pcl_msgs.git", "ros2", sources / "pcl_msgs")
+        clone("https://github.com/ros-perception/perception_pcl.git", "jazzy", sources / "perception_pcl")
     # Keep the user's upstream checkout untouched. pcl_ros is not used by either
     # executable; pcl_conversions already exports the PCL includes and libraries.
     copy = sources / "local_planner"
@@ -76,15 +80,17 @@ def main():
         # still exists, before global static destruction runs after main exits.
         code = code.replace("  return 0;\n}", "  nh.reset();\n  return 0;\n}")
         source.write_text(code)
+    pcl_sources = [] if args.system_pcl else [sources / "pcl_msgs", sources / "perception_pcl/pcl_conversions"]
+    pcl_packages = [] if args.system_pcl else ["pcl_msgs", "pcl_conversions"]
     call([
         "colcon", "--log-base", workspace / "log", "build",
-        "--base-paths", sources / "pcl_msgs", sources / "perception_pcl/pcl_conversions",
-        copy, serial, package,
-        "--packages-select", "pcl_msgs", "pcl_conversions", "serial", "local_planner",
-        "go2_autonomous_driving", "--executor", "sequential",
+        "--base-paths", *pcl_sources, copy, serial, package, project / "src/go2_autodrive",
+        "--packages-select", *pcl_packages, "serial", "local_planner",
+        "go2_autonomous_driving", "go2_autodrive", "--executor", "sequential",
         "--build-base", workspace / "build", "--install-base", workspace / "install",
         "--symlink-install", "--cmake-args", "-DBUILD_TESTING=OFF",
-        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_BUILD_TYPE=Release", f"-DPython3_EXECUTABLE={sys.executable}",
+        f"-DPYTHON_EXECUTABLE={sys.executable}",
     ], env=dict(os.environ, CMAKE_BUILD_PARALLEL_LEVEL="2", PYTHONDONTWRITEBYTECODE="1"))
     print(f"Build finished. Source {workspace / 'install/setup.bash'}")
 

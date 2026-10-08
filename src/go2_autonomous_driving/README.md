@@ -17,7 +17,7 @@ MuJoCo는 별도 프로세스에서 **실제 관절 각도와 IMU 자세**만 �
 **터미널 1 — MuJoCo 실제 자세 뷰어**
 
 ```bash
-bash /home/kante/unitree_rl_mjlab/scripts/run_go2_real_viewer.sh
+bash /home/kante/go2_rl/scripts/run_go2_real_viewer.sh
 ```
 
 브라우저에서 <http://localhost:8080>을 직접 엽니다. 처음에는 실제 상태를 기다립니다. 시뮬레이션 전용 뷰어와 동시에 같은 8080 포트를 사용할 수 없습니다.
@@ -25,7 +25,7 @@ bash /home/kante/unitree_rl_mjlab/scripts/run_go2_real_viewer.sh
 **터미널 2 — 실제 센서 기반 제어기, 우선 모터 송신 없이 확인**
 
 ```bash
-bash /home/kante/unitree_rl_mjlab/scripts/run_go2_real_closed_loop.sh
+bash /home/kante/go2_rl/scripts/run_go2_real_closed_loop.sh
 ```
 
 `phase=[DRY READY]`에서는 실제 센서로 추론하고 화면에 상태를 전송하지만 모터 명령을 보내지 않습니다. 실로봇 제어를 시험할 때는 터미널 2를 종료한 뒤 **동일 명령 끝에 `--execute`를 붙입니다.** 서 있는 로봇을 지지한 상태에서 `ARM`을 입력하고 **`REAL POLICY READY:`**를 기다립니다. 이후 주기 로그에도 `phase=[REAL POLICY READY]`가 반복됩니다. 처음에는 지지를 유지하고 실제 관절·자세 응답을 검증해야 합니다. 폐루프 연결 검증만으로 학습 정책의 실보행 안정성이 검증되는 것은 아닙니다.
@@ -33,7 +33,7 @@ bash /home/kante/unitree_rl_mjlab/scripts/run_go2_real_closed_loop.sh
 **터미널 3 — 실제 제어용 직접 키보드**
 
 ```bash
-bash /home/kante/unitree_rl_mjlab/scripts/run_go2_real_keyboard.sh
+bash /home/kante/go2_rl/scripts/run_go2_real_keyboard.sh
 ```
 
 - W/↑, S/↓: 전후 0.20 m/s. A/←, D/→: 좌우 0.12 m/s. J/L: 회전 ±0.25 rad/s. 방향 입력은 Space까지 유지합니다.
@@ -63,14 +63,14 @@ bash /home/kante/unitree_rl_mjlab/scripts/run_go2_real_keyboard.sh
 
 ## 실로봇 환경 준비와 기본 모드 복구
 
-처음 설치할 때는 시뮬레이션 빌드 후 프로젝트 루트에서 `bash scripts/prepare_go2_real_robot.sh`를 실행합니다. 공식 Unitree 메시지, 호스트 `.venv_go2_real`, ONNX 변환·매핑 파일을 준비합니다. `model_10000.pt`는 프로젝트 루트에 별도로 배치해야 합니다. 체크포인트를 바꾸면 다시 준비하여 PT·ONNX·매핑의 해시를 일치시킵니다.
+처음 설치할 때는 시뮬레이션 빌드 후 프로젝트 루트에서 `bash scripts/prepare_go2_real_robot.sh`를 실행합니다. 공식 Unitree 메시지, 호스트 `.venv_go2_real`, ONNX 변환·매핑 파일을 준비합니다. `model_10000.pt`는 `src/go2_autonomous_driving/model_pt/`에 배치합니다. 체크포인트를 바꾸면 다시 준비하여 PT·ONNX·매핑의 해시를 일치시킵니다. 파일 내용이 같고 위치만 바뀐 경우에는 ONNX를 다시 변환할 필요가 없습니다.
 
 호스트 LAN은 `enp3s0 = 192.168.123.99/24`, Go2는 `192.168.123.161`입니다. 다른 인터페이스는 실행 스크립트에 `GO2_NETWORK_INTERFACE=인터페이스명`으로 지정합니다. 현재 폐루프는 실제 `/lowstate`만 사용하며, 플래너 연결에는 별도 위치추정 구현이 필요합니다.
 
 damping으로 종료되면 로봇을 지지하고 학습 제어기를 종료한 뒤 다음 명령으로 기본 모드를 복구합니다. `NORMAL` 입력 시 Unitree MotionSwitcher의 `SelectMode("normal")`을 호출하며 자세가 바뀔 수 있습니다. 필요하면 복구 후 앱/리모컨으로 일어서기를 수행합니다.
 
 ```bash
-bash /home/kante/unitree_rl_mjlab/scripts/recover_go2_normal.sh --restore
+bash /home/kante/go2_rl/scripts/recover_go2_normal.sh --restore
 ```
 
 `--restore` 없이 실행하면 현재 모드만 읽습니다. 학습 제어기의 모터 송신이 활성화되어 있으면 복구를 거부합니다.
@@ -86,52 +86,35 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="src/go2_autonomous_driving:${PYTHONPATH:-}
 
 ## MuJoCo에서 실행
 
-호스트에는 ROS 2 Jazzy와 PCL 개발 라이브러리가 있고, Docker `unitree-rl-mjlab`에는 학습 프로젝트와 mjlab/PyTorch가 있어야 합니다. 기존 컨테이너는 프로젝트가 `/workspace/unitree_rl_mjlab`에 마운트되고 **host network**로 실행되어 있어야 합니다. ROS 노드는 호스트의 `/usr/bin/python3`, 학습 모델은 컨테이너의 Python으로 실행합니다.
+시뮬레이션의 플래너·브리지·MuJoCo·학습 모델·키보드를 모두 Docker 안에서 실행합니다. 호스트에는 Docker와 NVIDIA 드라이버가 필요하며 웹 화면은 호스트 브라우저에서 봅니다. Docker 준비·학습·실로봇별 구성은 [Docker 안내](../../docker/README.md)에 있습니다.
 
-이 폴더는 상위 프로젝트의 ROS 2 `ament_python` 서브 패키지입니다. 빌드·설치·로그는 프로젝트 루트의 `build/`, `install/`, `log/`에 생성하고, 외부 플래너 의존 소스는 `third_party/go2_navigation/`에 둡니다. 패키지 폴더 안에는 소스와 설정, ROS 패키지 메타데이터, 테스트만 둡니다.
+최초 빌드는 호스트 프로젝트 루트에서 `bash scripts/setup_go2_docker.sh`로 수행합니다. 호스트 프로젝트는 컨테이너의 `/workspace/unitree_rl_mjlab`에 연결됩니다. ROS는 이미지 안의 `/opt/go2_ros_ws/install`을 사용하므로 호스트의 `install/setup.bash`를 컨테이너에서 source하지 않습니다.
 
-이 컴퓨터에서는 새 경로로 빌드를 완료했습니다. 처음 설치하거나 빌드 설정을 변경할 때 다음 명령을 실행합니다. 원본 `Navigation-Physical-Experiment`는 수정하지 않고 필요한 로컬 플래너와 의존성만 빌드합니다.
-
-빌드 스크립트는 복사본에서 사용하지 않는 `pcl_ros` 의존성을 제거하고, Jazzy에서 Ctrl+C 종료 시 발생한 ROS context 예외를 처리합니다. 경로 생성·추종 알고리즘은 외부 저장소의 구현을 사용합니다.
+호스트 터미널을 3개 열고 각 터미널에서 컨테이너에 접속합니다. ROS 환경은 자동으로 설정됩니다.
 
 ```bash
-cd /home/kante/unitree_rl_mjlab
-source /opt/ros/jazzy/setup.bash
-/usr/bin/python3 scripts/build_go2_navigation.py
+sh /home/kante/go2_rl/scripts/enter_go2_docker.sh
 ```
 
-외부 저장소가 없는 컴퓨터에서는 먼저 프로젝트 루트에서 다음 명령으로 받습니다.
+**터미널 1 — 컨테이너에서 플래너와 ROS 브리지**
 
 ```bash
-git clone --branch jazzy https://github.com/Yuxin916/Navigation-Physical-Experiment.git
-```
-
-**터미널 1 — 호스트에서 플래너와 ROS 브리지**
-
-```bash
-cd /home/kante/unitree_rl_mjlab
-source /opt/ros/jazzy/setup.bash
-source install/setup.bash
-export ROS_DOMAIN_ID=42
 ros2 launch go2_autonomous_driving simulation.launch.py
 ```
 
-**터미널 2 — Docker에서 MuJoCo와 학습 모델**
+**터미널 2 — 컨테이너에서 MuJoCo와 학습 모델**
 
 ```bash
-cd /home/kante/unitree_rl_mjlab
-bash scripts/run_go2_simulation.sh
+bash scripts/run_go2_simulation.sh --viewer viser
 ```
 
-브라우저에서 <http://localhost:8080>을 엽니다. 체크포인트는 `/home/kante/unitree_rl_mjlab/model_10000.pt`이며 실행 스크립트가 컨테이너 경로로 전달합니다. GPU/모델 초기화가 끝나고 `Loaded ... iter=10000`이 출력될 때까지 기다립니다.
+호스트 브라우저에서 <http://localhost:8080>을 엽니다. 체크포인트는 호스트의 `/home/kante/go2_rl/src/go2_autonomous_driving/model_pt/model_10000.pt`입니다. 초기화가 끝나고 `Loaded ... iter=10000`이 출력될 때까지 기다립니다.
 
-**터미널 3 — 호스트에서 키보드 웨이포인트**
+기본 모델 경로는 `config/simulation.json`의 `checkpoint`로 지정하며 상대 경로는 해당 JSON 파일의 디렉터리를 기준으로 해석합니다. 기본값 `../model_pt/model_10000.pt`는 패키지의 `model_pt/`를 가리킵니다. `--checkpoint /경로/다른모델.pt`를 주면 설정값 대신 해당 파일을 사용합니다.
+
+**터미널 3 — 컨테이너에서 키보드 웨이포인트**
 
 ```bash
-cd /home/kante/unitree_rl_mjlab
-source /opt/ros/jazzy/setup.bash
-source install/setup.bash
-export ROS_DOMAIN_ID=42
 ros2 run go2_autonomous_driving keyboard_waypoint --ros-args \
   --params-file src/go2_autonomous_driving/config/navigation.yaml
 ```
@@ -168,10 +151,15 @@ ros2 run go2_autonomous_driving keyboard_waypoint --ros-args -p waypoint_distanc
 ## 파일과 설정
 
 ```text
-unitree_rl_mjlab/
+go2_rl/
 ├── src/go2_autonomous_driving/      # ROS 2 서브 패키지
-│   ├── go2_autonomous_driving/      # Python 노드·시뮬레이션 코드
+│   ├── go2_autonomous_driving/      # Python 패키지
+│   │   ├── sim/                    # MuJoCo·플래너 브리지·웨이포인트 키보드
+│   │   ├── real/                   # 실로봇 제어·매핑·상태 뷰어·직접 키보드
+│   │   ├── core.py                 # 양쪽에서 사용하는 공통 자료형·명령 검사
+│   │   └── __init__.py
 │   ├── config/                     # 설정
+│   ├── model_pt/                   # 학습 체크포인트 model_10000.pt
 │   ├── launch/                     # 플래너·브리지 실행
 │   ├── resource/                   # ROS 패키지 등록
 │   ├── test/                       # 제어 로직 회귀 테스트
@@ -187,22 +175,24 @@ unitree_rl_mjlab/
 └── log/                            # 빌드·검증 로그 (Git 제외)
 ```
 
-바깥쪽 `go2_autonomous_driving`은 ROS 패키지 디렉터리이고, 안쪽의 같은 이름 디렉터리는 Python 모듈입니다. ROS 2 Python 패키지의 표준 구조입니다. 다른 ROS 작업 공간에서도 이 패키지를 `src/` 아래에 두고 빌드할 수 있으며, `local_planner` 의존성이 먼저 준비되어 있어야 합니다. MuJoCo 실행에는 상위 `unitree_rl_mjlab`의 Go2 학습 환경과 모델이 필요합니다.
+바깥쪽 `go2_autonomous_driving`은 ROS 패키지 디렉터리이고, 안쪽의 같은 이름 디렉터리는 Python 모듈입니다. ROS 2 Python 패키지의 표준 구조입니다. 다른 ROS 작업 공간에서도 이 패키지를 `src/` 아래에 두고 빌드할 수 있으며, `local_planner` 의존성이 먼저 준비되어 있어야 합니다. MuJoCo 실행에는 상위 `go2_rl`의 Go2 학습 환경과 모델이 필요합니다.
+
+Python 코드는 실행 환경에 따라 `sim/`과 `real/`로 나뉩니다. 실로봇 상태를 MuJoCo로 표시하는 뷰어도 실제 센서 수신용이므로 `real/`에 있습니다. 루트 `scripts/run_go2_*.sh`와 ROS 실행 이름은 그대로 사용합니다. `python -m`을 직접 사용하는 경우에는 `go2_autonomous_driving.sim.simulation`, `go2_autonomous_driving.real.real_closed_loop`처럼 새 경로를 지정합니다. 기존 설치 환경을 업데이트할 때는 변경된 `setup.py` 진입점을 반영하도록 해당 ROS 작업 공간에서 `go2_autonomous_driving` 패키지를 다시 빌드합니다.
 
 | 파일 | 역할 |
 | --- | --- |
-| `go2_autonomous_driving/keyboard_node.py` | 방향 유지, 새 목표 및 연속 목표 갱신 발행 |
-| `go2_autonomous_driving/real_closed_loop.py` | 실제 IMU·관절로 학습 정책 실행, 직접 키보드 속도 수신 |
-| `go2_autonomous_driving/real_state_viewer.py` | 실제 관절·IMU를 MuJoCo 모델에 반영하는 읽기 전용 화면 |
-| `go2_autonomous_driving/keyboard_velocity.py` | 위치추정 없이 사용하는 실로봇용 키보드 속도 제어 |
-| `go2_autonomous_driving/real_robot.py` | 폐루프에서 사용하는 공통 DDS·모터 송신·정책 스레드·종료 처리 |
-| `go2_autonomous_driving/real_control.py` | 관측·관절 순서 매핑과 Unitree CRC |
-| `go2_autonomous_driving/control_transitions.py` | 속도 감속 및 정지 전환 시 관절 목표 변화 제한 |
-| `go2_autonomous_driving/direct_control.py` | 명령 세션·타임아웃·재연결 및 상태 패킷 검증 |
+| `go2_autonomous_driving/sim/keyboard_node.py` | 방향 유지, 새 목표 및 연속 목표 갱신 발행 |
+| `go2_autonomous_driving/real/real_closed_loop.py` | 실제 IMU·관절로 학습 정책 실행, 직접 키보드 속도 수신 |
+| `go2_autonomous_driving/real/real_state_viewer.py` | 실제 관절·IMU를 MuJoCo 모델에 반영하는 읽기 전용 화면 |
+| `go2_autonomous_driving/real/keyboard_velocity.py` | 위치추정 없이 사용하는 실로봇용 키보드 속도 제어 |
+| `go2_autonomous_driving/real/real_robot.py` | 폐루프에서 사용하는 공통 DDS·모터 송신·정책 스레드·종료 처리 |
+| `go2_autonomous_driving/real/real_control.py` | 관측·관절 순서 매핑과 Unitree CRC |
+| `go2_autonomous_driving/real/control_transitions.py` | 속도 감속 및 정지 전환 시 관절 목표 변화 제한 |
+| `go2_autonomous_driving/real/direct_control.py` | 명령 세션·타임아웃·재연결 및 상태 패킷 검증 |
 | `config/real_closed_loop.json` | 실제 피드백 제어와 뷰어·키보드의 속도·포트·중단 조건 |
 | `launch/simulation.launch.py` | 외부 저장소의 실제 C++ `localPlanner`, `pathFollower` 실행 |
-| `go2_autonomous_driving/ros_bridge.py` | MuJoCo 상태를 ROS로 발행, 플래너 속도를 제한·검사 후 UDP 전달 |
-| `go2_autonomous_driving/simulation.py` | 기존 Go2 Flat 환경·정책 로드, 외부 속도를 `vel_command_b`에 입력 |
+| `go2_autonomous_driving/sim/ros_bridge.py` | MuJoCo 상태를 ROS로 발행, 플래너 속도를 제한·검사 후 UDP 전달 |
+| `go2_autonomous_driving/sim/simulation.py` | 기존 Go2 Flat 환경·정책 로드, 외부 속도를 `vel_command_b`에 입력 |
 | `go2_autonomous_driving/core.py` | 좌표 변환, 속도 제한, 오래된 명령 거부, 목표 도달 판정 |
 | `config/simulation.json` | 체크포인트, UDP 포트, 속도 상한, 물리 장애물 배치 |
 | `config/navigation.yaml` | 브리지 속도 상한·타임아웃, 연속 이동 모드·목표 거리·갱신 주기 |
@@ -219,23 +209,20 @@ unitree_rl_mjlab/
 
 정리 후 패키지 빌드와 단위 테스트 44개를 통과했습니다. 학습 정책·관절 매핑, 명령 타임아웃, 감속 및 정지 전환 보호를 검사합니다.
 
-단위 테스트:
+호스트 실로봇 환경의 단위 테스트:
 
 ```bash
-cd /home/kante/unitree_rl_mjlab
+cd /home/kante/go2_rl
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 PYTHONPATH="src/go2_autonomous_driving:${PYTHONPATH:-}" \
   .venv_go2_real/bin/python -m pytest -q -p no:cacheprovider src/go2_autonomous_driving/test
 ```
 
-전체 연결 확인은 터미널 1·2를 실행한 상태에서 **키보드 노드 대신** 아래 스크립트를 실행합니다. 스크립트가 전방 목표 하나를 자동 생성하고, 실제 경로·속도·전진 이동·정지 명령을 검사합니다.
+전체 연결 확인은 컨테이너에서 터미널 1·2를 실행한 상태로 **키보드 노드 대신** 아래 스크립트를 실행합니다. 스크립트가 전방 목표 하나를 자동 생성하고, 실제 경로·속도·전진 이동·정지 명령을 검사합니다.
 
 ```bash
-source /opt/ros/jazzy/setup.bash
-source install/setup.bash
-export ROS_DOMAIN_ID=42
-/usr/bin/python3 scripts/check_go2_navigation.py
+python3 scripts/check_go2_navigation.py
 ```
 
 이 스크립트는 기본적으로 단일 목표 모드를 검사합니다. 목표 도달 상태까지 검사하려면 `--duration 18 --require-reached`를 추가합니다. 연속 이동은 `--continuous --duration 8`로 검사하며, 한 번의 W 입력으로 첫 1m 목표를 넘어 이동하는지, 목표 갱신 중 속도가 끊기지 않는지, Space로 정지하는지 확인합니다.

@@ -1,0 +1,8 @@
+# Optional receive-only real-state viewer without NVIDIA devices.
+# Compose >= 2.24 supports !reset; use setup_go2_docker.sh --cpu.
+services:
+  unitree-rl:
+    runtime: runc
+    gpus: !reset []
+    environment:
+      NVIDIA_VISIBLE_DEVICES: void

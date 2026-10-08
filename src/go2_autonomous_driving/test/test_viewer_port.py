@@ -4,7 +4,7 @@ import socket
 
 import pytest
 
-from go2_autonomous_driving.real_state_viewer import check_viewer_port
+from go2_autonomous_driving.real.real_state_viewer import check_viewer_port
 
 
 def test_viewer_restart_after_server_closes_a_connection():

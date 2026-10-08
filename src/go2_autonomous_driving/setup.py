@@ -11,12 +11,13 @@ setup(
         ("share/" + package_name, ["package.xml"]),
         ("share/" + package_name + "/launch", glob("launch/*.launch.py")),
         ("share/" + package_name + "/config", glob("config/*")),
+        ("share/" + package_name + "/model_pt", glob("model_pt/*.pt")),
     ],
     install_requires=["setuptools"],
     zip_safe=True,
     entry_points={"console_scripts": [
-        "keyboard_waypoint = go2_autonomous_driving.keyboard_node:main",
-        "navigation_bridge = go2_autonomous_driving.ros_bridge:main",
-        "go2_simulation = go2_autonomous_driving.simulation:main",
+        "keyboard_waypoint = go2_autonomous_driving.sim.keyboard_node:main",
+        "navigation_bridge = go2_autonomous_driving.sim.ros_bridge:main",
+        "go2_simulation = go2_autonomous_driving.sim.simulation:main",
     ]},
 )

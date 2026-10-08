@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from go2_autonomous_driving.control_transitions import JointTargetRamp, VelocityRamp
+from go2_autonomous_driving.real.control_transitions import JointTargetRamp, VelocityRamp
 
 
 def test_space_decelerates_and_s_reverses_through_zero():

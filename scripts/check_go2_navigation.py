@@ -12,7 +12,7 @@ from rclpy.parameter import Parameter
 from nav_msgs.msg import Path
 from std_msgs.msg import String
 
-from go2_autonomous_driving.keyboard_node import KeyboardWaypoint
+from go2_autonomous_driving.sim.keyboard_node import KeyboardWaypoint
 
 
 def main():
