@@ -92,7 +92,7 @@ def run(args):
     from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
     from mjlab.tasks.velocity.mdp import UniformVelocityCommand, UniformVelocityCommandCfg
     from mjlab.utils.torch import configure_torch_backends
-    import src.tasks  # noqa: F401
+    import src.locomotion_rl  # noqa: F401
 
     config_path = args.config
     if config_path is None:

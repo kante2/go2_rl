@@ -86,7 +86,7 @@ motor_cmd[joint_ids_map[i]].q = processed_action[i];
 
 ## 4. 실제 센서에서 47차원 관측 만들기
 
-배포 YAML의 `observations` 나열 순서가 정책 입력 벡터 순서가 된다. 학습 설정은 [Python observations.py](src/tasks/go2/step_02_learning/observations.py), 배포 계산은 [C++ observations.h](deploy/include/isaaclab/envs/mdp/observations/observations.h)에서 확인한다.
+배포 YAML의 `observations` 나열 순서가 정책 입력 벡터 순서가 된다. 학습 설정은 [Python observations.py](src/locomotion_rl/go2_baseline/step_02_learning/observations.py), 배포 계산은 [C++ observations.h](deploy/include/isaaclab/envs/mdp/observations/observations.h)에서 확인한다.
 
 | 입력 인덱스 | 학습 이름 → 배포 이름 | 차원 | 배포 시 계산 |
 |---|---|---:|---|
@@ -134,7 +134,7 @@ YAML의 `offset`과 `default_joint_pos`는 현재 같은 값이며 둘 다 **정
 
 예를 들어 정책 0번 행동이 `0.4`이면 FL hip 목표는 `-0.1 + 0.25 × 0.4 = 0rad`이고, 이 값이 SDK 3번 모터의 `q`에 들어간다. 현재 `clip: null`이므로 이 처리 단계는 행동을 ±1로 제한하거나 목표 관절각을 별도로 제한하지 않는다.
 
-학습 쪽 [actions.py](src/tasks/go2/step_01_environment/actions.py)도 배율 0.25와 기본 자세 offset을 사용한다. 학습 환경에서 랜덤화한 `encoder_bias`는 mjlab이 제어 목표에서 빼지만, 이 C++ 배포 코드에는 별도의 encoder bias 보정 항이 없다.
+학습 쪽 [actions.py](src/locomotion_rl/go2_baseline/step_01_environment/actions.py)도 배율 0.25와 기본 자세 offset을 사용한다. 학습 환경에서 랜덤화한 `encoder_bias`는 mjlab이 제어 목표에서 빼지만, 이 C++ 배포 코드에는 별도의 encoder bias 보정 항이 없다.
 
 ### PD 이득은 SDK 순서
 
@@ -153,7 +153,7 @@ Velocity 진입 시 목표 속도 `dq=0`, 추가 토크 `tau=0`도 설정한다.
 
 | 구분 | 현재 설정 | 근거 |
 |---|---|---|
-| 학습 물리 스텝 | 0.005초, 200Hz | [base_env.py](src/tasks/go2/step_01_environment/base_env.py) |
+| 학습 물리 스텝 | 0.005초, 200Hz | [base_env.py](src/locomotion_rl/go2_baseline/step_01_environment/base_env.py) |
 | 학습 정책 스텝 | decimation 4 → 0.02초, 50Hz | 같은 환경 설정 |
 | C++ 정책 추론 | step_dt 0.02초, 명목 50Hz | deploy.yaml + State_RLBase.h의 정책 스레드 |
 | PC 측 FSM·명령 발행 | 0.001초, 명목 1,000Hz | CtrlFSM.h의 dt + FSMState.h의 post_run |
@@ -162,7 +162,7 @@ Velocity 진입 시 목표 속도 `dq=0`, 추가 토크 `tau=0`도 설정한다.
 
 ## 6. 학습 ONNX와 배포 설정 연결
 
-학습 시 [runner.py](src/tasks/go2/step_03_training/runner.py)가 로그 폴더에 `policy.onnx`를 내보내고 관절 이름·제어 설정 등의 메타데이터를 붙인다.
+학습 시 [runner.py](src/locomotion_rl/go2_baseline/step_03_training/runner.py)가 로그 폴더에 `policy.onnx`를 내보내고 관절 이름·제어 설정 등의 메타데이터를 붙인다.
 
 Go2 배포 코드가 기대하는 정책 디렉터리 구조는 다음과 같다.
 
@@ -233,6 +233,6 @@ Go2 `State_RLBase`에 `bad_orientation(env.get(), 1.0)`이면 Passive로 전환�
 
 ### 보행 위상 초기화 차이
 
-[학습 phase()](src/tasks/go2/step_02_learning/mdp/observations.py)는 에피소드 스텝 수와 step_dt로 위상을 계산한다. C++ `gait_phase()`는 호출할 때마다 위상을 전진시키므로 reset에서 관측을 구성할 때도 증가한다. 주기와 정지 조건은 같지만 초기 위상이 완전히 같다고 가정하면 안 된다.
+[학습 phase()](src/locomotion_rl/go2_baseline/step_02_learning/mdp/observations.py)는 에피소드 스텝 수와 step_dt로 위상을 계산한다. C++ `gait_phase()`는 호출할 때마다 위상을 전진시키므로 reset에서 관측을 구성할 때도 증가한다. 주기와 정지 조건은 같지만 초기 위상이 완전히 같다고 가정하면 안 된다.
 
 이 문서의 확인 범위는 코드와 설정의 대응 관계다. 실제 로봇에서의 통신 지연, 관절 보정, 자세 안정성 및 보행 성능은 별도 실행 검증 대상이다.

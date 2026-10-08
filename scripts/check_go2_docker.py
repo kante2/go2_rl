@@ -24,7 +24,7 @@ def main():
     import mujoco
     import torch
     import warp as wp
-    import src.tasks  # Register the training tasks.
+    import src.locomotion_rl  # Register the training tasks.
     from mjlab.tasks.registry import list_tasks
 
     for name in ("torch", "mjlab", "mujoco", "mujoco-warp", "warp-lang", "viser"):

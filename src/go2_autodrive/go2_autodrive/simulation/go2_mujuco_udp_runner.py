@@ -86,7 +86,7 @@ def init(args):
     from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
     from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
     from mjlab.utils.torch import configure_torch_backends
-    import src.tasks  # noqa: F401 -- Go2 task registration
+    import src.locomotion_rl  # noqa: F401 -- Go2 task registration
 
     config, checkpoint = load_config(args)
     model_state = torch.load(checkpoint, weights_only=True, map_location="cpu")

@@ -42,7 +42,7 @@ The basic workflow for using reinforcement learning to achieve motion control is
 ### Source layout: follow the training setup
 
 ```text
-src/tasks/go2/
+src/locomotion_rl/go2_baseline/
 ├── registry.py                 Register the Flat/Rough tasks
 ├── step_01_environment/        Scene, robot, actions, commands, randomization
 │   ├── scene.py, actions.py, commands.py, events.py

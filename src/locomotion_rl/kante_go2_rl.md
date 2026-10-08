@@ -1,9 +1,8 @@
 # train
 
 
-# 평지 보행 학습 명령어
-
-<!-- 
+# 1.평지 보행 학습 명령어
+##  옵션
 옵션	                             의미
 Unitree-Go2-Flat	                평지에서 목표 속도를 따라가는 보행 학습
 --env.scene.num-envs 4096	        시뮬레이션 환경 4,096개를 병렬 실행
@@ -12,7 +11,7 @@ Unitree-Go2-Flat	                평지에서 목표 속도를 따라가는 보�
 --agent.run-name go2_flat	        저장 폴더에 붙일 실행 이름
 
 저장 : /home/kante/go2_rl/logs/rsl_rl/go2_velocity/<날짜_시간>_go2_flat/ 
--->
+
 
 
 cd /home/kante/go2_rl
@@ -22,4 +21,16 @@ python scripts/train.py Unitree-Go2-Flat \
   --agent.max-iterations 10001 \
   --agent.logger tensorboard \
   --agent.run-name go2_flat
+
+
+# 2. 보상설계
+
+
+# 3. 학습 알고리즘
+
+
+# 4. Quiet Paw 의 구조 분석
+하나의 보행 정책에 소음 제약값을 입력하여, 실행 중에도 조용하게 걷는 정도를 조절
+
+발접촉력/ 착지속도 -> 소음 대리 비용
 

@@ -1,7 +1,7 @@
 """Reward weights and parameters; formulas live in mdp/rewards.py."""
 
 # 사용할 보상함수/ 가중치/ 파리미터 설정
-# /home/kante/go2_rl/src/tasks/go2/step_02_learning/mdp/rewards.py
+# /home/kante/go2_rl/src/locomotion_rl/go2_baseline/step_02_learning/mdp/rewards.py
 #   여기에, 실제 점수를 계산하는 수식
 
 import math

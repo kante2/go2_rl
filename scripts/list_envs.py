@@ -4,7 +4,7 @@ import tyro
 from prettytable import PrettyTable
 
 import mjlab
-import src.tasks  # noqa: F401
+import src.locomotion_rl  # noqa: F401
 from mjlab.tasks.registry import list_tasks
 
 

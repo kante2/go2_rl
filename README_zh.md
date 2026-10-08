@@ -38,7 +38,7 @@ Mjlab 结合了 [Isaac Lab](https://github.com/isaac-sim/IsaacLab) 的成熟高�
 ### 按训练配置顺序阅读源码
 
 ```text
-src/tasks/go2/
+src/locomotion_rl/go2_baseline/
 ├── registry.py                 注册平地和复杂地形任务
 ├── step_01_environment/        场景、机器人、动作、指令和随机化
 │   ├── scene.py, actions.py, commands.py, events.py

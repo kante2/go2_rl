@@ -1,4 +1,4 @@
-# go2_autodrive PACKAGE -----------------------------
+# go2_autodrive PACKAGE 
 
 # 모든 명령어는 container에서 실행
 sh /home/kante/go2_rl/scripts/enter_go2_docker.sh

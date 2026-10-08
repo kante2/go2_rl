@@ -151,7 +151,7 @@ def run_play(task_id: str, cfg: PlayConfig):
 def main():
   # Parse first argument to choose the task.
   # Import local tasks to populate the registry.
-  import src.tasks  # noqa: F401
+  import src.locomotion_rl  # noqa: F401
 
   all_tasks = [task for task in list_tasks() if task.startswith("Unitree-Go2-")]
   chosen_task, remaining_args = tyro.cli(

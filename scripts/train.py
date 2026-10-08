@@ -1,6 +1,6 @@
 """Command-line entry point for Go2 train; implementation lives in step_03_training."""
 
-from src.tasks.go2.step_03_training.train import (
+from src.locomotion_rl.go2_baseline.step_03_training.train import (
   TrainConfig as TrainConfig,
   launch_training as launch_training,
   main as main,

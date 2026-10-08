@@ -17,7 +17,7 @@ docker exec -it -w /workspace/unitree_rl_mjlab unitree-rl-mjlab \
 ## 1. 폴더 순서로 보는 학습 구성
 
 ```text
-src/tasks/go2/
+src/locomotion_rl/go2_baseline/
 ├── registry.py                  Go2 평지·험지 태스크 등록
 ├── step_01_environment/         ① 로봇이 움직일 환경 구성
 │   ├── scene.py                 험지 지형 스캔 센서
@@ -63,11 +63,11 @@ src/tasks/go2/
 
 ### 학습 전체 흐름도
 
-아래 `step_*` 경로는 `src/tasks/go2/` 기준이다.
+아래 `step_*` 경로는 `src/locomotion_rl/go2_baseline/` 기준이다.
 
 ```mermaid
 flowchart TD
-    A["scripts/train.py<br/>학습 모듈 import"] --> B["src/tasks/__init__.py → go2/registry.py<br/>Go2 평지·험지 태스크 등록"]
+    A["scripts/train.py<br/>학습 모듈 import"] --> B["src/locomotion_rl/__init__.py → go2_baseline/registry.py<br/>Go2 평지·험지 태스크 등록"]
     B --> C["step_01_environment/<br/>장면·행동·명령·이벤트 구성"]
     B --> D["step_02_learning/<br/>관측·보상·종료·커리큘럼·지표 구성"]
     C --> E["step_01_environment/base_env.py → go2_env.py<br/>공통 환경 조립 후 Go2 설정 적용"]
@@ -104,18 +104,18 @@ flowchart TD
 | 파일 | 역할 |
 |---|---|
 | [scripts/train.py](scripts/train.py), [scripts/play.py](scripts/play.py) | 기존 CLI 명령을 유지하는 진입점 |
-| [src/tasks/__init__.py](src/tasks/__init__.py) | Go2 태스크 등록 모듈 import |
-| [registry.py](src/tasks/go2/registry.py) | 태스크 이름과 환경·PPO 설정·Runner 연결 |
-| [scene.py](src/tasks/go2/step_01_environment/scene.py), [actions.py](src/tasks/go2/step_01_environment/actions.py), [commands.py](src/tasks/go2/step_01_environment/commands.py), [events.py](src/tasks/go2/step_01_environment/events.py) | 환경 구성 요소별 기본값 |
-| [base_env.py](src/tasks/go2/step_01_environment/base_env.py) | 01·02단계 구성 요소를 환경 설정으로 조립 |
-| [go2_env.py](src/tasks/go2/step_01_environment/go2_env.py) | Go2 전용 보행·자세·센서와 평지·험지 설정 |
-| [observations.py](src/tasks/go2/step_02_learning/observations.py), [rewards.py](src/tasks/go2/step_02_learning/rewards.py) | 관측·보상 설정 |
-| [terminations.py](src/tasks/go2/step_02_learning/terminations.py), [curriculum.py](src/tasks/go2/step_02_learning/curriculum.py), [metrics.py](src/tasks/go2/step_02_learning/metrics.py) | 종료·커리큘럼·지표 설정 |
-| [mdp/observations.py](src/tasks/go2/step_02_learning/mdp/observations.py), [mdp/rewards.py](src/tasks/go2/step_02_learning/mdp/rewards.py), [mdp/curriculums.py](src/tasks/go2/step_02_learning/mdp/curriculums.py) | 설정에서 참조하는 실제 관측·보상·커리큘럼 계산 |
-| [ppo.py](src/tasks/go2/step_03_training/ppo.py) | 신경망 구조, PPO 파라미터, 반복·저장 기본값 |
-| [train.py](src/tasks/go2/step_03_training/train.py) | 인자 해석, GPU·로그 설정, 환경·학습기 생성, 학습 시작 |
-| [runner.py](src/tasks/go2/step_03_training/runner.py) | 체크포인트 저장 시 ONNX도 내보내는 Runner |
-| [play.py](src/tasks/go2/step_04_evaluation/play.py) | 학습된 체크포인트 실행·시각화 |
+| [src/locomotion_rl/__init__.py](src/locomotion_rl/__init__.py) | Go2 태스크 등록 모듈 import |
+| [registry.py](src/locomotion_rl/go2_baseline/registry.py) | 태스크 이름과 환경·PPO 설정·Runner 연결 |
+| [scene.py](src/locomotion_rl/go2_baseline/step_01_environment/scene.py), [actions.py](src/locomotion_rl/go2_baseline/step_01_environment/actions.py), [commands.py](src/locomotion_rl/go2_baseline/step_01_environment/commands.py), [events.py](src/locomotion_rl/go2_baseline/step_01_environment/events.py) | 환경 구성 요소별 기본값 |
+| [base_env.py](src/locomotion_rl/go2_baseline/step_01_environment/base_env.py) | 01·02단계 구성 요소를 환경 설정으로 조립 |
+| [go2_env.py](src/locomotion_rl/go2_baseline/step_01_environment/go2_env.py) | Go2 전용 보행·자세·센서와 평지·험지 설정 |
+| [observations.py](src/locomotion_rl/go2_baseline/step_02_learning/observations.py), [rewards.py](src/locomotion_rl/go2_baseline/step_02_learning/rewards.py) | 관측·보상 설정 |
+| [terminations.py](src/locomotion_rl/go2_baseline/step_02_learning/terminations.py), [curriculum.py](src/locomotion_rl/go2_baseline/step_02_learning/curriculum.py), [metrics.py](src/locomotion_rl/go2_baseline/step_02_learning/metrics.py) | 종료·커리큘럼·지표 설정 |
+| [mdp/observations.py](src/locomotion_rl/go2_baseline/step_02_learning/mdp/observations.py), [mdp/rewards.py](src/locomotion_rl/go2_baseline/step_02_learning/mdp/rewards.py), [mdp/curriculums.py](src/locomotion_rl/go2_baseline/step_02_learning/mdp/curriculums.py) | 설정에서 참조하는 실제 관측·보상·커리큘럼 계산 |
+| [ppo.py](src/locomotion_rl/go2_baseline/step_03_training/ppo.py) | 신경망 구조, PPO 파라미터, 반복·저장 기본값 |
+| [train.py](src/locomotion_rl/go2_baseline/step_03_training/train.py) | 인자 해석, GPU·로그 설정, 환경·학습기 생성, 학습 시작 |
+| [runner.py](src/locomotion_rl/go2_baseline/step_03_training/runner.py) | 체크포인트 저장 시 ONNX도 내보내는 Runner |
+| [play.py](src/locomotion_rl/go2_baseline/step_04_evaluation/play.py) | 학습된 체크포인트 실행·시각화 |
 | [go2_constants.py](src/assets/robots/unitree_go2/go2_constants.py) | 로봇 모델 로드, 기본 관절 자세, 제어 이득·토크 제한 |
 | [go2.xml](src/assets/robots/unitree_go2/xmls/go2.xml) | 몸체·관절·충돌 형상 등 물리 모델 |
 
@@ -243,7 +243,7 @@ Critic도 은닉층 `(512, 256, 128)`과 ELU를 사용하며 최종 출력은 �
 
 ### 보상 설계
 
-보상 항목과 가중치는 `step_02_learning/rewards.py`, Go2 전용 덮어쓰기는 `step_01_environment/go2_env.py`, 실제 계산식은 `step_02_learning/mdp/rewards.py` 및 가져온 mjlab 함수에서 확인한다. 여기서 `step_*` 경로는 모두 `src/tasks/go2/` 기준이다.
+보상 항목과 가중치는 `step_02_learning/rewards.py`, Go2 전용 덮어쓰기는 `step_01_environment/go2_env.py`, 실제 계산식은 `step_02_learning/mdp/rewards.py` 및 가져온 mjlab 함수에서 확인한다. 여기서 `step_*` 경로는 모두 `src/locomotion_rl/go2_baseline/` 기준이다.
 
 | 항목 | weight | 유도하는 행동 |
 |---|---:|---|
@@ -546,7 +546,7 @@ python scripts/play.py Unitree-Go2-Flat \
 | 학습 지표 | `step_02_learning/metrics.py` |
 | 학습 실행·저장·평가 | `step_03_training/train.py`, `runner.py`, `step_04_evaluation/play.py` |
 
-위 `step_*` 경로는 `src/tasks/go2/` 기준이다. 예를 들어 Go2 평지에서만 발 높이 목표와 행동 변화 페널티를 바꾸려면 `step_01_environment/go2_env.py`의 `unitree_go2_flat_env_cfg()`에서 `return cfg` 전에 다음처럼 추가한다. 설명용 예시이며 현재 학습 코드에 적용한 변경은 아니다.
+위 `step_*` 경로는 `src/locomotion_rl/go2_baseline/` 기준이다. 예를 들어 Go2 평지에서만 발 높이 목표와 행동 변화 페널티를 바꾸려면 `step_01_environment/go2_env.py`의 `unitree_go2_flat_env_cfg()`에서 `return cfg` 전에 다음처럼 추가한다. 설명용 예시이며 현재 학습 코드에 적용한 변경은 아니다.
 
 ```python
 cfg.rewards["foot_clearance"].params["target_height"] = 0.12

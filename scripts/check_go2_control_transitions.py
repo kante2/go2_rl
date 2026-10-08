@@ -17,7 +17,7 @@ import torch
 from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
-import src.tasks  # noqa: F401
+import src.locomotion_rl  # noqa: F401
 
 from go2_autonomous_driving.real.control_transitions import JointTargetRamp, VelocityRamp
 from go2_autonomous_driving.real.real_control import PolicyMapping, gravity_body

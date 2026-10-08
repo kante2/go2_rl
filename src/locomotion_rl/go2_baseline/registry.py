@@ -3,7 +3,7 @@
 # /home/kante/go2_rl/setup.py 에서 mjlab==1.2.0으로 의존성을 지정함
 from mjlab.tasks.registry import register_mjlab_task
 from .step_03_training.runner import VelocityOnPolicyRunner
-# /home/kante/go2_rl/src/tasks/go2/step_01_environment/go2_env.py
+# /home/kante/go2_rl/src/locomotion_rl/go2_baseline/step_01_environment/go2_env.py
 from .step_01_environment.go2_env import (
   unitree_go2_flat_env_cfg,
   unitree_go2_rough_env_cfg,

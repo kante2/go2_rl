@@ -12,7 +12,7 @@ from mjlab.envs import ManagerBasedRlEnv
 from mjlab.rl import RslRlVecEnvWrapper
 from mjlab.rl.exporter_utils import get_base_metadata
 from mjlab.tasks.registry import load_env_cfg, load_rl_cfg, load_runner_cls
-import src.tasks  # noqa: F401
+import src.locomotion_rl  # noqa: F401
 
 
 def main():
