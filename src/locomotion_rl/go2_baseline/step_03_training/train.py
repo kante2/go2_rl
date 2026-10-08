@@ -36,35 +36,35 @@ from mjlab.utils.wrappers import VideoRecorder
 # TrainConfig 은, 전체 training옵션을 모아놓은 config class
 @dataclass(frozen=True)
 class TrainConfig:
-  env: ManagerBasedRlEnvCfg # 실제 RL simulation environment
-  agent: RslRlBaseRunnerCfg # MjLab 환경을 RSL-RL이 이해할 수 있는 형태로 바꿈
-  video: bool = False
-  video_length: int = 200
-  video_interval: int = 2000
-  enable_nan_guard: bool = False
-  torchrunx_log_dir: str | None = None
-  gpu_ids: list[int] | Literal["all"] | None = field(default_factory=lambda: [0])
+  env: ManagerBasedRlEnvCfg # 지형·센서·관측·보상·병렬 환경 수 등 시뮬레이션 설정.
+  agent: RslRlBaseRunnerCfg # 신경망·PPO·로거·체크포인트 재개 옵션 등 학습기 설정.
+  video: bool = False  # True이면 학습 중 RGB 프레임을 기록한다.
+  video_length: int = 200  # 한 영상에 기록할 환경 스텝 수; 기본 정책 주기 기준 약 4초.
+  video_interval: int = 2000  # 영상을 새로 기록할 환경 스텝 간격. PPO 반복 횟수와 다르다.
+  enable_nan_guard: bool = False  # 시뮬레이션 수치 이상(NaN) 검출 기능 사용 여부.
+  torchrunx_log_dir: str | None = None  # 다중 GPU 실행 로그 경로. None이면 실행 폴더 아래 자동 선택.
+  gpu_ids: list[int] | Literal["all"] | None = field(default_factory=lambda: [0])  # [0]=GPU 0, all=전체, None=CPU.
 
   # registry.py에서 등록된 환경을 가져오는 부분
   # task_id : unitree-go2-flat, unitree-go2-rough가 존재 --
   # from_task함수에서, 이름으로 설정을 조회
   @staticmethod
   def from_task(task_id: str) -> "TrainConfig":
-    env_cfg = load_env_cfg(task_id) # env_cfg
-    agent_cfg = load_rl_cfg(task_id) # rl_cfg
+    env_cfg = load_env_cfg(task_id) # registry.py에 등록한 태스크의 학습용 환경 설정.
+    agent_cfg = load_rl_cfg(task_id) # 같은 태스크에 연결된 PPO 기본 설정.
     return TrainConfig(env=env_cfg, agent=agent_cfg)
 
 # 실제 학습 한번을 실행하는 함수,
 def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   # CPU/ GPU을 결정
-  cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
+  cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")  # 이 프로세스에서 보이는 GPU 목록.
   if cuda_visible == "":
     device = "cpu"
     seed = cfg.agent.seed
     rank = 0
   else:
-    local_rank = int(os.environ.get("LOCAL_RANK", "0"))
-    rank = int(os.environ.get("RANK", "0"))
+    local_rank = int(os.environ.get("LOCAL_RANK", "0"))  # 현재 호스트 안에서의 워커/GPU 번호.
+    rank = int(os.environ.get("RANK", "0"))  # 전체 워커 번호. 0번이 공통 로그/설정을 기록한다.
     # Set EGL device to match the CUDA device.
     os.environ["MUJOCO_EGL_DEVICE_ID"] = str(local_rank)
     device = f"cuda:{local_rank}"
@@ -80,8 +80,8 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
 
   configure_torch_backends()
 
-  cfg.agent.seed = seed
-  cfg.env.seed = seed
+  cfg.agent.seed = seed  # 정책 초기화/학습 난수 시드.
+  cfg.env.seed = seed  # 환경 랜덤화 난수 시드. 워커별로 다르게 설정한다.
 
   print(f"[INFO] Training with: device={device}, seed={seed}, rank={rank}")
 
@@ -104,6 +104,8 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   # resume옵션이 켜져있으면, 과거 checkpoint를 찾는다 -> 다음, runner.load()에서 checkpoint를 불러와서 학습을 이어간다.
   resume_path: Path | None = None
   if cfg.agent.resume:
+      # --agent.resume True로 활성화한다. load_run/load_checkpoint는 이 로그 루트 안의 이름/정규식.
+      # 평가의 --checkpoint-file과 달리 임의 절대 경로를 직접 받는 옵션은 아니다.
       # Load checkpoint from local filesystem.
       resume_path = get_checkpoint_path(
         log_root_path, cfg.agent.load_run, cfg.agent.load_checkpoint
@@ -133,7 +135,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
             ▼
           RSL-RL
   '''
-  env = RslRlVecEnvWrapper(env, clip_actions=cfg.agent.clip_actions)
+  env = RslRlVecEnvWrapper(env, clip_actions=cfg.agent.clip_actions)  # None이면 wrapper의 행동 클립 비활성.
   # cfg을 python dictionary 형태로 바꾼다. (yaml로 저장하기 위해)
   agent_cfg = asdict(cfg.agent)
   env_cfg = asdict(cfg.env)
@@ -145,7 +147,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   if runner_cls is None:
     runner_cls = MjlabOnPolicyRunner
 
-  runner_kwargs = {}
+  runner_kwargs = {}  # 커스텀 runner에 추가로 전달할 인자. 현재는 추가 항목 없음.
   runner = runner_cls(env, agent_cfg, str(log_dir), device, **runner_kwargs)
 
   '''
@@ -170,6 +172,8 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
 
   runner.add_git_repo_to_log(__file__)
   if resume_path is not None:
+    # 기본 load는 Actor/Critic·옵티마이저·학습 반복 번호를 복원하고, 저장된 환경 진행 카운터도 읽는다.
+    # 로봇의 순간 자세/궤적을 그대로 이어 재생하는 것은 아니며 환경 에피소드는 새로 시작한다.
     print(f"[INFO]: Loading model checkpoint from: {resume_path}")
     runner.load(str(resume_path)) # resume옵션이 켜져있으면 과거 checkpoint를 찾고, 기존 policy를 불러와서 학습을 이어간다.
 
@@ -215,6 +219,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   # init_at_random_ep_len=True : 초기 episode proress을 랜덤하게 만들어 분산시킨다,
   #  즉, parallel environment간 동기화를 깨뜨리는 역할을 한다. (모든 parallel environment가 같은 시점에서 시작하면, 학습이 잘 안될 수 있음)
   runner.learn(
+    # max_iterations는 최종 목표 번호가 아니라 이번 실행에서 수행할 추가 학습 반복 수이다.
     num_learning_iterations=cfg.agent.max_iterations, init_at_random_ep_len=True
   )
   # 학습이 끝나면, 환경을 닫는다.
@@ -228,14 +233,14 @@ def launch_training(task_id: str, args: TrainConfig | None = None):
   # Create log directory once before launching workers.
   log_root_path = Path("logs") / "rsl_rl" / args.agent.experiment_name
   log_root_path.resolve()
-  log_dir_name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+  log_dir_name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")  # 실행 환경 시각으로 새 로그 폴더 생성.
   if args.agent.run_name:
     log_dir_name += f"_{args.agent.run_name}"
-  log_dir = log_root_path / log_dir_name
+  log_dir = log_root_path / log_dir_name  # 재개 학습도 원본 폴더 대신 이 새 폴더에 결과를 저장한다.
 
   # GPU 선택 ----------------
   # Select GPUs based on CUDA_VISIBLE_DEVICES and user specification.
-  selected_gpus, num_gpus = select_gpus(args.gpu_ids)
+  selected_gpus, num_gpus = select_gpus(args.gpu_ids)  # 실제 사용할 GPU 목록과 워커 수.
 
   # Set environment variables for all modes.
   # Mujuco가 rendering할 GPU를 지정
@@ -275,8 +280,8 @@ def launch_training(task_id: str, args: TrainConfig | None = None):
 
     print(f"[INFO] Launching training with {num_gpus} GPUs", flush=True)
     torchrunx.Launcher(
-      hostnames=["localhost"],
-      workers_per_host=num_gpus,
+      hostnames=["localhost"],  # 현재 코드는 한 호스트의 여러 GPU를 사용한다.
+      workers_per_host=num_gpus,  # GPU당 워커 하나; 각 워커가 자체 병렬 환경을 가진다.
       backend=None,  # Let rsl_rl handle process group initialization.
       copy_env_vars=torchrunx.DEFAULT_ENV_VARS_FOR_COPY + ("MUJOCO*",),
     ).run(run_train, task_id, args, log_dir)
@@ -288,6 +293,7 @@ def main():
   import src.locomotion_rl  # noqa: F401
 
   all_tasks = [task for task in list_tasks() if task.startswith("Unitree-Go2-")]
+  # 첫 인자는 태스크 이름, remaining_args는 --env.* / --agent.* 등을 포함한 나머지 CLI 인자이다.
   chosen_task, remaining_args = tyro.cli(
     tyro.extras.literal_type_from_choices(all_tasks),
     add_help=False,
@@ -296,6 +302,7 @@ def main():
   )
 
   args = tyro.cli(
+    # 선택 태스크의 기본값에 CLI를 덮어쓴다. 예: --agent.resume True --env.scene.num-envs 1024.
     TrainConfig,
     args=remaining_args,
     default=TrainConfig.from_task(chosen_task),

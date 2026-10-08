@@ -13,16 +13,17 @@ from .step_03_training.ppo import unitree_go2_ppo_runner_cfg
 # 내부에서는 중복 등록을 검사한 뒤, 모듈의 _REGISTRY 딕셔너리(공동딕셔너리) 에 설정을 저장
 # ->
 # 등록이 끝나면 학습 코드(train.py) 에서 같은 라이브러리의 조회 함수를 가져와 사용합니다.
+# 이 파일을 import하면 태스크 구성을 등록한다. 여기서 시뮬레이션이나 학습 루프를 실행하지는 않는다.
 register_mjlab_task(
-  task_id="Unitree-Go2-Rough",
-  env_cfg=unitree_go2_rough_env_cfg(),
-  play_env_cfg=unitree_go2_rough_env_cfg(play=True),
-  rl_cfg=unitree_go2_ppo_runner_cfg(),
-  runner_cls=VelocityOnPolicyRunner,
+  task_id="Unitree-Go2-Rough",  # train.py/play.py 첫 인자에 입력할 험지 태스크 이름.
+  env_cfg=unitree_go2_rough_env_cfg(),  # 학습용 환경 설정: 관측 노이즈·외란·커리큘럼 포함.
+  play_env_cfg=unitree_go2_rough_env_cfg(play=True),  # 평가용 환경 설정을 별도로 생성한다.
+  rl_cfg=unitree_go2_ppo_runner_cfg(),  # Actor/Critic 구조, PPO 하이퍼파라미터, 로그 설정.
+  runner_cls=VelocityOnPolicyRunner,  # 체크포인트 저장 시 ONNX도 내보내는 학습 실행기.
 )
 
 register_mjlab_task(
-  task_id="Unitree-Go2-Flat",
+  task_id="Unitree-Go2-Flat",  # 평지 태스크. 위와 별도의 환경 설정을 등록하고 PPO 구성은 공유한다.
   env_cfg=unitree_go2_flat_env_cfg(),
   play_env_cfg=unitree_go2_flat_env_cfg(play=True),
   rl_cfg=unitree_go2_ppo_runner_cfg(),

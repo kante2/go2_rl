@@ -57,16 +57,20 @@ from . import mdp
 
 '''
 def make_rewards() -> dict[str, RewardTermCfg]:
+  # func의 환경별 결과에 weight를 곱해 보상으로 합산한다. 음수 weight는 비용을 페널티로 만든다.
+  # mjlab의 기본 scale_by_dt=True에서는 정책 주기 dt도 곱한다. weight 자체가 스텝당 최종 점수는 아니다.
+  # std는 측정 노이즈가 아니라 exp(-오차²/std²) 보상의 허용 폭이다. 작을수록 오차에 엄격하다.
+  # command_threshold는 |선속도|+|회전속도|를 더한 활동도 판정값이며 순수 m/s 단위는 아니다.
   return {
     "track_linear_velocity": RewardTermCfg(
       func=mdp.track_linear_velocity,
       weight=1.0,
-      params={"command_name": "twist", "std": math.sqrt(0.25)},
+      params={"command_name": "twist", "std": math.sqrt(0.25)},  # std=0.5, 제곱오차 분모=0.25.
     ),
     "track_angular_velocity": RewardTermCfg(
       func=mdp.track_angular_velocity,
       weight=1.0,
-      params={"command_name": "twist", "std": math.sqrt(0.5)},
+      params={"command_name": "twist", "std": math.sqrt(0.5)},  # 회전 추종 오차의 허용 폭.
     ),
     "body_orientation_l2": RewardTermCfg(
       func=mdp.body_orientation_l2,
@@ -79,44 +83,44 @@ def make_rewards() -> dict[str, RewardTermCfg]:
       params={
         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
         "command_name": "twist",
-        "std_standing": {},  # Set per-robot.
-        "std_walking": {},  # Set per-robot.
-        "std_running": {},  # Set per-robot.
-        "walking_threshold": 0.1,
-        "running_threshold": 1.5,
+        "std_standing": {},  # 정지 시 관절별 허용 폭 [rad]; go2_env.py가 채운다.
+        "std_walking": {},  # 보행 시 관절별 허용 폭 [rad].
+        "std_running": {},  # 달리기 시 관절별 허용 폭 [rad].
+        "walking_threshold": 0.1,  # 활동도 < 0.1이면 정지 자세 기준을 적용한다.
+        "running_threshold": 1.5,  # 활동도 >= 1.5이면 달리기 자세 기준을 적용한다.
       },
     ),
     "body_ang_vel": RewardTermCfg(
       func=mdp.body_angular_velocity_penalty,
-      weight=-0.05,  # Override per-robot
+      weight=-0.05,  # 월드 x/y 각속도 제곱에 페널티를 주어 몸통 흔들림을 억제한다.
       params={"asset_cfg": SceneEntityCfg("robot", body_names=())},  # Set per-robot.
     ),
     "angular_momentum": RewardTermCfg(
       func=mdp.angular_momentum_penalty,
-      weight=-0.025,  # Override per-robot
-      params={"sensor_name": "robot/root_angmom"},
+      weight=-0.025,  # 전신 각운동량 크기의 제곱에 주는 페널티.
+      params={"sensor_name": "robot/root_angmom"},  # 로봇 XML의 각운동량 센서 이름.
     ),
-    "is_terminated": RewardTermCfg(func=mdp.is_terminated, weight=-200.0),
-    "joint_acc_l2": RewardTermCfg(func=mdp.joint_acc_l2, weight=-2.5e-7),
-    "joint_pos_limits": RewardTermCfg(func=mdp.joint_pos_limits, weight=-10.0),
-    "action_rate_l2": RewardTermCfg(func=mdp.action_rate_l2, weight=-0.05),
+    "is_terminated": RewardTermCfg(func=mdp.is_terminated, weight=-200.0),  # 시간 초과를 제외한 실패 종료.
+    "joint_acc_l2": RewardTermCfg(func=mdp.joint_acc_l2, weight=-2.5e-7),  # 관절 가속도 제곱합 억제.
+    "joint_pos_limits": RewardTermCfg(func=mdp.joint_pos_limits, weight=-10.0),  # 소프트 관절 한계 위반 억제.
+    "action_rate_l2": RewardTermCfg(func=mdp.action_rate_l2, weight=-0.05),  # 현재/직전 행동 차이 제곱합 억제.
     "foot_gait": RewardTermCfg(
       func=mdp.feet_gait,
       weight=0.5,
       params={
-        "period": 0.6,
-        "offset": [0.0, 0.5],
-        "threshold": 0.56,
-        "command_threshold": 0.1,
-        "command_name": "twist",
-        "sensor_name": "feet_ground_contact",
+        "period": 0.6,  # 보행 한 주기의 길이 [s]; 관측 phase의 주기와 맞춘다.
+        "offset": [0.0, 0.5],  # 공통 기본값. Go2에서는 네 발 [0, 0.5, 0.5, 0]으로 덮어쓴다.
+        "threshold": 0.56,  # 발 위상 0~1 중 앞 56%를 접지 구간으로 정한다.
+        "command_threshold": 0.1,  # 활동도가 이 값보다 커야 보행 리듬 보상을 적용한다.
+        "command_name": "twist",  # 목표 명령을 읽는 command manager 키.
+        "sensor_name": "feet_ground_contact",  # 실제 발 접촉과 목표 리듬을 비교할 센서.
       }
     ),
     "foot_clearance": RewardTermCfg(
       func=mdp.feet_clearance,
       weight=-1.0,
       params={
-        "target_height": 0.10,
+        "target_height": 0.10,  # 움직이는 발의 목표 월드 z 높이 [m]; 지형 상대 높이는 아니다.
         "command_name": "twist",
         "command_threshold": 0.1,
         "asset_cfg": SceneEntityCfg("robot", site_names=()),  # Set per-robot.
