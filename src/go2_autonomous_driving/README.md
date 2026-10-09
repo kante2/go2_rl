@@ -61,6 +61,81 @@ bash /home/kante/go2_rl/scripts/run_go2_real_keyboard.sh
 
 2026-10-07 검증: 단위 테스트 46개 통과. 100개 프레임에서 원본 정책/ONNX 최대 오차 `8.35e-7`, 실제 관측 구성 최대 오차 `1.67e-6`을 확인했습니다. 실제 LowState로 약 50Hz 추론, 실제 키보드 W/Space, 뷰어 HTTP 200과 측정 자세 표시를 **모터 송신 없이** 확인했습니다. MuJoCo 관절 이름별 각도·속도와 몸체 quaternion 일치, 물리 적분 없이 xyz 고정도 검사했습니다. 가상 Go2에서는 정상 종료·키보드 타임아웃·LowState 중단·L2+B·Ctrl+C 처리를 통과했습니다. 기존 시뮬레이션 전용 구성에서도 W 한 번으로 약 3.15m 연속 전진하고 Space로 정지했습니다. 이 변경으로 실제 보행 시험을 수행하지는 않았습니다.
 
+## QuietPaw 모델로 실로봇 제어
+
+`real/real_quietpaw.py`는 QuietPaw Flat의 48입력 Actor를 실행한다. 실제 IMU·관절로
+기존 47개 관측을 만들고 마지막에 비용 한계값을 추가한다. `--quietness`는 0~1이며,
+체크포인트에 저장된 범위로 `max_cost_limit - quietness * (max_cost_limit - min_cost_limit)`을
+계산한다. `model_9999.pt`의 범위는 0.02~0.35이므로 `--quietness 0.5`의 실제 마지막
+입력은 0.185다. 저장된 Actor 정규화도 ONNX 안에 포함되며, 실물에서 다시 정규화하지 않는다.
+
+최초 변환 또는 PT 파일 변경 시, 호스트에서 실행한다. 기존 ROS/호스트 가상환경과
+mjlab Docker가 준비되어 있어야 한다. QuietPaw 학습 코드를 1009에 복원할 필요는 없다.
+
+```bash
+bash /home/kante/go2_rl/scripts/prepare_go2_real_quietpaw.sh \
+  --checkpoint src/go2_autonomous_driving/model_pt/model_9999.pt
+```
+
+변환기는 PT의 Actor 구성·정규화·비용 범위를 복원한다. 이 저장소의 QuietPaw와 같은
+로봇·action·앞 47개 관측을 사용하는 Flat 환경에서 관절 매핑을 추출하고, 조건 0/0.5/1의
+120개 프레임으로 원본 Actor와 호스트 ONNX 출력을 비교한다. 검증된 파일만
+`artifacts/go2_real_quietpaw/`에 저장하며 기존 `artifacts/go2_real/`은 유지한다.
+학습 때 기본 자세·관절 순서·action scale·관측 정의를 별도로 변경한 PT에는 그 설정도 맞춰야 한다.
+
+기존 제어기와 뷰어를 종료한 뒤 각 호스트 터미널에서 실행한다.
+
+```bash
+# 터미널 1: QuietPaw 체크포인트에 맞는 실제 자세 뷰어
+bash /home/kante/go2_rl/scripts/run_go2_real_viewer.sh \
+  --metadata artifacts/go2_real_quietpaw/policy.json
+
+# 터미널 2: 먼저 모터 송신 없이 실제 센서/추론 확인
+bash /home/kante/go2_rl/scripts/run_go2_real_quietpaw.sh --quietness 0.5
+# 위 수신 전용 실행을 종료한 다음 실물 제어
+bash /home/kante/go2_rl/scripts/run_go2_real_quietpaw.sh --quietness 0.5 --execute
+
+# 터미널 3: REAL POLICY READY 확인 후 키보드 사용
+bash /home/kante/go2_rl/scripts/run_go2_real_keyboard.sh --speed 0.2
+```
+
+웹 주소는 `http://localhost:8080`이다. 뷰어는 실제 관절·IMU 자세를 표시하고 위치는 고정한다.
+현재 1009의 키보드는 W/S/A/D 이동, J/L 회전, Space 정지, Q 종료다.
+실행 기본값은 모터 송신 없음이다. `--execute`도 `ARM`을 입력하기 전에는 송신하지 않는다.
+기존의 상태 신선도·CRC·관절 범위/추종·기울기·모터 루프 시간 제한과 L2+B 비상정지,
+오류 후 damping 처리를 재사용한다. 격리된 통신 검증은 실물 보행 성능 검증과 구분한다.
+QuietPaw 고장 기록은 `log/go2_real_quietpaw_fault.json`에 저장된다.
+
+모터 루프 지연 대응은 baseline/QuietPaw 공통 `real_robot.py`에 적용한다.
+Unitree CRC를 동일한 결과의 네이티브 연산으로 계산하고, 제어/damping 각각의 LowCmd와
+정책 게인·직렬화 버퍼를 준비 단계에서 할당해 재사용한다. 송신마다 전체 메시지를
+두 번 직렬화하는 대신 변경된 목표각과 CRC만 갱신한다. 로봇에서 확인한 수신 QoS에 맞춰 `/lowcmd`는
+BEST_EFFORT / KEEP_LAST depth 1로 송신한다. 모터 루프 안의 LIVE/READY/DAMPING
+터미널 출력은 크기가 제한된 큐로 넘긴다. 정책 입력·가중치·관절 게인·3초 자세 전환은
+이 변경으로 달라지지 않으며, 모델 재변환도 필요 없다.
+
+500Hz 전송 주기와 누적 지연 10ms 중단 기준은 유지한다. LIVE에는 `max_publish_ms`를,
+시간 초과 메시지에는 실행 재개 지연(`wake_lateness`), 메시지 준비(`prepare`), CRC와
+직렬화(`crc`), ROS 전송(`dds`) 시간을 표시한다. 고장 JSON의 `motor_timing_failure`에는
+그 구간의 스레드 CPU 시간·GC 수집 기록을, `recent_motor_timing`에는 최근 100회 루프
+기록을 저장한다. CPU 연산과 스케줄링/DDS 대기를 구분하기 위한 계측이며, 과거의
+상세 계측 없는 고장에서 어느 구간이 지연됐는지를 소급해서 확정할 수는 없다.
+
+모터 없이 연결을 검증하려면 기존 가상 로봇 검사에 `--quietpaw`를 사용한다.
+이 스크립트는 DDS domain 94 / 인터페이스 `lo`와 별도 UDP 포트를 강제한다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source /home/kante/go2_rl/install/setup.bash
+PYTHONPATH="/home/kante/go2_rl/src/go2_autonomous_driving:${PYTHONPATH:-}" \
+  /home/kante/go2_rl/.venv_go2_real/bin/python \
+  /home/kante/go2_rl/scripts/check_go2_real_transport.py --quietpaw
+```
+
+같은 가상 검사에 `--quietness 0.3 --seconds 60 --no-keyboard --report log/quietpaw_standing.json`을
+추가하면 명령 0으로 장시간 제어를 검사한다. `--fault motor_deadline`은 가상 프로세스의
+DDS 송신에 한 번 25ms 지연을 넣어 10ms 보호 정지·상세 기록·damping을 확인한다.
+
 ## 실로봇 환경 준비와 기본 모드 복구
 
 처음 설치할 때는 시뮬레이션 빌드 후 프로젝트 루트에서 `bash scripts/prepare_go2_real_robot.sh`를 실행합니다. 공식 Unitree 메시지, 호스트 `.venv_go2_real`, ONNX 변환·매핑 파일을 준비합니다. `model_10000.pt`는 `src/go2_autonomous_driving/model_pt/`에 배치합니다. 체크포인트를 바꾸면 다시 준비하여 PT·ONNX·매핑의 해시를 일치시킵니다. 파일 내용이 같고 위치만 바뀐 경우에는 ONNX를 다시 변환할 필요가 없습니다.
@@ -183,6 +258,7 @@ Python 코드는 실행 환경에 따라 `sim/`과 `real/`로 나뉩니다. 실�
 | --- | --- |
 | `go2_autonomous_driving/sim/keyboard_node.py` | 방향 유지, 새 목표 및 연속 목표 갱신 발행 |
 | `go2_autonomous_driving/real/real_closed_loop.py` | 실제 IMU·관절로 학습 정책 실행, 직접 키보드 속도 수신 |
+| `go2_autonomous_driving/real/real_quietpaw.py` | QuietPaw 48입력 Actor 실행과 quietness → 비용 한계 변환 |
 | `go2_autonomous_driving/real/real_state_viewer.py` | 실제 관절·IMU를 MuJoCo 모델에 반영하는 읽기 전용 화면 |
 | `go2_autonomous_driving/real/keyboard_velocity.py` | 위치추정 없이 사용하는 실로봇용 키보드 속도 제어 |
 | `go2_autonomous_driving/real/real_robot.py` | 폐루프에서 사용하는 공통 DDS·모터 송신·정책 스레드·종료 처리 |

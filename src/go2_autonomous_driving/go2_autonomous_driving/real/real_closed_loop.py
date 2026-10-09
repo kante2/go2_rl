@@ -92,6 +92,9 @@ class ClosedLoopBackend(Backend):
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(json.dumps(dict(fault=self.fault, checkpoint_sha256=self.mapping.meta['checkpoint_sha256'],
                                                 config=self.config, tracking_failure=self.tracking_failure,
+                                                motor_timing_failure=self.motor_timing_failure,
+                                                peak_publish_timing=getattr(self.robot, 'peak_publish_timing', None),
+                                                recent_motor_timing=list(self.motor_timing),
                                                 recent_policy_frames=list(self.trace)), indent=2, allow_nan=False) + '\n')
                 print(f'Fault record: {path}', flush=True)
             except (OSError, ValueError) as error:
@@ -122,6 +125,7 @@ class ClosedLoopBackend(Backend):
                     execute=self.execute, phase=self.phase,
                     ready=self.phase in ('DRY READY', self.ready_label) and self.navigation_ready(),
                     position_mode='fixed_for_display', policy_steps=self.policy_steps)
+        data['peak_publish_timing'] = getattr(self.robot, 'peak_publish_timing', None)
         payload = json.dumps(data, allow_nan=False, separators=(',', ':')).encode()
         for port in (self.config['telemetry_port'], self.config['keyboard_status_port']):
             self.sender.sendto(payload, ('127.0.0.1', port))

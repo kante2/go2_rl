@@ -7,6 +7,7 @@ import math
 from pathlib import Path
 import socket
 import signal
+import struct
 import sys
 import threading
 import time
@@ -17,7 +18,7 @@ import onnxruntime as ort
 import rclpy
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
 from rclpy.signals import SignalHandlerOptions
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs_py import point_cloud2
@@ -27,6 +28,7 @@ from unitree_go.msg import LowCmd, LowState
 from ..core import CommandWatchdog
 from .real_control import (PolicyMapping, gravity_body, next_period, pack_low_command,
                            pack_low_state, remote_estop, require_independent_navigation, wire_crc)
+from .runtime_monitor import AsyncStatusPrinter, GCPauseMonitor, MotorLoopTiming, PublishTiming
 
 
 class Robot(Node):
@@ -38,6 +40,15 @@ class Robot(Node):
         self.last_tick = None
         self.bad_crc = self.state_count = 0
         self.last_other_command = -math.inf
+        self.last_motor_command = None
+        self.last_publish_timing = self.peak_publish_timing = None
+        # Allocate before arming. Alternate buffers so a failed publish cannot
+        # mutate the last successfully sent command retained for diagnostics.
+        self.motor_message_index = 0
+        self.policy_kp = mapping.to_sdk(mapping.meta['joint_stiffness'])
+        self.policy_kd = mapping.to_sdk(mapping.meta['joint_damping'])
+        self.motor_buffers = {damping: [MotorCommandBuffer(self.policy_kp, self.policy_kd, damping)
+                                       for _ in range(2)] for damping in (False, True)}
         self.own_packets = deque(maxlen=128)
         self.responses = {}
         self.create_subscription(LowState, '/lowstate', self.on_state, qos_profile_sensor_data)
@@ -134,25 +145,73 @@ class Robot(Node):
         return state, q, dq
 
     def create_motor_publisher(self):
-        self.motor_publisher = self.create_publisher(LowCmd, '/lowcmd', 1)
+        # Confirmed on this Go2: BEST_EFFORT, KEEP_LAST depth 1. Do not retain
+        # outdated motor targets while waiting for a reliable observer's ACK.
+        qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
+        self.motor_publisher = self.create_publisher(LowCmd, '/lowcmd', qos)
 
     def publish_motors(self, targets, damping=False):
-        msg = LowCmd()
-        msg.head = [0xFE, 0xEF]
-        msg.level_flag = 0xFF
-        kp = self.mapping.to_sdk(self.mapping.meta['joint_stiffness'])
-        kd = self.mapping.to_sdk(self.mapping.meta['joint_damping'])
-        for index, motor in enumerate(msg.motor_cmd):
-            motor.mode = 1
-            motor.q, motor.dq = 2.146e9, 16000.0
-            if index < 12:
-                motor.q = float(targets[index]) if not damping else 2.146e9
-                motor.dq = 0.0
-                motor.kp = float(kp[index]) if not damping else 0.0
-                motor.kd = float(kd[index]) if not damping else 2.0
-        msg.crc = wire_crc(pack_low_command(msg))
-        self.own_packets.append(pack_low_command(msg))
-        self.motor_publisher.publish(msg)
+        timing = PublishTiming()
+        buffer = self.motor_buffers[damping][self.motor_message_index]
+        msg = buffer.message
+        buffer.set_targets(targets)
+        timing.mark('prepare')
+        self.own_packets.append(buffer.seal())
+        timing.mark('crc_pack')
+        try:
+            self.motor_publisher.publish(msg)
+        finally:
+            timing.mark('dds')
+            self.last_publish_timing = timing.finish()
+            if not damping and (self.peak_publish_timing is None
+                    or self.last_publish_timing['total_ms'] > self.peak_publish_timing['total_ms']):
+                self.peak_publish_timing = self.last_publish_timing
+        self.last_motor_command = (time.monotonic(), msg)
+        self.motor_message_index = 1 - self.motor_message_index
+
+
+def make_motor_message():
+    """Fixed LowCmd fields; allocation never creates a ROS motor publisher."""
+    msg = LowCmd()
+    msg.head = [0xFE, 0xEF]
+    msg.level_flag = 0xFF
+    for index, motor in enumerate(msg.motor_cmd):
+        motor.mode = 1
+        motor.q = 2.146e9
+        motor.dq = 0.0 if index < 12 else 16000.0
+        motor.kp = motor.kd = motor.tau = 0.0
+    return msg
+
+
+class MotorCommandBuffer:
+    """Cache invariant LowCmd wire fields; update only q and CRC at 500 Hz.
+
+    The same header/motor layout is independently exercised against
+    pack_low_command in tests. Keep both ROS values and wire float32 values
+    synchronized, including for targets supplied as float64.
+    """
+    def __init__(self, kp, kd, damping):
+        self.message = make_motor_message()
+        self.motors = tuple(self.message.motor_cmd[:12])
+        self.damping = damping
+        for motor, stiffness, damping_gain in zip(self.motors, kp, kd):
+            motor.kp = 0.0 if damping else float(stiffness)
+            motor.kd = 2.0 if damping else float(damping_gain)
+        self.wire = bytearray(pack_low_command(self.message))
+        self.q_wire = np.ndarray((12,), dtype='<f4', buffer=self.wire,
+                                 offset=struct.calcsize('<4B4IH2x') + struct.calcsize('<B3x'),
+                                 strides=(struct.calcsize('<B3x5f3I'),))
+
+    def set_targets(self, targets):
+        if not self.damping:
+            self.q_wire[:] = targets
+            for motor, target in zip(self.motors, targets):
+                motor.q = float(target)
+
+    def seal(self):
+        self.message.crc = wire_crc(self.wire)
+        struct.pack_into('<I', self.wire, len(self.wire) - 4, self.message.crc)
+        return bytes(self.wire)
 
 
 class Backend:
@@ -189,6 +248,8 @@ class Backend:
         self.next_telemetry = 0.0
         self.previous_position = None
         self.had_sensors = False
+        self.motor_timing = deque(maxlen=100)
+        self.motor_timing_failure = None
 
     def navigation_ready(self):
         return (self.robot.sensor_fresh() and self.navigation_fault is None
@@ -360,8 +421,24 @@ class Backend:
         self.sender.close()
 
 
+def spin_until_stopped(executor, stop):
+    """Stop callbacks before destroying executor guard conditions."""
+    try:
+        while not stop.is_set():
+            executor.spin_once(timeout_sec=.05)
+    except rclpy.executors.ExternalShutdownException:
+        pass
+
+
+def stop_executor(executor, spin, stop):
+    stop.set()
+    executor.wake()
+    spin.join()
+    executor.shutdown(timeout_sec=2)
+
+
 def run(args, *, backend_type=Backend, requires_navigation=True, run_policy=True,
-        send_telemetry=None):
+        send_telemetry=None, mapping_factory=PolicyMapping):
     config = json.loads(args.config.read_text())
     if getattr(args, 'fault_log', None) is not None:
         config['fault_log'] = str(args.fault_log)
@@ -373,29 +450,35 @@ def run(args, *, backend_type=Backend, requires_navigation=True, run_policy=True
         raise RuntimeError('ONNX hash does not match policy metadata; export again')
     if hashlib.sha256(args.checkpoint.read_bytes()).hexdigest() != metadata['checkpoint_sha256']:
         raise RuntimeError('Checkpoint changed; export this checkpoint again')
-    mapping = PolicyMapping(metadata)
+    mapping = mapping_factory(metadata)
     options = ort.SessionOptions()
     options.intra_op_num_threads = options.inter_op_num_threads = 1
     session = None
     if run_policy:
         session = ort.InferenceSession(str(policy_path), sess_options=options, providers=['CPUExecutionProvider'])
-        if session.get_inputs()[0].shape != [1, 47] or session.get_outputs()[0].shape != [1, 12]:
-            raise RuntimeError('Expected 47 observations and 12 actions')
+        input_shape = [1, mapping.observation_size]
+        if (len(session.get_inputs()) != 1 or len(session.get_outputs()) != 1
+                or session.get_inputs()[0].shape != input_shape
+                or session.get_outputs()[0].shape != [1, 12]):
+            raise RuntimeError(f'Expected {mapping.observation_size} observations and 12 actions')
         # Initialize ONNX kernels/allocations while no ROS motor publisher can exist.
         for _ in range(20):
-            session.run(None, {session.get_inputs()[0].name: np.zeros((1, 47), dtype=np.float32)})
+            session.run(None, {session.get_inputs()[0].name: np.zeros(input_shape, dtype=np.float32)})
     # Keep the DDS context alive until the final damping packets are sent.
     rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
     robot = Robot(config, mapping, subscribe_navigation=requires_navigation)
     executor = rclpy.executors.SingleThreadedExecutor()
     executor.add_node(robot)
-    spin = threading.Thread(target=executor.spin, daemon=True)
+    spin_stop = threading.Event()
+    spin = threading.Thread(target=spin_until_stopped, args=(executor, spin_stop), daemon=True)
     spin.start()
     backend = None
     inference = None
     telemetry = None
     motors_started = False
     released_mode = False
+    reporter = None
+    gc_monitor = GCPauseMonitor()
     try:
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline and robot.state is None:
@@ -410,6 +493,7 @@ def run(args, *, backend_type=Backend, requires_navigation=True, run_policy=True
                                f'Firmware mode={mode.get("name")!r}. Restore normal for default-topic dry-run; '
                                'learned walking needs independent localization.')
         backend = backend_type(robot, session, session.get_inputs()[0].name if session else None)
+        backend.gc_monitor = gc_monitor
         backend.execute = args.execute
         if send_telemetry is None:
             send_telemetry = requires_navigation
@@ -455,11 +539,14 @@ def run(args, *, backend_type=Backend, requires_navigation=True, run_policy=True
         else:
             backend.phase = 'DRY READY'
             print('DRY RUN: no LowCmd publisher; inspect outputs only.', flush=True)
+        reporter = AsyncStatusPrinter()
         start = deadline = time.monotonic()
         next_report = start
         while not backend.stop.is_set() and (args.seconds is None or time.monotonic() - start < args.seconds):
             now = time.monotonic()
+            timing = MotorLoopTiming(now, deadline)
             _, actual_q, _ = robot.checked_state()
+            timing.mark('state_check')
             if args.execute:
                 if now - robot.last_other_command < .1:
                     motors_started = False  # Do not fight another controller, even with damping packets.
@@ -475,23 +562,42 @@ def run(args, *, backend_type=Backend, requires_navigation=True, run_policy=True
                         backend.watchdog = CommandWatchdog(config['command_timeout'], config['max_forward_speed'],
                                                            config['max_lateral_speed'], config['max_yaw_rate'])
                         backend.phase = backend.ready_label
-                        print(f'{backend.ready_label}: {backend.ready_instruction}', flush=True)
+                        reporter.submit(f'{backend.ready_label}: {backend.ready_instruction}')
                     targets = target[1] if backend.live_policy and target[2] else mapping.to_sdk(mapping.default)
+                timing.mark('target_check')
                 backend.check_tracking(targets, actual_q)
+                timing.mark('tracking_check')
                 robot.publish_motors(targets)
+                timing.mark('publish')
                 motors_started = True
                 backend.output_started = True
             if now >= next_report:
-                print(f'{"LIVE" if args.execute else "DRY"} states={robot.state_count} crc_errors={robot.bad_crc} '
+                peak = robot.peak_publish_timing
+                publish_status = f' max_publish_ms={peak["total_ms"]:.2f}' if peak else ''
+                reporter.submit(f'{"LIVE" if args.execute else "DRY"} states={robot.state_count} crc_errors={robot.bad_crc} '
                       f'inferences={backend.policy_steps} infer_ms={backend.policy_ms:.2f} '
                       f'max_infer_ms={backend.max_policy_ms:.2f} skipped={backend.skipped_slots} '
                       f'cloud_ms={backend.telemetry_ms:.2f} max_cloud_ms={backend.max_telemetry_ms:.2f} '
-                      f'cmd={np.round(backend.command, 3).tolist()} {backend.status()}', flush=True)
+                      f'cmd={np.round(backend.command, 3).tolist()} {backend.status()}{publish_status}')
                 next_report = now + 2
+            timing.mark('status_enqueue')
             deadline += .002
-            if deadline < time.monotonic() - .01:
+            finished, frame = timing.finish(deadline)
+            backend.motor_timing.append(frame)
+            if deadline < finished - .01:
                 if args.execute:
-                    raise RuntimeError('Motor loop missed its deadline')
+                    detail = robot.last_publish_timing
+                    backend.motor_timing_failure = dict(frame, console_dropped=reporter.dropped,
+                                                        console_error=reporter.error,
+                                                        publish_detail=detail,
+                                                        gc_collections=gc_monitor.snapshot())
+                    raise RuntimeError(
+                        f'Motor loop missed its deadline: lateness={frame["deadline_lateness_ms"]:.2f}ms '
+                        f'limit=10.00ms loop={frame["loop_ms"]:.2f}ms '
+                        f'wake_lateness={frame["wake_lateness_ms"]:.2f}ms '
+                        f'publish={frame["publish_ms"]:.2f}ms '
+                        f'prepare={detail["prepare_ms"]:.2f}ms crc={detail["crc_pack_ms"]:.2f}ms '
+                        f'dds={detail["dds_ms"]:.2f}ms status_enqueue={frame["status_enqueue_ms"]:.2f}ms')
                 deadline = time.monotonic()
             time.sleep(max(0, deadline - time.monotonic()))
         if backend.fault:
@@ -505,7 +611,7 @@ def run(args, *, backend_type=Backend, requires_navigation=True, run_policy=True
             backend.stop.set()
         if motors_started:
             # Latch on exit/fault. Never return to walking or re-enable normal mode automatically.
-            print('DAMPING for 0.5 s, then disconnecting. Support the robot.', flush=True)
+            reporter.submit('DAMPING for 0.5 s, then disconnecting. Support the robot.')
             for _ in range(100):
                 robot.publish_motors(np.zeros(12), damping=True)
                 time.sleep(.005)
@@ -513,15 +619,17 @@ def run(args, *, backend_type=Backend, requires_navigation=True, run_policy=True
             inference.join(timeout=2)
         if telemetry is not None:
             telemetry.join(timeout=2)
+        if reporter is not None:
+            reporter.close()
         if released_mode:
             print('The built-in controller was released. Restore normal mode with the Unitree app/remote\n'
                   'after supporting the robot; this process does not restore it automatically.', flush=True)
         if backend is not None:
             backend.close()
-        executor.shutdown(timeout_sec=2)
-        spin.join(timeout=2)
+        stop_executor(executor, spin, spin_stop)
         robot.destroy_node()
         rclpy.try_shutdown()
+        gc_monitor.close()
 
 
 def main():

@@ -128,13 +128,22 @@ def test_filtered_action_feedback_and_tracking_fault_record(config, tmp_path):
     assert 'requested_cmd=' in recorded['fault']
 
 
-def test_policy_reads_actual_joint_and_imu_feedback_without_navigation(config):
+@pytest.mark.parametrize('quietpaw', [False, True])
+def test_policy_reads_actual_joint_and_imu_feedback_without_navigation(config, quietpaw):
     pytest.importorskip('rclpy')
     pytest.importorskip('unitree_go')
     from go2_autonomous_driving.real.real_closed_loop import ClosedLoopBackend
     from go2_autonomous_driving.real.real_control import PolicyMapping, gravity_body
     project = Path(__file__).resolve().parents[3]
-    mapping = PolicyMapping(json.loads((project / 'artifacts/go2_real/policy.json').read_text()))
+    metadata = json.loads((project / 'artifacts/go2_real/policy.json').read_text())
+    if quietpaw:
+        from go2_autonomous_driving.real.real_quietpaw import QuietPawMapping, QUIETPAW_OBSERVATIONS
+        metadata.update(policy_family='quietpaw', observation_size=48,
+                        observation_names=QUIETPAW_OBSERVATIONS,
+                        noise_condition=dict(min_cost_limit=.02, max_cost_limit=.35))
+        mapping = QuietPawMapping(metadata, quietness=.5)
+    else:
+        mapping = PolicyMapping(metadata)
     config.update(command_port=0)
     q = mapping.to_sdk(mapping.default)
     dq = np.arange(12) * .01
@@ -147,6 +156,9 @@ def test_policy_reads_actual_joint_and_imu_feedback_without_navigation(config):
     observations = []
     def infer(unused, inputs):
         obs = inputs['obs'].copy()
+        assert obs.shape == (1, 48 if quietpaw else 47)
+        if quietpaw:
+            assert obs[0, -1] == pytest.approx(.185)
         observations.append(obs)
         # An observable policy response to sensor changes, within joint limits.
         output = np.zeros((1, 12), dtype=np.float32)
