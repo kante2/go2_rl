@@ -12,8 +12,12 @@ cd /workspace/unitree_rl_mjlab
 python scripts/train.py Unitree-Go2-QuietPaw-Flat \
   --env.scene.num-envs 1024 \
   --agent.max-iterations 10000 \
+  --agent.save-interval 100 \
   --agent.logger tensorboard \
   --agent.run-name quietpaw_flat \
+  --video True \
+  --video-interval 2400 \
+  --video-length 200 \
   --gpu-ids 0
 
 ## 파일을 읽는 순서
