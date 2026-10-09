@@ -21,6 +21,18 @@ def main():
         "get_package_prefix('go2_autonomous_driving'); "
         "print('ROS imports/planner OK: Python',sys.version.split()[0])",
     ], check=True)
+    subprocess.run([
+        "/usr/local/bin/go2-env", "go2-real-python", "-c",
+        "import sys, rclpy, onnxruntime; "
+        "from rclpy.utilities import get_available_rmw_implementations; "
+        "from rclpy.type_support import check_for_type_support; "
+        "from unitree_go.msg import LowCmd, LowState; "
+        "from unitree_api.msg import Request, Response; "
+        "[check_for_type_support(t) for t in (LowCmd, LowState, Request, Response)]; "
+        "assert 'rmw_cyclonedds_cpp' in get_available_rmw_implementations(); "
+        "assert onnxruntime.__version__ == '1.23.2'; "
+        "print('Real robot ROS/Unitree/ONNX imports OK: Python',sys.version.split()[0])",
+    ], check=True)
     import mujoco
     import torch
     import warp as wp

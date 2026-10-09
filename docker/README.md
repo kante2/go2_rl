@@ -2,7 +2,7 @@
 
 시뮬레이션의 플래너·MuJoCo·학습 모델·키보드는 모두 같은 `unitree-rl-mjlab` 컨테이너에서 실행합니다. 호스트에서는 Docker와 NVIDIA 드라이버를 제공하고 브라우저로 화면을 봅니다. 시뮬레이션 실행에 호스트 ROS 설치는 필요하지 않습니다.
 
-현재 실로봇 폐루프 제어기와 실로봇용 키보드는 기존 호스트 환경을 사용합니다. 실로봇 화면은 컨테이너에서 실행합니다. 이번 변경은 시뮬레이션 터미널 1·2·3과 학습 환경을 컨테이너로 통합합니다.
+실로봇 폐루프 제어기·키보드·화면·기본 모드 복구도 같은 컨테이너에서 실행합니다. 호스트에 Conda, Python 가상환경, ROS를 설치하거나 활성화할 필요가 없습니다.
 
 ## 최초 준비: 호스트에서 한 번
 
@@ -84,6 +84,7 @@ bash scripts/run_go2_training.sh Unitree-Go2-Flat \
 | ROS 설치 | `/opt/ros/jazzy` |
 | 컨테이너의 ROS 빌드 | `/opt/go2_ros_ws/install` (호스트 `install/`과 분리) |
 | ROS Python | `python3` → 시스템 Python 3.12 |
+| 실로봇 Python | `go2-real-python` → 이미지 내부 Python 3.12 + ROS/Unitree/ONNX |
 | 학습 Python | `python` 또는 `go2-python` → Python 3.11 |
 | 학습 로그·모델 | 호스트 `logs/rsl_rl/go2_velocity/`에 저장 |
 
@@ -91,9 +92,11 @@ bash scripts/run_go2_training.sh Unitree-Go2-Flat \
 
 프로젝트 소스·설정 수정은 공유 마운트로 반영됩니다. Python 의존성, C++ 플래너, ROS 패키지 메타데이터/실행 항목을 바꾸면 이미지를 다시 빌드합니다. 이미지에는 체크포인트·호스트 가상환경·호스트 ROS 빌드 결과를 복사하지 않습니다.
 
-## 기존 실로봇 구성: 호스트에서 실행
+## 실로봇: Docker에서 실행
 
-실로봇용 ONNX·매핑 파일과 호스트 `.venv_go2_real`은 기존 환경을 사용합니다. 새 PC는 호스트 ROS/Unitree 메시지와 `scripts/prepare_go2_real_robot.sh` 준비가 별도로 필요합니다.
+최초 설치 또는 이전 이미지에서 전환할 때 `bash scripts/setup_go2_docker.sh`로 이미지를 빌드합니다. Unitree 메시지·CycloneDDS·ONNX Runtime은 이미지에 포함됩니다. `bash scripts/prepare_go2_real_robot.sh`로 모델을 변환하고 정책 일치 검사를 수행합니다. 기존 ONNX·매핑 파일도 프로젝트 공유 폴더로 계속 사용합니다.
+
+아래 명령은 호스트에서 실행하면 Docker로 전달됩니다. 컨테이너 안에서는 프로젝트 루트에서 `bash scripts/...` 경로로 실행합니다. 네트워크는 host 모드를 사용하며 실로봇 DDS는 domain 0, 기본 인터페이스는 `enp3s0`입니다. `GO2_NETWORK_INTERFACE=인터페이스명`으로 변경할 수 있습니다. 시뮬레이션의 기본 domain 42는 유지됩니다.
 
 터미널 1 — 실제 자세 화면 (스크립트가 Docker에서 실행):
 
@@ -101,13 +104,13 @@ bash scripts/run_go2_training.sh Unitree-Go2-Flat \
 bash /home/kante/go2_rl/scripts/run_go2_real_viewer.sh
 ```
 
-터미널 2 — 호스트 실제 피드백 제어:
+터미널 2 — 실제 피드백 제어 (Docker):
 
 ```bash
 bash /home/kante/go2_rl/scripts/run_go2_real_closed_loop.sh --execute
 ```
 
-터미널 3 — 호스트 직접 키보드:
+터미널 3 — 직접 키보드 (Docker):
 
 ```bash
 bash /home/kante/go2_rl/scripts/run_go2_real_keyboard.sh --speed 0.5
@@ -134,7 +137,7 @@ GPU 모드로 돌아오려면 `bash scripts/setup_go2_docker.sh --no-build`를 �
 - 호스트 `nvidia-smi`가 실패하면 먼저 호스트 GPU 상태를 복구합니다.
 - 포트 8080을 다른 뷰어가 사용 중이면 이전 뷰어를 끝내거나 실제 상태 뷰어에 `--port 8081`을 사용합니다.
 - host network로 UDP 9871/9872(시뮬레이션), 9901/9902/9903(실로봇 화면·키보드)을 공유합니다. `ports:` 설정은 사용하지 않습니다.
-- 호스트 ROS의 `install/setup.bash`와 `.venv_go2_real`을 컨테이너에서 적용하지 않습니다.
+- 호스트 ROS의 `install/setup.bash`와 호스트 가상환경은 사용하지 않습니다. 기존 터미널에 `.venv_go2_real` 표시가 남아 있으면 `deactivate`로 나올 수 있습니다.
 
 ## 검증 기록 (2026-10-08)
 
@@ -145,3 +148,11 @@ GPU 모드로 돌아오려면 `bash scripts/setup_go2_docker.sh --no-build`를 �
 - Dockerfile 빌드 검사와 셸 구문 검사를 통과했습니다. 다운로드 캐시는 `PIP_NO_CACHE_DIR`를 해제해 사용하며, 캐시 재사용을 별도 다운로드 검사로 확인했습니다.
 
 로그는 호스트 `log/docker_ros/`에 있습니다. 실제 로봇 모터를 구동하는 시험은 수행하지 않았습니다. 교체 전 이미지는 `/home/kante/SSD/go2_rl_docker_backup/20261008_before_ros/`에 보관했습니다.
+
+### 실로봇 Docker 통합 검증 (2026-10-08)
+
+- 이 PC는 기존 학습·ROS 이미지를 기반으로 위 Dockerfile의 실로봇 의존성 단계를 추가 빌드했습니다. 전체 이미지를 처음부터 재빌드하지는 않았습니다. 전환 전 이미지는 `go2-rl:before-real-migration` 태그로 보관합니다.
+- 네트워크를 차단한 검증 컨테이너에서 실로봇 Python 3.12의 ROS·Unitree 메시지 타입·CycloneDDS·ONNX Runtime을 확인했습니다. 단위 테스트 44개가 모두 통과했습니다.
+- 기존 100개 프레임의 ONNX/PT 최대 오차는 `8.35e-7`, 실제 관측 매핑 최대 오차는 `1.67e-6`으로 허용치 `1e-4` 이내입니다.
+- 가상 DDS domain 94 / loopback에서 정상 종료, SIGINT, 비상 정지, 센서 중단, 키보드 타임아웃, 관절 추종 오류 6가지 검사를 통과했습니다. 실제 로봇 모터는 구동하지 않았습니다.
+- 호스트와 컨테이너 안의 실행 경로, 인터페이스 전달, 키보드 대화형 Q 종료, 시뮬레이션 domain 42 유지, GPU·EGL 검사를 통과했습니다. 로그는 `log/docker_real/`에 있습니다.

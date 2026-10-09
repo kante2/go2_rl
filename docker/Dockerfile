@@ -69,5 +69,27 @@ RUN /bin/bash -c 'source /opt/ros/jazzy/setup.bash && \
     /usr/bin/python3 scripts/build_go2_navigation.py \
     --planner-root /opt/go2_planner_source --workspace-root /opt/go2_ros_ws --system-pcl'
 
+# Real robot ROS + ONNX share Ubuntu's Python 3.12 inside the image.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-venv python3-pytest ros-jazzy-rmw-cyclonedds-cpp ros-jazzy-rosidl-generator-dds-idl \
+    && rm -rf /var/lib/apt/lists/*
+RUN /usr/bin/python3 -m venv --system-site-packages /opt/go2_real \
+    && /opt/go2_real/bin/python -m pip install 'onnxruntime==1.23.2' \
+    && /opt/go2_real/bin/python -m pip check \
+    && printf '#!/bin/sh\nexec /opt/go2_real/bin/python "$@"\n' > /usr/local/bin/go2-real-python \
+    && chmod +x /usr/local/bin/go2-real-python
+ARG GO2_UNITREE_REVISION=668d1ec5a05d1c38d3306bdca7d59f2ba3581a88
+RUN git init /opt/go2_unitree_source \
+    && git -C /opt/go2_unitree_source remote add origin https://github.com/unitreerobotics/unitree_ros2.git \
+    && git -C /opt/go2_unitree_source sparse-checkout set cyclonedds_ws/src/unitree/unitree_go cyclonedds_ws/src/unitree/unitree_api \
+    && git -C /opt/go2_unitree_source fetch --depth 1 --filter=blob:none origin "$GO2_UNITREE_REVISION" \
+    && git -C /opt/go2_unitree_source checkout --detach FETCH_HEAD
+RUN /bin/bash -c 'source /opt/ros/jazzy/setup.bash && \
+    colcon --log-base /opt/go2_unitree_ws/log build \
+    --base-paths /opt/go2_unitree_source/cyclonedds_ws/src/unitree \
+    --packages-select unitree_go unitree_api --executor sequential \
+    --build-base /opt/go2_unitree_ws/build --install-base /opt/go2_unitree_ws/install \
+    --cmake-args -DBUILD_TESTING=OFF -DPython3_EXECUTABLE=/usr/bin/python3 -DPYTHON_EXECUTABLE=/usr/bin/python3'
+
 ENTRYPOINT ["/usr/local/bin/go2-env"]
 CMD ["bash"]

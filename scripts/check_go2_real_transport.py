@@ -3,7 +3,7 @@
 
 No real robot transport is used. Tests ReleaseMode, CRC, 500 Hz LowCmd,
 standing transition, model readiness, and damping on normal process exit.
-Run after sourcing ROS + install with .venv_go2_real/bin/python.
+Run via scripts/run_go2_docker.sh go2-real-python.
 """
 import os
 

@@ -6,13 +6,13 @@
 
 실로봇 실행 경로는 `실제 LowState(IMU·관절) → 학습 모델 → 관절 매핑 → 실제 Go2`의 폐루프입니다. 기존 `simulation.launch.py`, `run_go2_simulation.sh`, `keyboard_waypoint`의 **시뮬레이션 전용 구성은 그대로 사용**합니다.
 
-실로봇에서는 `model_10000.pt`에서 관측 정규화까지 포함해 변환한 동일 정책 `artifacts/go2_real/policy.onnx`를 호스트 CPU에서 50Hz로 실행합니다. 모델 입력 47개는 실제 몸체 각속도·중력 방향, 키보드 속도 명령, 보행 위상, 실제 관절 위치·속도, 이전 action입니다. 출력은 기존 학습 기본 자세·action scale·관절 순서·게인으로 변환해 전송합니다. MuJoCo의 상태와 가상 접촉 정보는 이 경로의 정책 입력에 사용하지 않습니다.
+실로봇에서는 `model_10000.pt`에서 관측 정규화까지 포함해 변환한 동일 정책 `artifacts/go2_real/policy.onnx`를 Docker 내부 CPU에서 50Hz로 실행합니다. 모델 입력 47개는 실제 몸체 각속도·중력 방향, 키보드 속도 명령, 보행 위상, 실제 관절 위치·속도, 이전 action입니다. 출력은 기존 학습 기본 자세·action scale·관절 순서·게인으로 변환해 전송합니다. MuJoCo의 상태와 가상 접촉 정보는 이 경로의 정책 입력에 사용하지 않습니다.
 
 MuJoCo는 별도 프로세스에서 **실제 관절 각도와 IMU 자세**만 표시합니다. 물리 시뮬레이션을 진행하거나 제어 명령을 생성하지 않습니다. 위치추정이 없으므로 몸체 xyz는 표시용 `(0, 0, 0.32)`m에 고정합니다. 화면의 위치·높이·바닥 접촉은 실제 측정 결과가 아닙니다. 수신이 끊기면 `STALE`로 표시하고 마지막 자세를 고정합니다. **뷰어 종료는 모터 정지가 아닙니다.** 모터 제어는 터미널 2에서 종료합니다.
 
 이 경로는 위치추정 없이 사용하는 직접 키보드 속도 제어이며 플래너를 실행하지 않습니다. W/S는 몸체 기준 전진/후진, A/D는 좌/우 이동, J/L은 좌/우 회전입니다. 실제 위치와 장애물을 사용하는 자율주행은 독립 위치추정을 추가한 뒤 연결해야 합니다.
 
-기존 실행을 종료한 후 다음 3개를 실행합니다. 처음 설치할 때는 아래 시뮬레이션 빌드와 `bash scripts/prepare_go2_real_robot.sh`로 메시지·모델 변환·호스트 실행 환경을 준비합니다. 현재 PC는 준비되어 있습니다.
+기존 실행을 종료한 후 다음 3개를 실행합니다. 처음 설치할 때는 `bash scripts/setup_go2_docker.sh`와 `bash scripts/prepare_go2_real_robot.sh`로 이미지·모델 변환을 준비합니다. 모든 실로봇 실행 스크립트는 Docker를 사용합니다.
 
 **터미널 1 — MuJoCo 실제 자세 뷰어**
 
@@ -63,7 +63,7 @@ bash /home/kante/go2_rl/scripts/run_go2_real_keyboard.sh
 
 ## 실로봇 환경 준비와 기본 모드 복구
 
-처음 설치할 때는 시뮬레이션 빌드 후 프로젝트 루트에서 `bash scripts/prepare_go2_real_robot.sh`를 실행합니다. 공식 Unitree 메시지, 호스트 `.venv_go2_real`, ONNX 변환·매핑 파일을 준비합니다. `model_10000.pt`는 `src/go2_autonomous_driving/model_pt/`에 배치합니다. 체크포인트를 바꾸면 다시 준비하여 PT·ONNX·매핑의 해시를 일치시킵니다. 파일 내용이 같고 위치만 바뀐 경우에는 ONNX를 다시 변환할 필요가 없습니다.
+처음 설치할 때는 `bash scripts/setup_go2_docker.sh`로 공식 Unitree 메시지·CycloneDDS·ONNX Runtime이 포함된 이미지를 빌드한 뒤 `bash scripts/prepare_go2_real_robot.sh`로 ONNX 변환·매핑 파일을 준비합니다. 호스트 Conda·가상환경·ROS는 필요하지 않습니다. `model_10000.pt`는 `src/go2_autonomous_driving/model_pt/`에 배치합니다. 체크포인트를 바꾸면 다시 준비하여 PT·ONNX·매핑의 해시를 일치시킵니다. 파일 내용이 같고 위치만 바뀐 경우에는 ONNX를 다시 변환할 필요가 없습니다.
 
 호스트 LAN은 `enp3s0 = 192.168.123.99/24`, Go2는 `192.168.123.161`입니다. 다른 인터페이스는 실행 스크립트에 `GO2_NETWORK_INTERFACE=인터페이스명`으로 지정합니다. 현재 폐루프는 실제 `/lowstate`만 사용하며, 플래너 연결에는 별도 위치추정 구현이 필요합니다.
 
@@ -78,10 +78,7 @@ bash /home/kante/go2_rl/scripts/recover_go2_normal.sh --restore
 가상 로봇 통신 검증은 다음 명령을 사용합니다. DDS domain 94와 loopback `lo`를 강제하여 실제 로봇에 연결하지 않습니다. `--fault estop`, `--fault stale_state`, `--fault keyboard_timeout`, `--fault joint_tracking`, `--fault sigint`로 각 중단 조건을 검사할 수 있습니다.
 
 ```bash
-source /opt/ros/jazzy/setup.bash
-source install/setup.bash
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="src/go2_autonomous_driving:${PYTHONPATH:-}" \
-  .venv_go2_real/bin/python scripts/check_go2_real_transport.py
+bash scripts/run_go2_docker.sh go2-real-python scripts/check_go2_real_transport.py
 ```
 
 ## MuJoCo에서 실행
@@ -209,14 +206,11 @@ Python 코드는 실행 환경에 따라 `sim/`과 `real/`로 나뉩니다. 실�
 
 정리 후 패키지 빌드와 단위 테스트 44개를 통과했습니다. 학습 정책·관절 매핑, 명령 타임아웃, 감속 및 정지 전환 보호를 검사합니다.
 
-호스트 실로봇 환경의 단위 테스트:
+Docker 실로봇 환경의 단위 테스트:
 
 ```bash
 cd /home/kante/go2_rl
-source /opt/ros/jazzy/setup.bash
-source install/setup.bash
-PYTHONPATH="src/go2_autonomous_driving:${PYTHONPATH:-}" \
-  .venv_go2_real/bin/python -m pytest -q -p no:cacheprovider src/go2_autonomous_driving/test
+bash scripts/run_go2_docker.sh go2-real-python -m pytest -q -p no:cacheprovider src/go2_autonomous_driving/test
 ```
 
 전체 연결 확인은 컨테이너에서 터미널 1·2를 실행한 상태로 **키보드 노드 대신** 아래 스크립트를 실행합니다. 스크립트가 전방 목표 하나를 자동 생성하고, 실제 경로·속도·전진 이동·정지 명령을 검사합니다.
