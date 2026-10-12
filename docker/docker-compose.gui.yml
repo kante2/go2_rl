@@ -1,0 +1,10 @@
+# Local Linux desktop / XWayland. Prepared by setup_go2_docker.sh --gui.
+services:
+  unitree-rl:
+    environment:
+      DISPLAY: ${DISPLAY:?Run --gui from a local desktop terminal with DISPLAY set}
+      XAUTHORITY: /tmp/go2-xauth/Xauthority
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility,graphics,display
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - ${GO2_XAUTH_DIR:?Prepare X11 authentication with setup_go2_docker.sh --gui}:/tmp/go2-xauth:ro

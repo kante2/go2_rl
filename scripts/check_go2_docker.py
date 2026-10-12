@@ -1,4 +1,4 @@
-"""Check container dependencies, Go2 model and headless rendering, without motors."""
+"""Check container dependencies, rendering and optional desktop access, without motors."""
 import argparse
 import importlib.metadata
 from pathlib import Path
@@ -8,6 +8,8 @@ import subprocess
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--require-cuda", action="store_true")
+    parser.add_argument("--require-display", action="store_true",
+                        help="Also check X11 authentication and a native OpenGL window.")
     args = parser.parse_args()
     # ROS's compiled Python modules must use Ubuntu's system interpreter.
     subprocess.run([
@@ -51,6 +53,23 @@ def main():
         frame = renderer.render()
         assert frame.shape == (64, 64, 3)
     print(f"Go2 model: nq={model.nq}, nu={model.nu}; EGL render OK")
+    if args.require_display:
+        import glfw
+        if not glfw.init():
+            raise SystemExit("GLFW failed. Configure DISPLAY/X11 with setup_go2_docker.sh --gui.")
+        try:
+            glfw.window_hint(glfw.VISIBLE, glfw.FALSE)
+            window = glfw.create_window(64, 64, "Go2 display check", None, None)
+            if not window:
+                raise SystemExit("Native OpenGL window creation failed.")
+            try:
+                glfw.make_context_current(window)
+                glfw.poll_events()
+            finally:
+                glfw.destroy_window(window)
+        finally:
+            glfw.terminate()
+        print("X11 authentication / GLFW native OpenGL window OK")
     available = torch.cuda.is_available()
     print(f"CUDA available: {available}; torch CUDA version: {torch.version.cuda}")
     if args.require_cuda and not available:

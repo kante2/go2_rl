@@ -12,7 +12,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/workspace/unitree_rl_mjlab/src/go2_autonomous_driving:/workspace/unitree_rl_mjlab
 
 # Torch/Warp wheels supply their CUDA libraries; the host supplies the driver.
-# GLVND/EGL support headless MuJoCo; no X11 socket or privileged mode is needed.
+# GLVND/EGL support headless MuJoCo; the optional GUI overlay shares X11.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash ca-certificates git build-essential \
     libegl1 libegl-mesa0 libgl1 libglx-mesa0 libglib2.0-0 libgomp1 \

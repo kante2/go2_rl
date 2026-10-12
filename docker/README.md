@@ -1,6 +1,6 @@
 # Go2 RL: 컨테이너에서 학습·시뮬레이션 실행
 
-시뮬레이션의 플래너·MuJoCo·학습 모델·키보드는 모두 같은 `unitree-rl-mjlab` 컨테이너에서 실행합니다. 호스트에서는 Docker와 NVIDIA 드라이버를 제공하고 브라우저로 화면을 봅니다. 시뮬레이션 실행에 호스트 ROS 설치는 필요하지 않습니다.
+시뮬레이션의 플래너·MuJoCo·학습 모델·키보드는 모두 같은 `unitree-rl-mjlab` 컨테이너에서 실행합니다. 호스트에서는 Docker와 NVIDIA 드라이버를 제공하고 브라우저 또는 아래 GUI 설정을 통한 MuJoCo 창으로 화면을 봅니다. 시뮬레이션 실행에 호스트 ROS 설치는 필요하지 않습니다.
 
 실로봇 폐루프 제어기·키보드·화면·기본 모드 복구도 같은 컨테이너에서 실행합니다. 호스트에 Conda, Python 가상환경, ROS를 설치하거나 활성화할 필요가 없습니다.
 
@@ -22,6 +22,48 @@ bash scripts/setup_go2_docker.sh --no-build
 필수 조건: Linux x86_64, Docker Engine, Compose 2.30 이상, 호스트 `nvidia-smi` 정상 및 NVIDIA Container Toolkit. 체크포인트는 `src/go2_autonomous_driving/model_pt/model_10000.pt`에 둡니다. 모델은 프로젝트 공유 마운트로 제공하며 이미지에 복사하지 않습니다. CUDA 라이브러리는 이미지에 포함됩니다. [Docker 설치](https://docs.docker.com/engine/install/), [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
 ## 컨테이너 접속
+
+### MuJoCo 창 사용: Linux 데스크톱에서 설정
+
+실행 중인 학습·시뮬레이션을 종료한 다음, 호스트 데스크톱 터미널에서 실행합니다.
+기존 이미지로 컨테이너를 재생성하며 프로젝트의 로그·모델은 공유 폴더에 유지됩니다.
+
+```bash
+bash scripts/setup_go2_docker.sh --gui --no-build
+```
+
+`--gui`는 `DISPLAY`, X11 소켓, 현재 화면의 Xauthority 인증 쿠키를 연결합니다.
+Wayland 데스크톱에서도 XWayland의 `DISPLAY`를 사용합니다. 호스트에 `xauth`가
+필요하며 인증 파일은 사용자 runtime/cache 폴더에 보관하고 컨테이너에 읽기 전용으로
+공유합니다. `run_go2_docker.sh`는 호스트에서 실행할 때 인증을 갱신합니다.
+호스트의 접근 제어를 해제하는 `xhost +`는 사용하지 않습니다.
+
+```bash
+bash scripts/run_go2_docker.sh python scripts/play.py \
+  Unitree-Go2-QuietPaw-LongStride-Flat \
+  --checkpoint-file logs/rsl_rl/go2_quietpaw_long_stride/2026-10-11_11-55-43_long_stride_v1/model_29999.pt \
+  --num-envs 1 --quietness 0.5 --viewer native
+```
+
+`GLFW: DISPLAY environment variable is missing`이면 호스트에서 위 GUI 설정을
+실행했는지 확인합니다. `DISPLAY`만 전달해서는 소켓·인증 연결이 완성되지 않습니다.
+로그아웃 등으로 X11 소켓 또는 runtime 폴더가 바뀌면 GUI 설정을 다시 실행합니다.
+서버/SSH에서는 기존 `--viewer viser`를 사용할 수 있습니다. GUI 없이 재생성하려면
+`bash scripts/setup_go2_docker.sh --no-build`를 실행합니다.
+
+기존 이미지에 현재 코드가 요구하는 의존성이 없으면 `--no-build`를 빼고
+`bash scripts/setup_go2_docker.sh --gui`로 이미지를 갱신합니다.
+화면 연결만 포함해 환경을 재검사하려면 다음 명령을 사용합니다.
+
+```bash
+bash scripts/run_go2_docker.sh python scripts/check_go2_docker.py --require-cuda --require-display
+```
+
+2026-10-12 검증: 이미지 재빌드 후 ROS/Unitree/ONNX, CUDA, EGL, X11/GLFW 검사를
+통과했습니다. LongStride `model_29999.pt`를 native 창에서 100 policy step 실행하고
+정상 종료했습니다. 실로봇 모터는 구동하지 않았습니다.
+
+### 셸 접속
 
 호스트에서 터미널을 3개 열고 **각 터미널에서** 다음 명령을 실행합니다.
 
