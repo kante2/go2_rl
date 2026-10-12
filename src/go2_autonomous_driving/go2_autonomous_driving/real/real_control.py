@@ -1,21 +1,13 @@
 """Pure policy mapping and Unitree wire CRC; no ROS publishers or hardware I/O."""
 import math
 import struct
+from array import array
+import zlib
 
 import numpy as np
 
 
-def _crc_table():
-    table = []
-    for byte in range(256):
-        value = byte << 24
-        for _ in range(8):
-            value = ((value << 1) ^ (0x04C11DB7 if value & 0x80000000 else 0)) & 0xFFFFFFFF
-        table.append(value)
-    return table
-
-
-_TABLE = _crc_table()
+_BIT_REVERSE = bytes(int(f'{value:08b}'[::-1], 2) for value in range(256))
 
 
 def next_period(deadline, period, now):
@@ -41,12 +33,18 @@ def wire_crc(packed):
     """Unitree CRC: little-endian uint32 words, MSB-first bits, omit final CRC.
 
     Wire layouts follow unitreerobotics/unitree_sdk2_python utils/crc.py.
+    Reflect word bytes/bits to use native zlib, then undo its final reflection
+    and XOR. Applying zlib.crc32 directly to wire bytes would be incorrect.
+    Payload-sized work runs in C instead of holding the GIL in a Python loop.
     """
-    crc = 0xFFFFFFFF
-    for offset in range(0, len(packed) - 4, 4):
-        for index in (3, 2, 1, 0):
-            crc = ((crc << 8) ^ _TABLE[((crc >> 24) ^ packed[offset + index]) & 255]) & 0xFFFFFFFF
-    return crc
+    if len(packed) < 4 or len(packed) % 4:
+        raise ValueError('Unitree CRC needs complete 32-bit words including its CRC field')
+    words = array('I', packed[:-4])
+    if words.itemsize != 4:
+        raise RuntimeError('Unitree CRC requires 32-bit unsigned ints')
+    words.byteswap()
+    reflected = zlib.crc32(words.tobytes().translate(_BIT_REVERSE))
+    return int.from_bytes(reflected.to_bytes(4, 'little').translate(_BIT_REVERSE), 'big') ^ 0xFFFFFFFF
 
 
 def pack_low_command(cmd):
@@ -88,6 +86,8 @@ def remote_estop(remote):
 
 
 class PolicyMapping:
+    observation_size = 47
+
     def __init__(self, metadata):
         self.meta = metadata
         self.order = np.asarray(metadata['policy_to_sdk'], dtype=int)

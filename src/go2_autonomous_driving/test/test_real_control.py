@@ -22,14 +22,21 @@ def mapping():
 
 def test_crc_matches_independent_bitwise_reference():
     rng = np.random.default_rng(47)
-    for size in (8, 812, 1180):
-        packed = rng.bytes(size)
-        expected = 0xFFFFFFFF
-        for word in struct.unpack('<' + 'I' * (size // 4 - 1), packed[:-4]):
-            expected ^= word
-            for _ in range(32):
-                expected = ((expected << 1) ^ (0x04C11DB7 if expected & 0x80000000 else 0)) & 0xFFFFFFFF
-        assert wire_crc(packed) == expected
+    for size in (4, 8, 32, 812, 1180):
+        for packed in (bytes(size), bytes([255]) * size, *(rng.bytes(size) for _ in range(20))):
+            expected = 0xFFFFFFFF
+            for word in struct.unpack('<' + 'I' * (size // 4 - 1), packed[:-4]):
+                expected ^= word
+                for _ in range(32):
+                    expected = ((expected << 1) ^ (0x04C11DB7 if expected & 0x80000000 else 0)) & 0xFFFFFFFF
+            assert wire_crc(packed) == expected
+            assert wire_crc(packed[:-4] + b'\x12\x34\x56\x78') == expected
+
+
+@pytest.mark.parametrize('packed', [b'', bytes(3), bytes(5)])
+def test_crc_rejects_incomplete_words(packed):
+    with pytest.raises(ValueError, match='32-bit words'):
+        wire_crc(packed)
 
 
 def test_observation_uses_sdk_to_policy_order(mapping):

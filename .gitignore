@@ -18,3 +18,4 @@ __pycache__/
 /third_party/go2_navigation/
 /.venv_go2_real/
 /artifacts/go2_real/
+/artifacts/go2_real_quietpaw/

@@ -31,6 +31,7 @@ from unitree_api.msg import Request, Response
 from unitree_go.msg import LowCmd, LowState
 
 from go2_autonomous_driving.real.real_control import PolicyMapping, pack_low_command, pack_low_state, wire_crc
+from go2_autonomous_driving.real.real_quietpaw import QuietPawMapping
 from go2_autonomous_driving.real.direct_control import MeasuredStateReceiver, velocity_packet
 from go2_autonomous_driving.core import Velocity
 
@@ -38,11 +39,26 @@ from go2_autonomous_driving.core import Velocity
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--fault', choices=('none', 'sigint', 'estop', 'stale_state',
-                                          'keyboard_timeout', 'joint_tracking'), default='none')
+                                          'keyboard_timeout', 'joint_tracking', 'motor_deadline'), default='none')
     parser.add_argument('--closed-loop', action='store_true', help='Compatibility flag; closed loop is the default')
+    parser.add_argument('--quietpaw', action='store_true', help='Test the isolated 48-input QuietPaw controller')
+    parser.add_argument('--checkpoint', type=Path)
+    parser.add_argument('--policy-dir', type=Path)
+    parser.add_argument('--quietness', type=float, default=.5)
+    parser.add_argument('--seconds', type=float, default=8., help='Motor-loop duration; minimum 8 seconds')
+    parser.add_argument('--no-keyboard', action='store_true', help='Observe zero command without sending key intents')
+    parser.add_argument('--report', type=Path, help='Save timings and any fault to a persistent JSON report')
     args = parser.parse_args()
+    if not np.isfinite(args.seconds) or args.seconds < 8:
+        parser.error('--seconds must be finite and at least 8')
+    if args.no_keyboard and args.fault == 'keyboard_timeout':
+        parser.error('keyboard_timeout requires the fake keyboard sender')
     project = Path(__file__).resolve().parents[1]
-    mapping = PolicyMapping(json.loads((project / 'artifacts/go2_real/policy.json').read_text()))
+    policy_dir = args.policy_dir or project / ('artifacts/go2_real_quietpaw' if args.quietpaw else 'artifacts/go2_real')
+    checkpoint = args.checkpoint or project / 'src/go2_autonomous_driving/model_pt' / (
+        'model_9999.pt' if args.quietpaw else 'model_10000.pt')
+    metadata = json.loads((policy_dir / 'policy.json').read_text())
+    mapping = QuietPawMapping(metadata, args.quietness) if args.quietpaw else PolicyMapping(metadata)
     rclpy.init()
     node = rclpy.create_node('fake_go2_transport_test')
     low = node.create_publisher(LowState, '/lowstate', qos_profile_sensor_data)
@@ -104,6 +120,7 @@ def main():
     status_socket = None
     status_receiver = MeasuredStateReceiver(mapping.meta['checkpoint_sha256'])
     measured_commands = []
+    result = 'FAIL'
     with tempfile.TemporaryDirectory(prefix='go2_fake_dds_') as temporary:
         config = json.loads((project / 'src/go2_autonomous_driving/config/real_closed_loop.json').read_text())
         # Pick unused loopback UDP ports rather than a real backend's fixed ports.
@@ -136,6 +153,8 @@ def main():
                                                    [state.motor_state[i].q for i in mapping.order], atol=1e-6)
             if not status_receiver.fresh(now) or not status_receiver.packet['ready']:
                 return
+            if args.no_keyboard:
+                return
             if fault_active and args.fault == 'keyboard_timeout':
                 return
             command_socket.sendto(velocity_packet(Velocity(.2, 0, 0), sequence, now,
@@ -144,17 +163,42 @@ def main():
             sequence += 1
         node.create_timer(.05, direct_tick)
         try:
+            module = ('go2_autonomous_driving.real.real_quietpaw' if args.quietpaw
+                      else 'go2_autonomous_driving.real.real_closed_loop')
+            entry = ['-m', module]
+            if args.fault == 'motor_deadline':
+                # Injection exists ONLY in this domain-94 loopback test process.
+                # Delay DDS once after READY, exercising the real guard/log/damping.
+                entry = ['-c', '''
+import importlib, time
+from go2_autonomous_driving.real.real_robot import Robot
+original = Robot.create_motor_publisher
+def create(self):
+    original(self)
+    publisher = self.motor_publisher
+    class DelayedPublisher:
+        count = 0
+        def publish(self, message):
+            self.count += 1
+            if self.count == 2500:
+                time.sleep(.025)
+            publisher.publish(message)
+    self.motor_publisher = DelayedPublisher()
+Robot.create_motor_publisher = create
+importlib.import_module(''' + repr(module) + ''').main()
+''']
             child = subprocess.Popen([
-                sys.executable, '-m', 'go2_autonomous_driving.real.real_closed_loop',
-                '--checkpoint', str(project / 'src/go2_autonomous_driving/model_pt/model_10000.pt'),
-                '--policy-dir', str(project / 'artifacts/go2_real'),
-                '--config', str(path), '--execute', '--seconds', '8',
+                sys.executable, *entry,
+                '--checkpoint', str(checkpoint),
+                '--policy-dir', str(policy_dir),
+                '--config', str(path), '--execute', '--seconds', str(args.seconds),
                 '--fault-log', str(Path(temporary) / 'fault.json'),
-            ], stdin=slave, stdout=slave, stderr=slave, env=os.environ.copy())
+            ] + (['--quietness', str(args.quietness)] if args.quietpaw else []),
+                stdin=slave, stdout=slave, stderr=slave, env=os.environ.copy())
             os.close(slave)
             armed = False
             ready_at = None
-            deadline = time.monotonic() + 25
+            deadline = time.monotonic() + args.seconds + 20
             while child.poll() is None and time.monotonic() < deadline:
                 rclpy.spin_once(node, timeout_sec=.001)
                 if select.select([master], [], [], 0)[0]:
@@ -187,7 +231,7 @@ def main():
                 print(data, end='', flush=True)
             for _ in range(20):
                 rclpy.spin_once(node, timeout_sec=.001)
-            expected_code = 1 if args.fault in ('estop', 'stale_state', 'joint_tracking') else 0
+            expected_code = 1 if args.fault in ('estop', 'stale_state', 'joint_tracking', 'motor_deadline') else 0
             assert child.returncode == expected_code, f'Backend exit: {child.returncode}, expected {expected_code}'
             if args.fault != 'none':
                 assert fault_active, 'Backend stopped before the requested fault was injected'
@@ -195,15 +239,22 @@ def main():
                 'estop': ('Remote L2+B emergency stop',),
                 'stale_state': ('LowState missing/stale',),
                 'joint_tracking': ('Real joints deviate from commanded targets: joint=',),
+                'motor_deadline': ('Motor loop missed its deadline: lateness=',),
             }.get(args.fault)
             if expected_fault:
                 assert any(reason in log for reason in expected_fault), f'Wrong stop reason for {args.fault}'
             assert calls.count(1003) == 1, calls
             assert ready_label in log and 'DAMPING' in log
-            assert len(motor_times) > (3000 if args.fault == 'none' else 1500), len(motor_times)
+            if args.quietpaw:
+                assert 'QUIETPAW: 48 inputs' in log
+                assert f'cost_limit={mapping.cost_limit:g}' in log
+            assert len(motor_times) > (args.seconds * 400 if args.fault == 'none' else 1500), len(motor_times)
             assert not crc_errors
             assert all(m.kp == 0 and m.kd == 2 for m in last_cmd[0].motor_cmd[:12])
-            assert any(c[0] > .1 for _, c in measured_commands), 'Direct keyboard command never reached policy'
+            if args.no_keyboard:
+                assert measured_commands and all(max(abs(v) for v in c) == 0 for _, c in measured_commands)
+            else:
+                assert any(c[0] > .1 for _, c in measured_commands), 'Direct keyboard command never reached policy'
             if args.fault == 'keyboard_timeout':
                 # Source is never resumed; final commands must be zero while standing remains live.
                 assert all(max(abs(v) for v in c) == 0 for _, c in measured_commands[-15:])
@@ -212,6 +263,14 @@ def main():
                 assert fault_data['tracking_failure'] is not None
                 assert fault_data['recent_policy_frames']
                 assert 'limit=0.650rad' in fault_data['fault']
+            if args.fault == 'motor_deadline':
+                fault_data = json.loads((Path(temporary) / 'fault.json').read_text())
+                timing = fault_data['motor_timing_failure']
+                assert timing['publish_detail']['dds_ms'] >= 25
+                assert timing['deadline_lateness_ms'] > 10
+                assert fault_data['recent_motor_timing']
+                assert 'limit=10.00ms' in fault_data['fault']
+            result = 'PASS'
             print(json.dumps(dict(result='PASS', fault=args.fault, domain=94, interface='lo',
                                   motor_packets=len(motor_times), crc_errors=len(crc_errors),
                                   motion_api_calls=calls), indent=2))
@@ -219,6 +278,16 @@ def main():
             if child is not None and child.poll() is None:
                 child.terminate()
                 child.wait(timeout=5)
+            if args.report:
+                fault_path = Path(temporary) / 'fault.json'
+                args.report.parent.mkdir(parents=True, exist_ok=True)
+                args.report.write_text(json.dumps(dict(
+                    result=result, fault=args.fault, domain=94, interface='lo', seconds=args.seconds,
+                    quietpaw=args.quietpaw, quietness=args.quietness if args.quietpaw else None,
+                    no_keyboard=args.no_keyboard, motor_packets=len(motor_times), crc_errors=len(crc_errors),
+                    peak_publish_timing=(status_receiver.packet or {}).get('peak_publish_timing'),
+                    fault_record=json.loads(fault_path.read_text()) if fault_path.exists() else None,
+                ), indent=2) + '\n')
             os.close(master)
             command_socket.close()
             if status_socket is not None:
