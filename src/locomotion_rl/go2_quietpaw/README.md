@@ -18,7 +18,9 @@ python scripts/train.py Unitree-Go2-QuietPaw-Flat \
   --video True \
   --video-interval 2400 \
   --video-length 200 \
-  --gpu-ids 0
+  --gpu-ids '[0]'
+
+`--gpu-ids`는 리스트 형식(`'[0]'`)으로 지정한다. 생략해도 기본값 `[0]`을 사용한다.
 
 ## 파일을 읽는 순서
 

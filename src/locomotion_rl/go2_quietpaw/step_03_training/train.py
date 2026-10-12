@@ -78,7 +78,7 @@ def launch_training(task_id: str, args: TrainConfig | None = None):
   args = args or TrainConfig.from_task(task_id)
   selected_gpus, num_gpus = select_gpus(args.gpu_ids)
   if num_gpus > 1:
-    raise ValueError("QuietPaw currently supports a single GPU; select --gpu-ids 0.")
+    raise ValueError("QuietPaw currently supports a single GPU; select --gpu-ids '[0]'.")
   os.environ["CUDA_VISIBLE_DEVICES"] = "" if selected_gpus is None else ",".join(map(str, selected_gpus))
   os.environ["MUJOCO_GL"] = "egl"
   os.environ["MUJOCO_EGL_DEVICE_ID"] = "0"

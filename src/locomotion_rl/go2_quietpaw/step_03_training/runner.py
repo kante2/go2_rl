@@ -14,7 +14,7 @@ class QuietPawOnPolicyRunner(MjlabOnPolicyRunner):
   def __init__(self, env, train_cfg, log_dir=None, device="cpu"):
     # PID의 환경별 상태를 여러 프로세스로 분산 저장하는 기능은 아직 지원하지 않는다.
     if int(os.environ.get("WORLD_SIZE", "1")) > 1:
-      raise ValueError("QuietPaw supports one training process/GPU; use --gpu-ids 0.")
+      raise ValueError("QuietPaw supports one training process/GPU; use --gpu-ids '[0]'.")
     env.unwrapped.cfg.gait_curriculum.steps_per_iteration = train_cfg["num_steps_per_env"]
     super().__init__(env, deepcopy(train_cfg), log_dir, device)
 
