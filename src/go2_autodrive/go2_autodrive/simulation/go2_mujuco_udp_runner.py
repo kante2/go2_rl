@@ -1,76 +1,132 @@
-"""Run a trained Go2 policy in MuJoCo and exchange commands/state over UDP.
+"""Run a Go2 baseline / QuietPaw / LongStride policy in MuJoCo over UDP.
 
 Entry flow: main() -> init() -> run_simulation() -> close().
 Keep this module in the original package: it uses ``from ..core``.
+기본 모델 폴더는 config/model_pt/quiet_paw_long이며 가장 큰 학습 번호를 선택한다.
+시뮬레이션에서는 PT를 직접 불러온다. ONNX 준비는 필요하지 않다.
 """
 
 import argparse
-from dataclasses import asdict
 from functools import partial
+from dataclasses import asdict
 import json
 import math
 from pathlib import Path
+import re
 import socket
 import time
 import uuid
 
 from ..core import CommandWatchdog
+from ..model_config import read_model_config, is_model_config
+
+
+MODELS = {
+    "baseline": ("baseline", "Unitree-Go2-Flat"),
+    "quietpaw": ("quietpaw", "Unitree-Go2-QuietPaw-Flat"),
+    "quietpaw_long": ("quiet_paw_long", "Unitree-Go2-QuietPaw-LongStride-Flat"),
+}
 
 
 # ============================================================
 # 1. 실행 옵션과 설정 파일
 # ============================================================
-def parse_args():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--config", type=Path)
+    parser.add_argument("--model", choices=tuple(MODELS),
+                        help="config/model_pt 안에서 사용할 모델 종류")
     parser.add_argument("--device")
+    parser.add_argument("--quietness", type=float,
+                        help="0: 느슨한 소음 제약, 1: 엄격한 제약 (config보다 우선)")
     parser.add_argument("--viewer", choices=("viser", "none"), default="viser")
     parser.add_argument("--viewer-port", type=int, default=8080)
+    parser.add_argument("--monitor-port", type=int, default=9910,
+                        help="보행 UI 측정 UDP 포트. 0이면 측정 비활성화")
     parser.add_argument("--steps", type=int, help="Number of policy steps")
     parser.add_argument("--fast", action="store_true",
                         help="Headless execution without real-time pacing")
-    return parser.parse_args()
+    args = parser.parse_args(argv)
+    if not 0 <= args.monitor_port <= 65535:
+        parser.error("--monitor-port must be in [0, 65535]")
+    return args
+
+
+def select_checkpoint(model_dir):
+    """실로봇 실행기와 같이 수정 시간 대신 학습 반복 번호로 선택한다."""
+    candidates = []
+    for path in model_dir.glob("model_*.pt"):
+        match = re.fullmatch(r"model_(\d+)\.pt", path.name)
+        if match and path.is_file():
+            candidates.append((int(match.group(1)), path))
+    if not candidates:
+        raise FileNotFoundError(f"model_<번호>.pt가 없습니다: {model_dir}")
+    return max(candidates)[1]
 
 
 def load_config(args):
-    config_path = args.config
-    if config_path is None:
-        config_path = Path(__file__).resolve().parents[2] / "config/simulation.json"
-        if not config_path.is_file():
-            from ament_index_python.packages import get_package_share_directory
-
-            config_path = (
-                Path(get_package_share_directory("go2_autonomous_driving"))
-                / "config/simulation.json"
-            )
-
-    config = json.loads(config_path.read_text(encoding="utf-8"))
+    config_path, config = read_model_config(
+        Path(__file__).resolve().parents[2] / "config", args.model, args.config,
+    )
+    print(f"Config: {config_path}", flush=True)
+    profile = is_model_config(config)
 
     # 새 이름 udp_port를 우선 사용하고 기존 JSON의 telemetry_port도 지원한다.
     if "udp_port" not in config:
         config["udp_port"] = config["telemetry_port"]
 
-    # CLI 경로는 현재 작업 폴더 기준, JSON 경로는 설정 파일 기준이다.
-    checkpoint = (
-        args.checkpoint
-        if args.checkpoint is not None
-        else config_path.parent / config["checkpoint"]
-    ).resolve()
+    # model_dir는 JSON 기준, checkpoint는 model_dir 기준이다.
+    # CLI로 지정한 checkpoint는 현재 작업 폴더 기준이다.
+    model_dir = (config_path.parent / config["model_dir"]).resolve()
+    if args.model is not None and not profile:
+        model_dir = config_path.parent / "model_pt" / MODELS[args.model][0]
+        # 종류를 바꾸면 기존 config의 다른 종류 checkpoint 지정은 사용하지 않는다.
+        config["checkpoint"] = None
+    config["model"] = args.model or config.get("model", "quietpaw_long")
+    if config["model"] not in MODELS:
+        raise ValueError(f"Unknown model: {config['model']}")
+    if args.checkpoint is not None:
+        checkpoint = args.checkpoint.resolve()
+    elif config.get("checkpoint"):
+        checkpoint = (model_dir / config["checkpoint"]).resolve()
+    else:
+        checkpoint = select_checkpoint(model_dir)
     if not checkpoint.is_file():
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint}")
 
+    quietness = args.quietness if args.quietness is not None else config["quietness"]
+    if type(quietness) not in (int, float) or not math.isfinite(quietness) or not 0 <= quietness <= 1:
+        raise ValueError("quietness must be finite and in [0, 1]")
+    config["quietness"] = float(quietness)
     return config, checkpoint
 
 
-def check_policy_shape(model_state):
+def check_policy_shape(model_state, model="quietpaw_long"):
+    infos = model_state.get("infos") or {}
+    saved = infos.get("quietpaw")
+    if model == "baseline":
+        actor = model_state["actor_state_dict"]
+        input_shape = tuple(actor["mlp.0.weight"].shape)
+        output_shape = tuple(actor["mlp.6.weight"].shape)
+        if saved is not None or input_shape != (512, 47) or output_shape != (12, 128):
+            raise ValueError("baseline에는 Go2 Flat 47-input/12-action PT가 필요합니다")
+        return
+    if saved is None or "quietpaw_agent" not in infos:
+        raise ValueError("QuietPaw / LongStride 학습 설정이 저장된 PT가 필요합니다")
+    if ("stride" in saved) != (model == "quietpaw_long"):
+        raise ValueError("선택한 QuietPaw 종류와 PT의 LongStride 설정이 다릅니다")
+    actor_cfg = infos["quietpaw_agent"]["actor"]
+    hidden_dims = actor_cfg["hidden_dims"]
+    if actor_cfg["class_name"] != "MLPModel" or not hidden_dims:
+        raise ValueError("Expected a QuietPaw MLPModel actor")
     actor = model_state["actor_state_dict"]
     input_shape = tuple(actor["mlp.0.weight"].shape)
-    output_shape = tuple(actor["mlp.6.weight"].shape)
-    if input_shape != (512, 47) or output_shape != (12, 128):
+    output_shape = tuple(actor[f"mlp.{2 * len(hidden_dims)}.weight"].shape)
+    if input_shape != (hidden_dims[0], 48) or output_shape != (12, hidden_dims[-1]):
         raise ValueError(
-            "This runner requires the existing Go2 Flat "
-            "47-input/12-action policy"
+            "This runner requires a QuietPaw "
+            "48-input/12-action policy"
         )
 
 
@@ -89,8 +145,11 @@ def init(args):
     import src.locomotion_rl  # noqa: F401 -- Go2 task registration
 
     config, checkpoint = load_config(args)
+    print(f"Loading {config['model']}: {checkpoint}", flush=True)
     model_state = torch.load(checkpoint, weights_only=True, map_location="cpu")
-    check_policy_shape(model_state)
+    model = config["model"]
+    task_id = MODELS[model][1]
+    check_policy_shape(model_state, model)
     device = args.device or ("cuda:0" if torch.cuda.is_available() else "cpu")
     configure_torch_backends()
 
@@ -104,6 +163,7 @@ def init(args):
         "session": uuid.uuid4().hex,
         "reset_counter": 0,
         "previous_episode_step": 0,
+        "monitor": None,
     }
 
     try:
@@ -119,8 +179,21 @@ def init(args):
             config["max_yaw_rate"],
         )
 
-        # 단일 Go2 환경 구성
-        cfg = load_env_cfg("Unitree-Go2-Flat", play=True)
+        # PT에 저장된 네트워크 크기, 소음 비용 설정, 보행 주기를 복원한다.
+        cfg = load_env_cfg(task_id, play=True)
+        env_class = ManagerBasedRlEnv
+        if model == "baseline":
+            agent_cfg = asdict(load_rl_cfg(task_id))
+        else:
+            if model == "quietpaw_long":
+                from src.locomotion_rl.go2_quietpaw_long_stride.step_01_environment.quietpaw_env import QuietPawEnv
+                from src.locomotion_rl.go2_quietpaw_long_stride.step_04_evaluation.checkpoint import load_evaluation_settings
+            else:
+                from src.locomotion_rl.go2_quietpaw.step_01_environment.quietpaw_env import QuietPawEnv
+                from src.locomotion_rl.go2_quietpaw.step_04_evaluation.checkpoint import load_evaluation_settings
+            agent_cfg = load_evaluation_settings(cfg, checkpoint)
+            cfg.noise_condition.quietness = config["quietness"]
+            env_class = QuietPawEnv
         cfg.scene.num_envs = 1
         cfg.commands["twist"] = UniformVelocityCommandCfg(
             entity_name="robot",
@@ -141,18 +214,24 @@ def init(args):
                 spec_fn=partial(create_mujoco_obstacles, config["obstacles"])
             )
 
-        env = ManagerBasedRlEnv(cfg=cfg, device=device)
+        # QuietPaw에서는 마지막 48번째 관측값(cost_limit)을 환경이 만든다.
+        if args.monitor_port:
+            from src.go2_gait_monitor.go2_gait_monitor.mujoco import add_contact_sensors
+            add_contact_sensors(cfg)
+        env = env_class(cfg=cfg, device=device)
         state["env"] = env
+        saved_dt = model_state.get("infos", {}).get("quietpaw", {}).get("step_dt", env.step_dt)
+        if not math.isclose(env.step_dt, saved_dt, rel_tol=0, abs_tol=1e-9):
+            raise ValueError("시뮬레이션과 학습 체크포인트의 제어 주기가 다릅니다")
 
         # 사용자 정의 subclass 대신 기존 명령 객체에 함수를 연결한다.
         # 명령 갱신은 기존처럼 mjlab이 compute()를 호출하는 시점에 실행된다.
         connect_udp_command_to_mujoco(state)
 
         # 모델과 추론 함수 로딩
-        agent_cfg = load_rl_cfg("Unitree-Go2-Flat")
-        wrapped = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
-        runner = load_runner_cls("Unitree-Go2-Flat")(
-            wrapped, asdict(agent_cfg), device=device
+        wrapped = RslRlVecEnvWrapper(env, clip_actions=agent_cfg["clip_actions"])
+        runner = load_runner_cls(task_id)(
+            wrapped, agent_cfg, device=device
         )
         runner.load(
             str(checkpoint), load_cfg={"actor": True},
@@ -161,7 +240,23 @@ def init(args):
         state["wrapped"] = wrapped
         state["policy"] = runner.get_inference_policy(device=device)
         wrapped.reset()
-        print(f"Loaded {checkpoint}, iter={model_state.get('iter')}", flush=True)
+        if args.monitor_port:
+            from src.go2_gait_monitor.go2_gait_monitor.mujoco import MujocoMonitor
+            state["monitor"] = MujocoMonitor(env, config, checkpoint, args.monitor_port)
+            print(f"Gait monitor: UDP 127.0.0.1:{args.monitor_port}", flush=True)
+        condition_status = "47 -> 12"
+        if model != "baseline":
+            condition_status = (
+                f"48 -> 12, quietness={config['quietness']:g}, "
+                f"cost_limit={env.noise_condition.cost_limit[0].item():g}"
+            )
+        print(
+            f"Loaded {checkpoint}, iter={model_state.get('iter')}, "
+            f"model={model}, {condition_status}, "
+            f"phase_period={cfg.observations['actor'].terms['phase'].params['period']:g}, "
+            f"step_dt={env.step_dt:g}",
+            flush=True,
+        )
         return state
     except BaseException:
         # 초기화 도중 실패하거나 Ctrl+C가 들어와도 생성된 자원을 정리한다.
@@ -296,6 +391,8 @@ def send_mujoco_state_to_udp(state, force=False):
 # 6. 정책 추론과 시뮬레이션 실행
 # ============================================================
 def infer_action_and_send_mujoco_state(state, obs):
+    if state.get("monitor") is not None:
+        state["monitor"].publish()
     send_mujoco_state_to_udp(state)
     return state["policy"](obs)
 
@@ -332,6 +429,8 @@ def run_simulation(args, state):
                 if not args.fast:
                     time.sleep(max(0.0, deadline - time.monotonic()))
             send_mujoco_state_to_udp(state, force=True)
+            if state.get("monitor") is not None:
+                state["monitor"].publish(force=True)
 
 
 # ============================================================
@@ -341,6 +440,8 @@ def close(state):
     if state is None:
         return
     try:
+        if state.get("monitor") is not None:
+            state["monitor"].close()
         if state.get("env") is not None:
             state["env"].close()
     finally:

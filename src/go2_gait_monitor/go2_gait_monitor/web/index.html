@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Go2 · 보행 모니터</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><div class="brand"><span class="mark">G2</span><div><strong>보행 모니터</strong><small>GO2 / GAIT OBSERVATORY</small></div></div><div class="connection"><span id="lamp"></span><b id="connection">데이터 대기 중</b><small id="age">MuJoCo 연결을 기다립니다</small></div></header>
+<main>
+<section class="heading"><div><div class="eyebrow">GROUND CONTACT & MOTION</div><h1>발걸음을, 수치로 확인하세요.</h1><p>발별 지면 접촉력과 착지 충격량을 속도와 함께 비교합니다.</p></div><div class="actions"><button id="pause">화면 일시정지</button><a href="/api/export.csv" class="button primary" download>CSV 저장 ↗</a></div></section>
+<section class="session"><div><span class="tag">MUJOCO</span><strong id="model">모델 대기 중</strong><span id="checkpoint">—</span></div><div class="session-meta"><span>quietness <b id="quietness">—</b></span><span>시뮬 시간 <b id="sim-time">—</b></span><span>실시간 배율 <b id="rtf">—</b></span><span>리셋 <b id="reset">—</b></span></div></section>
+<div id="notice" role="status">시뮬레이터를 실행하면 자동으로 연결됩니다. 기존 시뮬레이터가 켜져 있다면 한 번 재실행하세요.</div>
+<section class="kpis">
+<article><div class="label">종방향 속도 <span>vx</span></div><div class="value"><b id="vx">—</b><span>m/s</span></div><small>목표 <b id="cmd-vx">—</b> m/s · 몸체 좌표계</small></article>
+<article><div class="label">횡방향 속도 <span>vy</span></div><div class="value"><b id="vy">—</b><span>m/s</span></div><small>목표 <b id="cmd-vy">—</b> m/s · 몸체 좌표계</small></article>
+<article><div class="label">각속도 <span>wz</span></div><div class="value"><b id="wz">—</b><span>rad/s</span></div><small>목표 <b id="cmd-wz">—</b> rad/s</small></article>
+<article><div class="label">구간 최대 수직 접촉력 <span>|Fz|</span></div><div class="value"><b id="peak">—</b><span>N</span></div><small>표시 구간 내 네 발의 최대값</small></article>
+</section>
+<section class="middle">
+<article class="panel foot-panel"><div class="panel-title"><h2>네 발의 접촉 상태</h2><span>위에서 본 모습 · 앞쪽 ↑</span></div><div class="robot"><div class="body-shape"><span>GO2</span><i>↑</i></div><div id="foot-FL" class="foot fl"><b>FL · 왼앞</b><strong>— <small>N</small></strong><span>대기</span></div><div id="foot-FR" class="foot fr"><b>FR · 오른앞</b><strong>— <small>N</small></strong><span>대기</span></div><div id="foot-RL" class="foot rl"><b>RL · 왼뒤</b><strong>— <small>N</small></strong><span>대기</span></div><div id="foot-RR" class="foot rr"><b>RR · 오른뒤</b><strong>— <small>N</small></strong><span>대기</span></div></div><div class="foot-note">접지 판정: |Fz| &gt; 1 N · 공중 20ms 이후 재접촉을 착지로 집계</div></article>
+<article class="panel landing-panel"><div class="panel-title"><h2>착지 충격량</h2><span>최근 완료된 착지 · 발별</span></div><div class="definition"><b>J = ∫ |Fz| dt</b><span>착지 후 최대 50ms 적분 / N·s</span></div><table><thead><tr><th>발</th><th>충격량 <small>N·s</small></th><th>착지 피크 <small>N</small></th><th>착지 횟수</th><th>완료 시점</th></tr></thead><tbody id="landings"></tbody></table><p class="fine">50ms 전에 발이 떨어지면 그 시점까지 적분합니다. 서 있는 동안의 하중을 반복 착지로 집계하지 않습니다.</p></article>
+</section>
+<section class="chart-heading"><div><h2>실시간 추이</h2><span>힘은 물리 스텝마다 측정 · UI에는 송신 구간 최대값 표시</span></div><label>표시 구간 <select id="window"><option value="10">10초</option><option value="30" selected>30초</option><option value="60">60초</option></select></label></section>
+<section class="charts"><article class="panel wide"><div class="panel-title"><h3>발별 수직 접촉력</h3><div class="legend" id="force-legend"></div></div><canvas id="forces" aria-label="발별 수직 접촉력 그래프"></canvas></article><article class="panel"><div class="panel-title"><h3>이동 속도</h3><div class="legend"><span style="--color:#62ddba">vx</span><span style="--color:#8bbcff">vy</span><small>점선: 목표</small></div></div><canvas id="speeds" aria-label="목표 및 실제 이동 속도 그래프"></canvas></article><article class="panel"><div class="panel-title"><h3>회전 속도</h3><div class="legend"><span style="--color:#eaba7c">wz</span><small>점선: 목표</small></div></div><canvas id="yaw" aria-label="목표 및 실제 각속도 그래프"></canvas></article></section>
+<footer><p>이 화면은 시뮬레이션의 물리 지표를 보여줍니다. 실제 소음(dB) 측정값이 아닙니다. 모델 비교 시 바닥·목표 속도·quietness를 동일하게 맞추세요.</p><span id="diagnostics">UDP 9910 · 읽기 전용</span><small>CSV: 현재 세션의 최근 약 10분 · 모델 변경 또는 시뮬 리셋 시 기록 초기화 · UI가 닫혀도 로봇 제어에는 영향 없음</small></footer>
+</main><script src="/app.js"></script>
+</body></html>

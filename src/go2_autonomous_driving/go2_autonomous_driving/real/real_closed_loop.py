@@ -9,7 +9,7 @@ import time
 
 import numpy as np
 
-from .direct_control import DirectCommandGate
+from .direct_control import DirectCommandGate, keyboard_speed_settings
 from .control_transitions import JointTargetRamp, VelocityRamp
 from .real_robot import Backend, run
 
@@ -126,6 +126,7 @@ class ClosedLoopBackend(Backend):
                     ready=self.phase in ('DRY READY', self.ready_label) and self.navigation_ready(),
                     position_mode='fixed_for_display', policy_steps=self.policy_steps)
         data['peak_publish_timing'] = getattr(self.robot, 'peak_publish_timing', None)
+        data.update(keyboard_speed_settings(self.config))
         payload = json.dumps(data, allow_nan=False, separators=(',', ':')).encode()
         for port in (self.config['telemetry_port'], self.config['keyboard_status_port']):
             self.sender.sendto(payload, ('127.0.0.1', port))

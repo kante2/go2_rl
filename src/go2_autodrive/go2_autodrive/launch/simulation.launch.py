@@ -14,7 +14,7 @@ from launch_ros.parameter_descriptions import ParameterValue
 def generate_launch_description():
     planner = get_package_share_directory("local_planner")
     # 플래너의 목표 속도와 브리지의 전후 속도 제한을 동일하게 설정한다.
-    speed = 0.5
+    speed = ParameterValue(LaunchConfiguration("max_forward_speed"), value_type=float)
     limits = {
         "maxSpeed": speed,
         "autonomySpeed": speed,
@@ -36,6 +36,10 @@ def generate_launch_description():
             "udp_port", default_value="9872",
             description="브리지가 MuJoCo 상태를 받을 UDP 포트",
         ),
+        DeclareLaunchArgument("max_forward_speed", default_value="0.5"),
+        DeclareLaunchArgument("max_lateral_speed", default_value="0.2"),
+        DeclareLaunchArgument("max_yaw_rate", default_value="0.5"),
+        DeclareLaunchArgument("command_timeout", default_value="0.3"),
 
         # 1. localPlanner: 장애물을 피하며 목표로 향하는 이동 경로를 선택한다. -------------------------
         # 입력: /state_estimation(위치·자세), /registered_scan(장애물 점),
@@ -109,11 +113,17 @@ def generate_launch_description():
                     LaunchConfiguration("udp_port"), value_type=int,
                 ),
                 "max_forward_speed": speed,
-                "max_lateral_speed": 0.2,
-                "max_yaw_rate": 0.5,  # 브리지에서 사용하는 단위: rad/s.
+                "max_lateral_speed": ParameterValue(
+                    LaunchConfiguration("max_lateral_speed"), value_type=float,
+                ),
+                "max_yaw_rate": ParameterValue(
+                    LaunchConfiguration("max_yaw_rate"), value_type=float,
+                ),  # 브리지에서 사용하는 단위: rad/s.
                 "goal_tolerance": 0.2,
                 "sensor_timeout": 0.5,
-                "command_timeout": 0.3,
+                "command_timeout": ParameterValue(
+                    LaunchConfiguration("command_timeout"), value_type=float,
+                ),
             }],
         ),
     ])

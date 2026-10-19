@@ -1,0 +1,26 @@
+cd /home/kante/go2_rl
+
+# 컨테이너 명령어 
+cd /home/kante/go2_rl
+bash scripts/run_go2_docker.sh bash
+
+# 1. mujuco 실행 -------------------------------------------------------------
+bash scripts/run_go2_docker.sh ros2 launch go2_autodrive mujoco.launch.py \
+  model:=quietpaw_long
+## 모델은 다음과 같다.
+| 선택값 | 모델 폴더 |
+|---|---|
+| `baseline` | `model_pt/baseline` |
+| `quietpaw` | `model_pt/quietpaw` |
+| `quietpaw_long` | `model_pt/quiet_paw_long` |
+
+
+
+# 2. keyboard ----------------------------------------------------------------
+cd /home/kante/go2_rl
+bash scripts/run_go2_docker.sh ros2 run go2_autodrive keyboard_waypoint
+
+
+# 3 checker
+cd /home/kante/go2_rl
+bash scripts/run_go2_docker.sh ros2 launch go2_gait_monitor monitor.launch.py

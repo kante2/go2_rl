@@ -1,0 +1,39 @@
+{
+  "model": "quietpaw",
+  "model_dir": "model_pt/quietpaw",
+  "checkpoint": null,
+  "quietness": 0.2,
+  "command_port": 9901,
+  "telemetry_port": 9902,
+  "max_forward_speed": 0.8,
+  "max_lateral_speed": 0.4,
+  "max_yaw_rate": 0.5,
+  "command_timeout": 0.3,
+  "scan_range": 3.5,
+  "obstacles": [
+    {
+      "position": [2.0, 0.0, 0.3],
+      "half_size": [0.2, 0.35, 0.3]
+    },
+    {
+      "position": [2.0, 1.5, 0.3],
+      "half_size": [0.3, 0.2, 0.3]
+    }
+  ],
+  "keyboard_status_port": 9903,
+  "state_timeout": 0.1,
+  "sensor_timeout": 0.3,
+  "policy_timeout": 0.1,
+  "keyboard_forward_speed": 0.7,
+  "keyboard_lateral_speed": 0.3,
+  "keyboard_yaw_rate": 0.25,
+  "command_acceleration": [0.5, 0.4, 1.0],
+  "command_deceleration": [0.5, 0.4, 1.0],
+  "max_joint_target_rate": 12.0,
+  "phase_transition_joint_rate": 3.0,
+  "phase_transition_seconds": 0.4,
+  "max_tilt_degrees": 35.0,
+  "stand_seconds": 3.0,
+  "max_tracking_error": 0.65,
+  "display_height": 0.32
+}

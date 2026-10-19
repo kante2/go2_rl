@@ -200,6 +200,8 @@ def test_policy_reads_actual_joint_and_imu_feedback_without_navigation(config, q
         assert len(sent) == 2
         packet = json.loads(sent[0])
         np.testing.assert_allclose(packet['q_policy'], q[mapping.order])
+        assert packet['keyboard_speeds'] == [config[k] for k in
+                                            ('keyboard_forward_speed', 'keyboard_lateral_speed', 'keyboard_yaw_rate')]
         assert MeasuredStateReceiver().receive(sent[0], time.monotonic())
     finally:
         backend.stop.set()
@@ -227,3 +229,45 @@ def test_closed_loop_eases_the_trained_walking_to_standing_boundary(config):
         np.testing.assert_allclose(mapping.targets(previous)[1], standing, atol=1e-6)
     finally:
         backend.close()
+
+
+def test_controller_speeds_reach_keys_and_do_not_start_motion(config):
+    from go2_autonomous_driving.real.direct_control import keyboard_speed_settings
+    controller = dict(config, keyboard_forward_speed=.4, keyboard_lateral_speed=.1, keyboard_yaw_rate=.3)
+    key = KeyboardVelocityIntent(config)
+    assert key.state.receive(frame(**keyboard_speed_settings(controller)), 100)
+    key.sync(100)
+    assert key.command == Velocity()
+    for button, expected in [('w', Velocity(.4,0,0)), ('s', Velocity(-.4,0,0)),
+                             ('a', Velocity(0,.1,0)), ('d', Velocity(0,-.1,0)),
+                             ('j', Velocity(0,0,.3)), ('l', Velocity(0,0,-.3))]:
+        assert key.handle_key(button, 100)
+        assert key.command == expected
+    assert key.handle_key(' ',100) and key.command == Velocity()
+    key.handle_key('w',100)
+    key.sync(101)
+    assert key.command == Velocity()  # Speed handoff cannot bypass the stale-state latch.
+
+
+def test_keyboard_override_beats_controller_default_but_obeys_both_limits(config):
+    key = KeyboardVelocityIntent(dict(config, keyboard_forward_speed=.6),
+                                 speed_overrides={'keyboard_forward_speed'})
+    assert key.state.receive(frame(keyboard_speeds=[.2,.08,.2], velocity_limits=[.3,.1,.25]),100)
+    assert key.speeds() == (.3,.08,.2)
+    assert key.handle_key('w',100) and key.command.vx == .3
+    assert key.state.receive(frame(100.01,session='new-controller',keyboard_speeds=[.1,.05,.1],
+                                   velocity_limits=[.2,.1,.2]),100.01)
+    key.sync(100.01)
+    assert key.command == Velocity()
+    assert key.handle_key('w',100.01) and key.command.vx == .2
+
+
+@pytest.mark.parametrize('changes', [
+    {'keyboard_speeds':[float('nan'),.1,.1], 'velocity_limits':[.8,.4,.5]},
+    {'keyboard_speeds':[.9,.1,.1], 'velocity_limits':[.8,.4,.5]},
+    {'keyboard_speeds':[.2,.1]},
+    {'keyboard_speeds':[True,.1,.1], 'velocity_limits':[.8,.4,.5]},
+    {'keyboard_speeds':[.2,.1,.1], 'velocity_limits':[.8,-.4,.5]},
+])
+def test_invalid_advertised_speed_is_rejected(changes):
+    assert not MeasuredStateReceiver().receive(frame(**changes),100)
