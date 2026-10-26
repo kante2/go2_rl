@@ -1,0 +1,11 @@
+{
+  "task": "causal_forecast",
+  "candidate": "all_four__hist_large",
+  "ablation": "all_four",
+  "estimator": "hist_large",
+  "cv_mean_trial_rmse_db": 2.8009257705966375,
+  "n_fit_samples": 35153,
+  "n_fit_recordings": 31,
+  "high_noise_threshold_dbfs": -20.448132899550487,
+  "used_test_or_validation_to_select": false
+}

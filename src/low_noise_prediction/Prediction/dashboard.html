@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot Noise · Live Measurement & Prediction</title>
+  <link rel="stylesheet" href="/dashboard.css">
+</head>
+<body>
+  <main>
+    <header><div><p class="eyebrow">LOWSTATE · MODEL A · LIVE AUDIO</p><h1>Robot Noise Monitor</h1><p>Measured microphone noise and predicted noise on a shared timeline.</p></div><span id="connection" class="badge">Connecting…</span></header>
+    <p id="demo" class="demo" hidden>SIMULATED DATA — Preview only. No robot, microphone, or model inference.</p>
+    <section class="metrics" aria-label="Current sound levels">
+      <article class="card measured"><p><span class="dot"></span> Measured noise</p><div><strong id="measured">—</strong><span> dBFS</span></div><small id="audioState">Waiting for microphone data</small></article>
+      <article class="card predicted"><p><span class="dot"></span> Predicted noise</p><div><strong id="predicted">—</strong><span> dBFS</span></div><small id="robotState">Waiting for LowState data</small></article>
+      <article class="card timing"><p>Remaining prediction horizon</p><div><strong id="horizon">—</strong><span> ms</span></div><small>At inference output · Time until the target window center</small></article>
+    </section>
+    <section class="panel">
+      <div class="toolbar"><div><h2>Noise over time</h2><div class="legend"><span><i class="dot measured"></i> Measured</span><span><i class="dot predicted"></i> Predicted</span></div></div><div class="actions"><label>Window<select id="window"><option value="15">15 seconds</option><option value="30" selected>30 seconds</option><option value="60">60 seconds</option></select></label><button id="pause" type="button">Pause view</button><button id="export" type="button">Export visible CSV</button></div></div>
+      <canvas id="chart" role="img" aria-label="Live measured and predicted noise in dBFS"></canvas>
+      <p id="viewState" class="muted" role="status">Waiting for live samples…</p>
+    </section>
+    <section class="panel details"><div><h2>Input status</h2><dl><dt>Robot input</dt><dd>/lowstate only</dd><dt>Model</dt><dd id="model">—</dd><dt>Prediction count</dt><dd id="count">0</dd><dt>Audio format</dt><dd>48 kHz · Mono · PCM16</dd></dl></div><div><h2>Timing & units</h2><p>Both traces show 20 ms RMS levels in <b>dBFS</b>. Predictions are placed at their target center (<b>t + 20 ms</b>). Measurements are placed at their estimated audio window center.</p><p class="muted">Audio timing uses a nominal sample clock estimated from SSH receipt times. Transport delay and clock drift are not independently corrected. This plot is an approximate time comparison; it does not calculate prediction error or calibrated SPL.</p></div></section>
+    <p id="message" class="message" role="status" aria-live="polite">Connecting to the local prediction process…</p>
+    <footer>Display updates at approximately 5 Hz. Pausing the view keeps data collection running. Up to 60 seconds of telemetry are retained.</footer>
+  </main>
+  <script type="module" src="/dashboard.js"></script>
+</body>
+</html>
