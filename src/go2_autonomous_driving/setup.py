@@ -19,5 +19,6 @@ setup(
         "keyboard_waypoint = go2_autonomous_driving.sim.keyboard_node:main",
         "navigation_bridge = go2_autonomous_driving.sim.ros_bridge:main",
         "go2_simulation = go2_autonomous_driving.sim.simulation:main",
+        "go2_sim_data_collection = go2_autonomous_driving.sim.data_collection:main",
     ]},
 )

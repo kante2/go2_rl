@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot Noise Comparison</title>
+  <link rel="stylesheet" href="/dashboard_v2.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">LOWSTATE · MODEL A · LIVE AUDIO</p>
+        <h1>Robot Noise Comparison</h1>
+        <p>Predicted vs. measured noise, their moving averages, and the gap between them.</p>
+      </div>
+      <span id="connection" class="badge">Connecting…</span>
+    </header>
+    <p id="demo" class="demo" hidden>SIMULATED DATA — Preview only. No robot, microphone, or model inference.</p>
+
+    <section class="metrics" aria-label="Current sound levels">
+      <article class="card measured">
+        <p><span class="dot"></span> Measured</p>
+        <div><strong id="measured">—</strong><span> dBFS</span></div>
+        <small id="audioState">Waiting for microphone data</small>
+      </article>
+      <article class="card predicted">
+        <p><span class="dot"></span> Predicted</p>
+        <div><strong id="predicted">—</strong><span> dBFS</span></div>
+        <small id="robotState">Waiting for LowState data</small>
+      </article>
+      <article id="gapCard" class="card gap">
+        <p>Difference · Predicted − Measured</p>
+        <div><strong id="gap">—</strong><span> dB</span></div>
+        <small id="gapState">Needs both measured and predicted samples</small>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="toolbar">
+        <div>
+          <h2>1 · Noise over time</h2>
+          <div class="legend">
+            <span><i class="swatch line measured"></i> Measured</span>
+            <span><i class="swatch line predicted"></i> Predicted</span>
+            <span><i class="swatch fill over"></i> Predicted higher</span>
+            <span><i class="swatch fill under"></i> Predicted lower</span>
+          </div>
+        </div>
+        <div class="actions">
+          <label>Window<select id="window"><option value="15">15 s</option><option value="30" selected>30 s</option><option value="60">60 s</option></select></label>
+          <label>Average<select id="average"><option value="0.5">0.5 s</option><option value="1" selected>1 s</option><option value="2">2 s</option><option value="5">5 s</option></select></label>
+          <label>Tolerance<select id="tolerance"><option value="1">± 1 dB</option><option value="2">± 2 dB</option><option value="3" selected>± 3 dB</option><option value="6">± 6 dB</option></select></label>
+          <button id="pause" type="button">Pause view</button>
+          <button id="export" type="button">Export CSV</button>
+        </div>
+      </div>
+      <canvas id="chart" role="img" aria-label="Measured and predicted noise in dBFS with the gap shaded"></canvas>
+      <dl class="stats" aria-label="Statistics for the visible window">
+        <div><dt>Mean measured</dt><dd id="meanMeasured">—</dd></div>
+        <div><dt>Mean predicted</dt><dd id="meanPredicted">—</dd></div>
+        <div><dt>Mean difference (bias)</dt><dd id="bias">—</dd></div>
+        <div><dt>Mean absolute difference</dt><dd id="mae">—</dd></div>
+        <div><dt>Within tolerance</dt><dd id="within">—</dd></div>
+      </dl>
+      <p id="viewState" class="muted" role="status">Waiting for live samples…</p>
+    </section>
+
+    <section class="panel">
+      <div class="toolbar">
+        <h2>2 · Moving average (<span class="avgLabel">1</span> s)</h2>
+        <div class="legend">
+          <span><i class="swatch line measured"></i> Measured average</span>
+          <span><i class="swatch line predicted"></i> Predicted average</span>
+        </div>
+      </div>
+      <canvas id="avgChart" class="short" role="img" aria-label="Moving averages of measured and predicted noise"></canvas>
+    </section>
+
+    <section class="panel">
+      <div class="toolbar">
+        <h2>3 · Average difference (Predicted − Measured)</h2>
+        <div class="legend">
+          <span><i class="swatch fill over"></i> Predicted higher</span>
+          <span><i class="swatch fill under"></i> Predicted lower</span>
+          <span><i class="swatch dashed"></i> Tolerance</span>
+        </div>
+      </div>
+      <canvas id="diffChart" class="short" role="img" aria-label="Difference between the two moving averages in dB"></canvas>
+    </section>
+
+    <section class="panel details">
+      <div>
+        <h2>Input status</h2>
+        <dl class="info">
+          <dt>Robot input</dt><dd>/lowstate only</dd>
+          <dt>Model</dt><dd id="model">—</dd>
+          <dt>Prediction count</dt><dd id="count">0</dd>
+          <dt>Prediction horizon</dt><dd id="horizon">—</dd>
+          <dt>Audio format</dt><dd>48 kHz · Mono · PCM16</dd>
+        </dl>
+      </div>
+      <div>
+        <h2>How the comparison is made</h2>
+        <p>Both traces are 20 ms RMS levels in <b>dBFS</b>, grouped into 50 ms bins. The shaded gap and chart 3 use <b>Predicted − Measured</b>: positive means the model predicts louder than measured.</p>
+        <p>Chart 2 is a trailing average over the selected period. Chart 3 subtracts those two averages.</p>
+        <p class="muted">Audio timing is estimated from SSH receipt times, so the gap includes transport delay and clock drift. Treat these numbers as an approximate trend, not a calibrated error metric.</p>
+      </div>
+    </section>
+
+    <p id="message" class="message" role="status" aria-live="polite">Connecting to the local prediction process…</p>
+    <footer>Updates about 5 times per second. Hover a chart to read values at one time. Pausing the view does not stop data collection. Up to 60 seconds are kept.</footer>
+  </main>
+  <script type="module" src="/dashboard_v2.js"></script>
+</body>
+</html>

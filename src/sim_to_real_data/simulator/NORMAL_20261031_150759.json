@@ -1,0 +1,13 @@
+{
+  "source": "mjlab Unitree-Go2-Flat play",
+  "rows": 6924,
+  "sample_rate_hz": 200.0,
+  "policy_rate_hz": 50.0,
+  "segments": 1,
+  "ls_ff": "|vertical foot contact force| [N] (real robot: raw foot sensor counts)",
+  "ls_tau": "simulated actuator force [N m]",
+  "ls_tick_value": "simulation time [ms]",
+  "body_velocity": "simulation ground truth (real robot: stance kinematics estimate)",
+  "body_velocity_contact": "vertical foot force > 1.0 N",
+  "audio": "not simulated; audio columns are empty"
+}

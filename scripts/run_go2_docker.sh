@@ -25,6 +25,23 @@ if [[ -n "$go2_auth_mount" && -n ${DISPLAY:-} ]]; then
   GO2_XAUTH_DIR="$go2_auth_mount"
   go2_prepare_x11
   go2_display_env=(-e "DISPLAY=$DISPLAY" -e XAUTHORITY=/tmp/go2-xauth/Xauthority)
+elif [[ -n ${DISPLAY:-} ]]; then
+  # Container without the X11 mount: host networking still reaches Xorg's abstract
+  # socket, so copy only this display's cookie instead of recreating the container.
+  source "$(dirname -- "${BASH_SOURCE[0]}")/prepare_go2_x11.sh"
+  go2_xauth_tmp="$(mktemp -d)"
+  if (GO2_XAUTH_DIR="$go2_xauth_tmp" go2_prepare_x11) 2>/dev/null \
+      && docker exec -i "$go2_container" sh -c \
+        'umask 077; mkdir -p /tmp/go2-xauth-exec && cat > /tmp/go2-xauth-exec/Xauthority' \
+        < "$go2_xauth_tmp/Xauthority"; then
+    go2_display_env=(-e "DISPLAY=$DISPLAY" -e XAUTHORITY=/tmp/go2-xauth-exec/Xauthority)
+  fi
+  rm -rf -- "$go2_xauth_tmp"
+fi
+# Hybrid laptop: the desktop runs on the iGPU; render on NVIDIA via PRIME offload
+# (the container's "graphics" capability already provides the NVIDIA GLX library).
+if [[ ${#go2_display_env[@]} -gt 0 ]] && xrandr --listproviders 2>/dev/null | grep -q 'name:NVIDIA-G'; then
+  go2_display_env+=(-e __NV_PRIME_RENDER_OFFLOAD=1 -e __GLX_VENDOR_LIBRARY_NAME=nvidia)
 fi
 exec docker exec "${go2_tty[@]}" "${go2_display_env[@]}" -w /workspace/unitree_rl_mjlab \
   "$go2_container" /usr/local/bin/go2-env "$@"
