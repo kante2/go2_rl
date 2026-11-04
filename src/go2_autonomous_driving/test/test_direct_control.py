@@ -87,8 +87,9 @@ def test_measured_state_rejects_stale_wrong_model_nonfinite_and_replay():
 
 
 def test_arrows_and_yaw_keys_are_distinct():
-    assert decode_velocity_keys('\x1b[A\x1b[Djl q') == (['w', 'a', 'j', 'l', ' ', 'q'], '')
+    assert decode_velocity_keys('\x1b[A\x1b[D\x1b[Bxqe s') == (['w', 'a', 's', 'x', 'q', 'e', ' ', 's'], '')
     assert decode_velocity_keys('\x1b[') == ([], '\x1b[')
+    assert decode_velocity_keys('jlop') == ([], '')  # old J/L/O/P layout is gone
 
 
 def test_filtered_action_feedback_and_tracking_fault_record(config, tmp_path):
@@ -238,9 +239,10 @@ def test_controller_speeds_reach_keys_and_do_not_start_motion(config):
     assert key.state.receive(frame(**keyboard_speed_settings(controller)), 100)
     key.sync(100)
     assert key.command == Velocity()
-    for button, expected in [('w', Velocity(.4,0,0)), ('s', Velocity(-.4,0,0)),
+    for button, expected in [('w', Velocity(.4,0,0)), ('x', Velocity(-.4,0,0)),
                              ('a', Velocity(0,.1,0)), ('d', Velocity(0,-.1,0)),
-                             ('j', Velocity(0,0,.3)), ('l', Velocity(0,0,-.3))]:
+                             ('q', Velocity(0,0,.3)), ('e', Velocity(0,0,-.3)),
+                             ('s', Velocity())]:
         assert key.handle_key(button, 100)
         assert key.command == expected
     assert key.handle_key(' ',100) and key.command == Velocity()
@@ -260,6 +262,15 @@ def test_keyboard_override_beats_controller_default_but_obeys_both_limits(config
     key.sync(100.01)
     assert key.command == Velocity()
     assert key.handle_key('w',100.01) and key.command.vx == .2
+
+
+def test_terminal2_caps_can_exceed_local_config(config):
+    # --lateral-speed 0.4 on both terminals works even though the local JSON cap is lower.
+    local = dict(config, max_lateral_speed=.15, keyboard_lateral_speed=.4)
+    key = KeyboardVelocityIntent(local, speed_overrides={'keyboard_lateral_speed'})
+    assert key.state.receive(frame(keyboard_speeds=[.2,.12,.25], velocity_limits=[.8,.4,.8]),100)
+    assert key.speeds()[1] == .4
+    assert key.handle_key('d',100) and key.command == Velocity(0,-.4,0)
 
 
 @pytest.mark.parametrize('changes', [

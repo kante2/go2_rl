@@ -30,7 +30,7 @@ class NavigationBridge(Node):
             return self.declare_parameter(name, default).value
 
         command_port = int(parameter("command_port", 9871))
-        udp_port = int(parameter("udp_port", 9872))
+        udp_port = int(parameter("telemetry_port", 9872))
 
         self.limits = (
             float(parameter("max_forward_speed", 0.5)),
@@ -38,10 +38,11 @@ class NavigationBridge(Node):
             float(parameter("max_yaw_rate", 0.5)),
         )
 
+        self.command_timeout = float(parameter("command_timeout", 0.3))
         self.gate = NavigationGate(
             float(parameter("goal_tolerance", 0.2)),
             float(parameter("sensor_timeout", 0.5)),
-            float(parameter("command_timeout", 0.3)),
+            self.command_timeout,
         )
 
         # UDP: 상태 수신 포트와 명령 전송 목적지 설정
@@ -59,6 +60,8 @@ class NavigationBridge(Node):
 
         self.path_stamp = self.command_stamp = -math.inf
         self.command = Velocity()
+        self.keyboard_command = Velocity()
+        self.keyboard_time = -math.inf
         self.last_reason = None
         self.simulation_session = None
 
@@ -102,6 +105,10 @@ class NavigationBridge(Node):
         )
         self.create_subscription(
             TwistStamped, "/cmd_vel", self.CB_command, 5
+        )
+        # Direct keyboard velocity overrides the planner while it stays fresh.
+        self.create_subscription(
+            TwistStamped, "/go2/keyboard_velocity", self.CB_keyboard, 5
         )
 
         # Timer callbacks
@@ -171,6 +178,19 @@ class NavigationBridge(Node):
 
         self.command_time = time.monotonic()
         self.command_stamp = stamp_seconds(msg.header.stamp)
+
+    def CB_keyboard(self, msg):
+        try:
+            self.keyboard_command = Velocity(
+                msg.twist.linear.x,
+                msg.twist.linear.y,
+                msg.twist.angular.z,
+            ).bounded(*self.limits)
+        except ValueError:
+            self.keyboard_time = -math.inf
+            return
+
+        self.keyboard_time = time.monotonic()
 
     def receive_udp(self):
         """UDP 상태 패킷을 수신하고 JSON으로 해석한다."""
@@ -333,6 +353,10 @@ class NavigationBridge(Node):
             if reason == "following waypoint"
             else Velocity()
         )
+
+        if now - self.keyboard_time <= self.command_timeout:
+            reason = "keyboard velocity"
+            command = self.keyboard_command
 
         session = (
             self.simulation_session[0]

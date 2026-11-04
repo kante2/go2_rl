@@ -17,6 +17,7 @@ setup(
     zip_safe=True,
     entry_points={"console_scripts": [
         "keyboard_waypoint = go2_autonomous_driving.sim.keyboard_node:main",
+        "keyboard_velocity = go2_autonomous_driving.sim.keyboard_velocity:main",
         "navigation_bridge = go2_autonomous_driving.sim.ros_bridge:main",
         "go2_simulation = go2_autonomous_driving.sim.simulation:main",
         "go2_sim_data_collection = go2_autonomous_driving.sim.data_collection:main",

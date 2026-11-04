@@ -86,7 +86,7 @@ def decode_velocity_keys(buffer):
                 buffer = buffer[2:]
         else:
             key, buffer = buffer[0].lower(), buffer[1:]
-            if key in ('w', 's', 'a', 'd', 'j', 'l', 'q', ' ', '\x03'):
+            if key in ('w', 'x', 'a', 'd', 's', 'q', 'e', ' ', '\x03'):
                 keys.append(key)
     return keys, buffer
 
@@ -160,9 +160,8 @@ class KeyboardVelocityIntent:
             value = self.config[key]
             if advertised is not None and key not in self.speed_overrides:
                 value = advertised[i]
-            limit = self.config[limit_key]
-            if limits is not None:
-                limit = min(limit, limits[i])
+            # Terminal 2 (--speed/--lateral-speed/--yaw-rate) owns the caps once connected.
+            limit = limits[i] if limits is not None else self.config[limit_key]
             result.append(min(value, limit))
         return tuple(result)
 
@@ -179,21 +178,21 @@ class KeyboardVelocityIntent:
 
     def handle_key(self, key, now):
         self.sync(now)
-        if key in (' ', 'q', '\x03'):
+        # Same layout as the simulation keyboard: S/Down/Space stop, Ctrl+C quits.
+        if key in (' ', 's', '\x03'):
             self.command = Velocity()
         else:
             if not self.ready(now):
                 return False
-            c = self.config
-            forward, lateral, yaw = self.speeds()
+            forward, lateral, yaw = self.speeds()  # already within terminal 2's caps
             directions = {'w': Velocity(forward, 0, 0),
-                          's': Velocity(-forward, 0, 0),
+                          'x': Velocity(-forward, 0, 0),
                           'a': Velocity(0, lateral, 0),
                           'd': Velocity(0, -lateral, 0),
-                          'j': Velocity(0, 0, yaw),
-                          'l': Velocity(0, 0, -yaw)}
+                          'q': Velocity(0, 0, yaw),    # in-place counter-clockwise
+                          'e': Velocity(0, 0, -yaw)}   # in-place clockwise
             if key not in directions:
                 return False
-            self.command = directions[key].bounded(c['max_forward_speed'], c['max_lateral_speed'], c['max_yaw_rate'])
+            self.command = directions[key]
         self.intent = uuid.uuid4().hex
         return True

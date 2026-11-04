@@ -103,6 +103,10 @@ def run(args):
     config = json.loads(config_path.read_text())
     if args.speed is not None:
         config["max_forward_speed"] = args.speed
+    if args.lateral_speed is not None:
+        config["max_lateral_speed"] = args.lateral_speed
+    if args.yaw_rate is not None:
+        config["max_yaw_rate"] = args.yaw_rate
     # Config paths are relative to the config file; explicit CLI paths use cwd.
     # "checkpoint": "../model_pt/model_10000.pt",  <- torch.load로 PT을 읽고 구조를 확인
     checkpoint = args.checkpoint or (config_path.parent / config["checkpoint"]).resolve()
@@ -203,6 +207,10 @@ def main():
     parser.add_argument("--config", type=Path)
     parser.add_argument("--speed", type=float,
                         help="Max forward speed [m/s], overrides config; match the launch speed:=")
+    parser.add_argument("--lateral-speed", type=float,
+                        help="Max lateral speed [m/s], overrides config; match the launch lateral_speed:=")
+    parser.add_argument("--yaw-rate", type=float,
+                        help="Max yaw rate [rad/s], overrides config; match the launch yaw_rate:=")
     parser.add_argument("--device")
     parser.add_argument("--viewer", choices=("viser", "none"), default="viser")
     parser.add_argument("--viewer-port", type=int, default=8080)

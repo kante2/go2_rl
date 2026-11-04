@@ -144,6 +144,9 @@ def main():
     parser.add_argument('--execute', action='store_true', help='Motor output after interactive ARM')
     parser.add_argument('--seconds', type=float)
     parser.add_argument('--fault-log', type=Path, help='Write fault details after damping/disconnecting')
+    parser.add_argument('--speed', dest='max_speed', type=float, help='Max forward/backward speed [m/s]')
+    parser.add_argument('--lateral-speed', dest='max_lateral_speed', type=float, help='Max lateral speed [m/s]')
+    parser.add_argument('--yaw-rate', dest='max_yaw_rate', type=float, help='Max yaw rate [rad/s]')
     args = parser.parse_args()
     def interrupted(*unused):
         raise KeyboardInterrupt

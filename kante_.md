@@ -1,3 +1,71 @@
+# 실행 명령어 정리
+
+모든 명령은 호스트(`~/go2_rl`)에서 실행하면 Docker 컨테이너 안으로 전달된다.
+
+## 속도 인자 (시뮬레이션·실제로봇 공통)
+
+| 인자 | 의미 | 단위 | 키 |
+|---|---|---|---|
+| `--speed` | 선속도: 앞뒤로 걷는 속도 | m/s | W(전진) / X(후진) |
+| `--lateral-speed` | 횡속도: 옆으로 걷는 속도 | m/s | A(왼쪽) / D(오른쪽) |
+| `--yaw-rate` | 각속도: 제자리에서 도는 속도 | rad/s | Q(반시계) / E(시계) |
+
+- 키보드 터미널의 값 = 실제로 보내는 속도. 나머지 터미널의 값 = 상한. **모든 터미널에 같은 값**을 넣는다 (다르면 가장 작은 값이 적용됨).
+- 키: W 전진, X 후진, A/D 옆걸음, **S·Space 정지**, Q/E 제자리 회전. 누른 명령은 다음 키까지 유지. 종료는 **Ctrl+C**.
+- 기본값: 시뮬 0.5 / 0.2 / 0.5, 실제로봇 상한 1.5 / 0.15 / 0.35 (`real_closed_loop.json`), 실제로봇 키보드 0.2 / 0.12 / 0.25.
+
+## 시뮬레이션
+
+```bash
+# 터미널 1: ROS 플래너·브리지
+bash /home/kante/go2_rl/sh_folder/terminal1_bridge.sh --speed 0.8 --lateral-speed 0.4 --yaw-rate 0.8
+
+# 터미널 2: MuJoCo + 모델 → http://localhost:8080
+bash /home/kante/go2_rl/sh_folder/terminal2_simulation.sh \
+  --checkpoint src/go2_autonomous_driving/model_pt/model_10000.pt --speed 0.8 --lateral-speed 0.4 --yaw-rate 0.8
+
+# 터미널 3: 키보드 (터미널 2 모델 로딩 후)
+bash /home/kante/go2_rl/sh_folder/terminal3_keyboard.sh --speed 0.8 --lateral-speed 0.4 --yaw-rate 0.8
+```
+
+## 실제 로봇
+
+시작 전: LAN 연결 확인(`ip -br addr show enp3s0` → UP, 192.168.123.99), 로봇을 매달거나 붙잡은 상태.
+
+```bash
+# 터미널 1: 실제 자세 뷰어 (선택) → http://localhost:8080
+bash /home/kante/go2_rl/scripts/run_go2_real_viewer.sh
+
+# 터미널 2: 정책 제어 → ARM 입력 → REAL POLICY READY
+bash /home/kante/go2_rl/scripts/run_go2_real_closed_loop.sh --execute \
+  --checkpoint src/go2_autonomous_driving/model_pt/model_34997.pt --speed 0.5 --lateral-speed 0.15 --yaw-rate 0.3
+
+# 터미널 3: 키보드
+bash /home/kante/go2_rl/scripts/run_go2_real_keyboard.sh --speed 0.5 --lateral-speed 0.15 --yaw-rate 0.3
+
+# 터미널 4: 소음 수집, 로봇 UMIK-1 마이크 (이름 입력 → q로 종료·저장 → src/db_collector/data/<이름>_<시간>.npz/.wav)
+bash /home/kante/go2_rl/sh_folder/terminal4_noise_record.sh
+
+# (선택) 소음 예측 UI → http://localhost:8081  ※ 터미널 4와 동시 실행 불가 (같은 마이크 사용)
+bash /home/kante/go2_rl/sh_folder/noise_prediction_ui.sh
+```
+
+- 실제로봇 터미널 2의 `--checkpoint`는 `artifacts/go2_real/`에 변환된 모델과 같아야 한다 (현재 model_34997). 다른 모델은 먼저 변환:
+  `bash scripts/prepare_go2_real_robot.sh --checkpoint <경로.pt>`
+- 비상 정지: 터미널 2에서 Ctrl+C (damping 후 제어 종료), 또는 리모컨 L2+B.
+- 실제로봇에서 속도를 올릴 때는 조금씩 올리며 확인한다.
+
+## 추가 기능
+
+```bash
+# 복구 모드 (Unitree 기본 제어로 복귀)
+# 1) 터미널 2에서 Ctrl+C  2) 로봇을 붙잡은 상태에서:
+bash /home/kante/go2_rl/scripts/recover_go2_normal.sh            # 현재 모드 확인만
+bash /home/kante/go2_rl/scripts/recover_go2_normal.sh --restore  # NORMAL 입력
+```
+
+---
+
 # Go2 학습 파이프라인과 학습 구조 설계
 
 Go2가 목표 속도를 따라 걷도록 학습하는 코드의 구조와 실행 방법을 정리한다. 지원 태스크는 `Unitree-Go2-Flat`과 `Unitree-Go2-Rough`이며, 별도 표시가 없는 설명과 명령은 Flat 기준이다. 리팩토링은 기존 Go2의 관측·행동·보상·PPO 설정을 유지하면서 파일을 학습 구성 순서로 나눈 것이다.

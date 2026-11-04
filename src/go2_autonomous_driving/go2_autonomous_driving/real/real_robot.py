@@ -442,6 +442,14 @@ def run(args, *, backend_type=Backend, requires_navigation=True, run_policy=True
     config = json.loads(args.config.read_text())
     if getattr(args, 'fault_log', None) is not None:
         config['fault_log'] = str(args.fault_log)
+    # Optional velocity caps (--speed/--lateral-speed/--yaw-rate), same meaning as the simulation.
+    for option, key in (('max_speed', 'max_forward_speed'), ('max_lateral_speed', 'max_lateral_speed'),
+                        ('max_yaw_rate', 'max_yaw_rate')):
+        value = getattr(args, option, None)
+        if value is not None:
+            if not math.isfinite(value) or value <= 0:
+                raise ValueError(f'{key} must be positive and finite')
+            config[key] = value
     if args.execute and requires_navigation:
         require_independent_navigation(config)
     metadata = json.loads((args.policy_dir / 'policy.json').read_text())

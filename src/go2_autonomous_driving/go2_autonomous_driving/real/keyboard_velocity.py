@@ -25,17 +25,18 @@ def apply_forward_speed(config, speed):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', type=Path, required=True)
-    parser.add_argument('--speed', type=float, help='W/S forward/backward speed in m/s (default from config)')
+    parser.add_argument('--speed', type=float, help='W/X forward/backward speed in m/s (default from config)')
     parser.add_argument('--lateral-speed', type=float, help='A/D lateral speed in m/s')
-    parser.add_argument('--yaw-rate', type=float, help='J/L yaw rate in rad/s')
+    parser.add_argument('--yaw-rate', type=float, help='Q/E yaw rate in rad/s')
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
     overrides = set()
-    for option, key, limit in zip(('speed', 'lateral_speed', 'yaw_rate'), KEYBOARD_SPEED_KEYS, VELOCITY_LIMIT_KEYS):
+    for option, key in zip(('speed', 'lateral_speed', 'yaw_rate'), KEYBOARD_SPEED_KEYS):
         value = getattr(args, option)
         if value is not None:
-            if not math.isfinite(value) or not 0 < value <= config[limit]:
-                parser.error(f'{option} must be positive and at most {config[limit]}')
+            # Terminal 2's caps clamp this once connected; the printed speeds are the effective ones.
+            if not math.isfinite(value) or value <= 0:
+                parser.error(f'{option} must be positive')
             config[key] = value
             overrides.add(key)
     if not sys.stdin.isatty():
@@ -62,8 +63,9 @@ def main():
             sender.sendto(velocity_packet(intent.command, sequence, time.monotonic(), intent.session, intent.intent),
                           ('127.0.0.1', config['command_port']))
             sequence += 1
-    print('REAL keyboard: W/Up forward, S/Down backward, A/D/Left/Right lateral; '
-          'J/L turn left/right. Direction stays active until Space. Q exits.\n'
+    print('REAL keyboard: W/Up forward, X backward, A/D/Left/Right lateral, S/Down/Space stop, '
+          'Q/E turn in place (Q counter-clockwise, E clockwise). '
+          'Each command holds until the next key. Ctrl+C exits.\n'
           'Speed priority: keyboard arguments > controller settings > local config.\n'
           'Space requests controlled deceleration. Emergency damping: remote L2+B or terminal 2 Ctrl+C.\n'
           'Waiting for DRY READY or REAL POLICY READY from terminal 2.', flush=True)
@@ -87,8 +89,8 @@ def main():
             status = intent.state.packet['phase'] if intent.state.fresh(now) else 'NO FRESH ROBOT STATE'
             if intent.ready(now) and intent.speeds() != last_speeds:
                 last_speeds = intent.speeds()
-                print(f'Keyboard speeds: W/S={last_speeds[0]:.2f} m/s, '
-                      f'A/D={last_speeds[1]:.2f} m/s, J/L={last_speeds[2]:.2f} rad/s', flush=True)
+                print(f'Keyboard speeds: W/X={last_speeds[0]:.2f} m/s, '
+                      f'A/D={last_speeds[1]:.2f} m/s, Q/E={last_speeds[2]:.2f} rad/s', flush=True)
             if status != last_status:
                 print(f'Backend: {status}; press a direction key after ready.', flush=True)
                 last_status = status
@@ -101,7 +103,7 @@ def main():
                         print(f'command=[{c.vx:.2f}, {c.vy:.2f}, {c.wz:.2f}]', flush=True)
                     elif not intent.ready(now):
                         print('Not ready: movement ignored. Wait for terminal 2 READY.', flush=True)
-                    if key in ('q', '\x03'):
+                    if key == '\x03':
                         running = False
                         break
             send()

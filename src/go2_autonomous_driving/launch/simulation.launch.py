@@ -13,10 +13,16 @@ def generate_launch_description():
     planner = get_package_share_directory("local_planner")
     # Max forward speed [m/s]; e.g. `ros2 launch ... speed:=0.8`. Match simulation.py --speed.
     speed = ParameterValue(LaunchConfiguration("speed"), value_type=float)
+    # Max lateral speed [m/s] and yaw rate [rad/s] for the bridge;
+    # match simulation.py --lateral-speed / --yaw-rate.
+    lateral_speed = ParameterValue(LaunchConfiguration("lateral_speed"), value_type=float)
+    yaw_rate = ParameterValue(LaunchConfiguration("yaw_rate"), value_type=float)
     limits = {"maxSpeed": speed, "autonomySpeed": speed, "autonomyMode": True,
               "twoWayDrive": False, "sensorOffsetX": 0.0, "sensorOffsetY": 0.0}
     return LaunchDescription([
         DeclareLaunchArgument("speed", default_value="0.5"),
+        DeclareLaunchArgument("lateral_speed", default_value="0.2"),
+        DeclareLaunchArgument("yaw_rate", default_value="0.5"),
         DeclareLaunchArgument("command_port", default_value="9871"),
         DeclareLaunchArgument("telemetry_port", default_value="9872"),
         Node(package="local_planner", executable="localPlanner", name="localPlanner",
@@ -43,7 +49,7 @@ def generate_launch_description():
                  "command_port": ParameterValue(LaunchConfiguration("command_port"), value_type=int),
                  "telemetry_port": ParameterValue(LaunchConfiguration("telemetry_port"), value_type=int),
                  "max_forward_speed": speed,
-                 "max_lateral_speed": 0.2,
-                 "max_yaw_rate": 0.5,
+                 "max_lateral_speed": lateral_speed,
+                 "max_yaw_rate": yaw_rate,
              }]),
     ])

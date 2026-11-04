@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Terminal 1: ROS planner + bridge inside the Go2 container.
-# --speed V sets the max forward speed [m/s] (default 0.5); use the same V for terminal 2.
+# --speed V [m/s] (default 0.5), --lateral-speed V [m/s] (default 0.2) and
+# --yaw-rate W [rad/s] (default 0.5) cap the commands
+# sent to MuJoCo; use the same values for terminals 2 and 3.
 set -euo pipefail
 go2_project="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 go2_launch_args=()
@@ -8,6 +10,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --speed) go2_launch_args+=("speed:=$2"); shift 2 ;;
     --speed=*) go2_launch_args+=("speed:=${1#*=}"); shift ;;
+    --lateral-speed) go2_launch_args+=("lateral_speed:=$2"); shift 2 ;;
+    --lateral-speed=*) go2_launch_args+=("lateral_speed:=${1#*=}"); shift ;;
+    --yaw-rate) go2_launch_args+=("yaw_rate:=$2"); shift 2 ;;
+    --yaw-rate=*) go2_launch_args+=("yaw_rate:=${1#*=}"); shift ;;
     *) go2_launch_args+=("$1"); shift ;;
   esac
 done
