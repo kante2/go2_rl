@@ -174,6 +174,7 @@ class TrialRecorder:
         meta = path.with_suffix(".json")
         meta.write_text(json.dumps({
             "source": "mjlab Unitree-Go2-Flat play", "rows": len(rows),
+            "foot_friction": self.foot_friction(),
             "sample_rate_hz": 1 / self.env.physics_dt, "policy_rate_hz": 1 / self.env.step_dt,
             "segments": int(samples[-1, 1]),
             "ls_ff": "|vertical foot contact force| [N] (real robot: raw foot sensor counts)",
@@ -191,6 +192,14 @@ class TrialRecorder:
             except PermissionError:
                 pass
         print(f"REC STOP {len(rows)} rows ({len(rows) * self.env.physics_dt:.1f} s) -> {path}", flush=True)
+
+    def foot_friction(self):
+        """Sliding friction of the feet; play mode samples it once per run unless fixed."""
+        import mujoco
+        model = self.env.sim.mj_model
+        geom = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "robot/" + FOOT_GEOMS[0])
+        friction = self.env.sim.model.geom_friction
+        return float(friction.reshape(-1, model.ngeom, 3)[0, geom, 0])
 
     def rows(self, samples):
         t, segment, command = samples[:, 0], samples[:, 1], samples[:, 2:5]
@@ -286,6 +295,8 @@ def run(args):
 
     cfg = load_env_cfg("Unitree-Go2-Flat", play=True)
     cfg.scene.num_envs = 1
+    if args.foot_friction is not None:
+        cfg.events["foot_friction"].params["ranges"] = (args.foot_friction, args.foot_friction)
     cfg.commands["twist"] = KeyboardCommandCfg(
         entity_name="robot", resampling_time_range=(1e6, 1e6),
         heading_command=False, rel_standing_envs=0.0, debug_vis=True,
@@ -370,6 +381,8 @@ def main():
     parser.add_argument("--config", type=Path, help="Keyboard speeds/ramps (default config/real_closed_loop.json)")
     parser.add_argument("--output-dir", type=Path, default=SOURCE_ROOT / "sim_to_real_data/simulator")
     parser.add_argument("--label", default="SIM", help="Trial file prefix, e.g. NORMAL")
+    parser.add_argument("--foot-friction", type=float,
+                        help="Fix the foot sliding friction (default: random 0.3-1.6 per run)")
     parser.add_argument("--speed", type=float, help="W/S speed in m/s")
     parser.add_argument("--lateral-speed", type=float, help="A/D speed in m/s")
     parser.add_argument("--yaw-rate", type=float, help="J/L yaw rate in rad/s")
