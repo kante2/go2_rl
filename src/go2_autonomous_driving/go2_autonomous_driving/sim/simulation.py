@@ -101,6 +101,8 @@ def run(args):
             from ament_index_python.packages import get_package_share_directory
             config_path = Path(get_package_share_directory("go2_autonomous_driving")) / "config/simulation.json"
     config = json.loads(config_path.read_text())
+    if args.speed is not None:
+        config["max_forward_speed"] = args.speed
     # Config paths are relative to the config file; explicit CLI paths use cwd.
     # "checkpoint": "../model_pt/model_10000.pt",  <- torch.load로 PT을 읽고 구조를 확인
     checkpoint = args.checkpoint or (config_path.parent / config["checkpoint"]).resolve()
@@ -199,6 +201,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path)
     parser.add_argument("--config", type=Path)
+    parser.add_argument("--speed", type=float,
+                        help="Max forward speed [m/s], overrides config; match the launch speed:=")
     parser.add_argument("--device")
     parser.add_argument("--viewer", choices=("viser", "none"), default="viser")
     parser.add_argument("--viewer-port", type=int, default=8080)

@@ -11,10 +11,12 @@ from launch_ros.parameter_descriptions import ParameterValue
 def generate_launch_description():
     package = get_package_share_directory("go2_autonomous_driving")
     planner = get_package_share_directory("local_planner")
-    speed = 0.5
+    # Max forward speed [m/s]; e.g. `ros2 launch ... speed:=0.8`. Match simulation.py --speed.
+    speed = ParameterValue(LaunchConfiguration("speed"), value_type=float)
     limits = {"maxSpeed": speed, "autonomySpeed": speed, "autonomyMode": True,
               "twoWayDrive": False, "sensorOffsetX": 0.0, "sensorOffsetY": 0.0}
     return LaunchDescription([
+        DeclareLaunchArgument("speed", default_value="0.5"),
         DeclareLaunchArgument("command_port", default_value="9871"),
         DeclareLaunchArgument("telemetry_port", default_value="9872"),
         Node(package="local_planner", executable="localPlanner", name="localPlanner",
