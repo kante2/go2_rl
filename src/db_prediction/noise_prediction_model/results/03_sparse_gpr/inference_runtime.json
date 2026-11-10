@@ -1,0 +1,58 @@
+{
+  "backend": "pytorch",
+  "device": "cpu",
+  "dtype": "float32",
+  "threads": 1,
+  "1": {
+    "mean_only": {
+      "median_ms": 0.04929350006932509,
+      "p95_ms": 0.0584444499509118,
+      "p99_ms": 0.06254153988493276,
+      "max_ms": 0.0697229997967952
+    },
+    "samples_per_second": 20286.65034119359,
+    "mean_and_std": {
+      "median_ms": 0.077227000019775,
+      "p95_ms": 0.10377915000390203,
+      "p99_ms": 0.11896633995547752,
+      "max_ms": 0.13186999990466575
+    }
+  },
+  "64": {
+    "mean_only": {
+      "median_ms": 0.6327375000410029,
+      "p95_ms": 0.6669356999054799,
+      "p99_ms": 0.6969409500175061,
+      "max_ms": 0.7045589998142532
+    },
+    "samples_per_second": 101147.79034884552,
+    "mean_and_std": {
+      "median_ms": 0.7843050000246876,
+      "p95_ms": 0.919285650149959,
+      "p99_ms": 1.1288899201122156,
+      "max_ms": 1.270254000019122
+    }
+  },
+  "1024": {
+    "mean_only": {
+      "median_ms": 8.948931999952947,
+      "p95_ms": 9.658007749942499,
+      "p99_ms": 9.915276689807797,
+      "max_ms": 9.98256599996239
+    },
+    "samples_per_second": 114427.06235843385,
+    "mean_and_std": {
+      "median_ms": 10.086463499874299,
+      "p95_ms": 12.10843464999698,
+      "p99_ms": 13.070792270086713,
+      "max_ms": 13.11626000006072
+    }
+  },
+  "numpy_adapter_single": {
+    "median_ms": 0.10284600000431965,
+    "p95_ms": 0.12187420006739558,
+    "p99_ms": 0.13517607987523675,
+    "max_ms": 0.1599340000666416
+  },
+  "scope": "Host CPU, resident tensor calls, one thread, milliseconds per batch; excludes tensor conversion/device transfer, kinematics, feature extraction, MuJoCo physics and policy training. NumPy adapter is measured separately."
+}

@@ -1,0 +1,16 @@
+{
+  "reference_backend": "sklearn",
+  "inference_backend": "pytorch",
+  "splits": [
+    {
+      "split": "train",
+      "n_samples": 45774,
+      "max_abs_error_db": 9.237055564881302e-14
+    },
+    {
+      "split": "test",
+      "n_samples": 10609,
+      "max_abs_error_db": 1.1368683772161603e-13
+    }
+  ]
+}

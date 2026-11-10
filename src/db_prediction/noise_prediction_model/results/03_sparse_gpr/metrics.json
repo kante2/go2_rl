@@ -1,0 +1,38 @@
+[
+  {
+    "model": "03_sparse_gpr",
+    "title": "Sparse Gaussian Process Regression",
+    "split": "train",
+    "n_samples": 45774,
+    "n_trials": 41,
+    "mean_trial_rmse_db": 2.800850044983344,
+    "rmse_db": 2.8595799895380396,
+    "mae_db": 2.085840766547376,
+    "r2": 0.8381731776280837,
+    "bias_db": -0.0008192005568549174
+  },
+  {
+    "model": "03_sparse_gpr",
+    "title": "Sparse Gaussian Process Regression",
+    "split": "train_oof",
+    "n_samples": 45774,
+    "n_trials": 41,
+    "mean_trial_rmse_db": 2.957736441772944,
+    "rmse_db": 3.054176160070955,
+    "mae_db": 2.2256807413002146,
+    "r2": 0.8153989472307366,
+    "bias_db": 0.0929986550354268
+  },
+  {
+    "model": "03_sparse_gpr",
+    "title": "Sparse Gaussian Process Regression",
+    "split": "test",
+    "n_samples": 10609,
+    "n_trials": 10,
+    "mean_trial_rmse_db": 2.785525376572481,
+    "rmse_db": 2.84138227109443,
+    "mae_db": 2.098302187695971,
+    "r2": 0.83309544857329,
+    "bias_db": -0.1627128527334073
+  }
+]

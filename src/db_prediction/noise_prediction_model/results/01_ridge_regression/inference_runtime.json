@@ -1,0 +1,40 @@
+{
+  "backend": "pytorch",
+  "device": "cpu",
+  "dtype": "float32",
+  "threads": 1,
+  "1": {
+    "mean_only": {
+      "median_ms": 0.0050399999054207,
+      "p95_ms": 0.005514949930329749,
+      "p99_ms": 0.006151269938072821,
+      "max_ms": 0.010039000017059152
+    },
+    "samples_per_second": 198412.70213605842
+  },
+  "64": {
+    "mean_only": {
+      "median_ms": 0.005700999963664799,
+      "p95_ms": 0.0069481500645451845,
+      "p99_ms": 0.011595299965847518,
+      "max_ms": 0.011922000112463138
+    },
+    "samples_per_second": 11226100.755639823
+  },
+  "1024": {
+    "mean_only": {
+      "median_ms": 0.012248499956513115,
+      "p95_ms": 0.026038800081096262,
+      "p99_ms": 0.032859330030987684,
+      "max_ms": 0.0444750000951899
+    },
+    "samples_per_second": 83602074.02013257
+  },
+  "numpy_adapter_single": {
+    "median_ms": 0.03571749982711481,
+    "p95_ms": 0.05091565002430797,
+    "p99_ms": 0.06421481012239388,
+    "max_ms": 0.07538299996667774
+  },
+  "scope": "Host CPU, resident tensor calls, one thread, milliseconds per batch; excludes tensor conversion/device transfer, kinematics, feature extraction, MuJoCo physics and policy training. NumPy adapter is measured separately."
+}

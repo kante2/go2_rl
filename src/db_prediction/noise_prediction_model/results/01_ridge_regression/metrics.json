@@ -1,0 +1,38 @@
+[
+  {
+    "model": "01_ridge_regression",
+    "title": "Ridge Regression",
+    "split": "train",
+    "n_samples": 45774,
+    "n_trials": 41,
+    "mean_trial_rmse_db": 4.713948546209497,
+    "rmse_db": 4.867454785570844,
+    "mae_db": 3.8226869542425312,
+    "r2": 0.5311327920718747,
+    "bias_db": -2.6495805715782093e-07
+  },
+  {
+    "model": "01_ridge_regression",
+    "title": "Ridge Regression",
+    "split": "train_oof",
+    "n_samples": 45774,
+    "n_trials": 41,
+    "mean_trial_rmse_db": 4.767314305826165,
+    "rmse_db": 4.925236008833401,
+    "mae_db": 3.8788111421888622,
+    "r2": 0.5199349385710303,
+    "bias_db": 0.011404755860045876
+  },
+  {
+    "model": "01_ridge_regression",
+    "title": "Ridge Regression",
+    "split": "test",
+    "n_samples": 10609,
+    "n_trials": 10,
+    "mean_trial_rmse_db": 4.717165019604854,
+    "rmse_db": 4.813860824991888,
+    "mae_db": 3.8166807366282596,
+    "r2": 0.5209333845117998,
+    "bias_db": 0.12301326365088987
+  }
+]
