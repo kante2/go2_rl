@@ -1,0 +1,10 @@
+{
+  "task": "causal_forecast",
+  "models": {
+    "models/01_ridge_regression/model.pt": "45fef3b41ef6093fcdcb20e973cf9bc4b85ee181112e693a8df2efc7e074498c",
+    "models/02_hgb/model.pt": "c684772696aa882a07189d8a9d57be83966922089a0b6a4fb3b17da4446c95c9",
+    "models/03_sparse_gpr/model.pt": "5d0c494b1c4fcad6b1ee1892cda76cac78aa6e62bdf32ef212ee44394b4022a7"
+  },
+  "test_evaluation_started": false,
+  "data_manifest_sha256": "9fe7360e8dd2d91bc3b9c6a477e38ec2b4e23b24d6db99ed04c62a725ef1ddfa"
+}

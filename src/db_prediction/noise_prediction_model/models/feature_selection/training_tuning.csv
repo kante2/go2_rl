@@ -1,0 +1,8 @@
+model,param,inner_mean_trial_rmse_db
+mean_baseline,,
+speed_ridge,1.0,4.637648908928709
+speed_hist,15.0,3.584144013828099
+lowstate_ridge,10.0,3.996508099540737
+lowstate_hist,15.0,2.7265316926231775
+speed_lowstate_ridge,1.0,3.915952319680707
+speed_lowstate_hist,15.0,2.665248010766458

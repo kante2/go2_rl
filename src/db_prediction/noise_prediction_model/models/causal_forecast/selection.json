@@ -1,0 +1,8 @@
+{
+  "task": "causal_forecast",
+  "estimator": "hgb",
+  "model_path": "../02_hgb/model.pt",
+  "backend": "pytorch",
+  "used_test_to_select": false,
+  "role": "explicit streaming default; not selected against other models on test"
+}

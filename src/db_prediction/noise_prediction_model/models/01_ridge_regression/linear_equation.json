@@ -1,0 +1,4 @@
+{
+  "intercept": -23.540231704711914,
+  "formula": "predicted_noise_dBFS = intercept + sum(coefficient_j * raw_feature_j)"
+}

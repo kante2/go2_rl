@@ -1,0 +1,10 @@
+{
+  "n_trees": 200,
+  "max_depth": 17,
+  "max_nodes": 61,
+  "threshold_dtype": "float64",
+  "value_dtype": "float64",
+  "training_backend": "sklearn",
+  "inference_backend": "pytorch",
+  "training_conversion_max_abs_error_db": 9.237055564881302e-14
+}

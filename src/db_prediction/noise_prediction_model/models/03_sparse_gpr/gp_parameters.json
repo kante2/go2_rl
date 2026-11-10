@@ -1,0 +1,12 @@
+{
+  "kernel": "Matern 3/2, ARD",
+  "n_inducing": 256,
+  "n_training_samples": 45774,
+  "observation_noise_std_db": 3.035201072692871,
+  "likelihood": "homoscedastic Gaussian",
+  "posterior": "optimal Gaussian variational posterior conditioned on all train samples",
+  "backend": "pytorch",
+  "posterior_solve_dtype": "float64",
+  "inference_dtype": "float32",
+  "uncertainty": "latent_std excludes observation noise; observation_std includes observation noise"
+}
