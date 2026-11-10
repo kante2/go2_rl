@@ -1,0 +1,8 @@
+# Generated datasets, reports, figures and experiment runs
+/noise_prediction_model/datasets/
+/noise_prediction_model/results/
+/noise_prediction_model/runs/
+/noise_prediction_model/logs/
+/noise_prediction_model/environment.json
+/noise_prediction_model/protocol.json
+/preprocessed/

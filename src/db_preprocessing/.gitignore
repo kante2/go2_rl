@@ -1,0 +1,6 @@
+# Raw/processed datasets and generated diagnostics
+/data/
+/dataset/
+/preprocessed/
+/figure/
+/scripts/tmp.txt
