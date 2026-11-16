@@ -1,0 +1,4502 @@
+[
+  {
+    "file": "0.2_1.npz",
+    "meta": {
+      "format_version": 2,
+      "stop_reason": "completed",
+      "ready": true,
+      "stop_confirmed": true,
+      "passive": false,
+      "vx": 0.2,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration": 15.0,
+      "requested_duration": 15.0,
+      "recording_duration": 25.50268354799846,
+      "ready_duration": 25.42014002599899,
+      "pre": 5.0,
+      "post": 5.0,
+      "checkpoint_sha256": "3fb9c6f82b20c3e048506deeb89b0e1f33b90194f4b809a3e46dd62c0d5e2583",
+      "counts": {
+        "ls": 12721,
+        "sp": 0,
+        "lc": 12729,
+        "rl": 614,
+        "tx": 505
+      }
+    },
+    "array_count": 45,
+    "nonfinite": {},
+    "streams": {
+      "ls": {
+        "n": 12721,
+        "shapes": {
+          "ls_t": [
+            12721
+          ],
+          "ls_tick": [
+            12721
+          ],
+          "ls_ff": [
+            12721,
+            4
+          ],
+          "ls_acc": [
+            12721,
+            3
+          ],
+          "ls_gyro": [
+            12721,
+            3
+          ],
+          "ls_rpy": [
+            12721,
+            3
+          ],
+          "ls_quaternion": [
+            12721,
+            4
+          ],
+          "ls_q": [
+            12721,
+            12
+          ],
+          "ls_dq": [
+            12721,
+            12
+          ],
+          "ls_tau": [
+            12721,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.456216614998993,
+        "hz": 499.6814802599252,
+        "dt_ms": {
+          "min": 0.3929609993065242,
+          "median": 1.963366999916616,
+          "p99": 3.573317739610493,
+          "max": 5.709009999918635
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "lc": {
+        "n": 12729,
+        "shapes": {
+          "lc_t": [
+            12729
+          ],
+          "lc_kp": [
+            12729,
+            12
+          ],
+          "lc_kd": [
+            12729,
+            12
+          ],
+          "lc_q": [
+            12729,
+            12
+          ],
+          "lc_dq": [
+            12729,
+            12
+          ],
+          "lc_tau": [
+            12729,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.45622004100005,
+        "hz": 499.99567805039993,
+        "dt_ms": {
+          "min": 0.35316499997861683,
+          "median": 1.9973320004282868,
+          "p99": 3.05799542900786,
+          "max": 4.360000999440672
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "sp": {
+        "n": 0,
+        "shapes": {
+          "sp_t": [
+            0
+          ],
+          "sp_mode": [
+            0
+          ],
+          "sp_gait": [
+            0
+          ],
+          "sp_raise_h": [
+            0
+          ],
+          "sp_body_h": [
+            0
+          ],
+          "sp_vel": [
+            0,
+            3
+          ],
+          "sp_yaw": [
+            0
+          ],
+          "sp_pos": [
+            0,
+            3
+          ],
+          "sp_ff": [
+            0,
+            4
+          ],
+          "sp_foot_pos": [
+            0,
+            12
+          ],
+          "sp_foot_vel": [
+            0,
+            12
+          ]
+        },
+        "length_mismatch": []
+      },
+      "rl": {
+        "n": 614,
+        "shapes": {
+          "rl_t": [
+            614
+          ],
+          "rl_source_t": [
+            614
+          ],
+          "rl_sequence": [
+            614
+          ],
+          "rl_command": [
+            614,
+            3
+          ],
+          "rl_requested": [
+            614,
+            3
+          ],
+          "rl_ready": [
+            614
+          ],
+          "rl_execute": [
+            614
+          ],
+          "rl_phase": [
+            614
+          ],
+          "rl_session": [
+            614
+          ],
+          "rl_checkpoint": [
+            614
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.384484673999395,
+        "hz": 24.148609194650245,
+        "dt_ms": {
+          "min": 33.81944399916392,
+          "median": 41.609511001297506,
+          "p99": 43.67976095949416,
+          "max": 44.80829400017683
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 613,
+        "gaps_over_100ms": 0
+      },
+      "tx": {
+        "n": 505,
+        "shapes": {
+          "tx_t": [
+            505
+          ],
+          "tx_sequence": [
+            505
+          ],
+          "tx_command": [
+            505,
+            3
+          ],
+          "tx_intent": [
+            505
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.418605283999568,
+        "hz": 19.827995846698027,
+        "dt_ms": {
+          "min": 0.12863600022683386,
+          "median": 50.355757999568596,
+          "p99": 51.93153599939251,
+          "max": 52.978906000134884
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 503,
+        "gaps_over_100ms": 0
+      }
+    },
+    "tick": {
+      "modal_step": 2,
+      "histogram": {
+        "1": 1630,
+        "2": 9431,
+        "3": 1616,
+        "4": 24,
+        "5": 4
+      },
+      "duplicates": 15,
+      "resets_or_backwards": 0,
+      "max_step": 5,
+      "larger_than_modal": 1644,
+      "note": "tick is a timestamp, not a packet sequence; nonuniform steps alone do not prove missing packets"
+    },
+    "rl_sequence": {
+      "first": 3348,
+      "last": 3961,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "tx_sequence": {
+      "first": 0,
+      "last": 504,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "events": [
+      {
+        "label": "record_start",
+        "t": 11777.620870979
+      },
+      {
+        "label": "ready",
+        "t": 11777.703414501
+      },
+      {
+        "label": "phase_move",
+        "t": 11782.703791452
+      },
+      {
+        "label": "move_start",
+        "t": 11782.703791452
+      },
+      {
+        "label": "phase_settle",
+        "t": 11797.705036475
+      },
+      {
+        "label": "move_stop",
+        "t": 11797.705036475
+      },
+      {
+        "label": "phase_post",
+        "t": 11798.121491071
+      },
+      {
+        "label": "zero_command_confirmed",
+        "t": 11798.121491071
+      },
+      {
+        "label": "phase_done",
+        "t": 11803.121891149
+      },
+      {
+        "label": "stop_requested_on_exit",
+        "t": 11803.122105709
+      },
+      {
+        "label": "record_stop",
+        "t": 11803.123554527
+      },
+      {
+        "label": "end",
+        "t": 11803.123554527
+      }
+    ],
+    "move_seconds": 15.001245022998773,
+    "move_ls_samples": 7496,
+    "tx_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_requested_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "quaternion_norm": [
+      0.9999998211860657,
+      1.0000001192092896
+    ],
+    "keys": [
+      "ev_api",
+      "ev_label",
+      "ev_t",
+      "lc_dq",
+      "lc_kd",
+      "lc_kp",
+      "lc_q",
+      "lc_t",
+      "lc_tau",
+      "ls_acc",
+      "ls_dq",
+      "ls_ff",
+      "ls_gyro",
+      "ls_q",
+      "ls_quaternion",
+      "ls_rpy",
+      "ls_t",
+      "ls_tau",
+      "ls_tick",
+      "meta",
+      "rl_checkpoint",
+      "rl_command",
+      "rl_execute",
+      "rl_phase",
+      "rl_ready",
+      "rl_requested",
+      "rl_sequence",
+      "rl_session",
+      "rl_source_t",
+      "rl_t",
+      "sp_body_h",
+      "sp_ff",
+      "sp_foot_pos",
+      "sp_foot_vel",
+      "sp_gait",
+      "sp_mode",
+      "sp_pos",
+      "sp_raise_h",
+      "sp_t",
+      "sp_vel",
+      "sp_yaw",
+      "tx_command",
+      "tx_intent",
+      "tx_sequence",
+      "tx_t"
+    ],
+    "ok_load": true,
+    "large_ls_intervals": [],
+    "count_metadata_matches": true,
+    "empty_or_allzero_measurements": [],
+    "event_order_monotonic": true,
+    "repeated_tick_identical_q": 2,
+    "ls_coverage_relative_to_move_s": [
+      -5.036523523000142,
+      5.418448069000078
+    ],
+    "schema_errors": []
+  },
+  {
+    "file": "0.2_2.npz",
+    "meta": {
+      "format_version": 2,
+      "stop_reason": "completed",
+      "ready": true,
+      "stop_confirmed": true,
+      "passive": false,
+      "vx": 0.2,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration": 15.0,
+      "requested_duration": 15.0,
+      "recording_duration": 25.47878474099889,
+      "ready_duration": 25.402473111998916,
+      "pre": 5.0,
+      "post": 5.0,
+      "checkpoint_sha256": "3fb9c6f82b20c3e048506deeb89b0e1f33b90194f4b809a3e46dd62c0d5e2583",
+      "counts": {
+        "ls": 12700,
+        "sp": 0,
+        "lc": 12714,
+        "rl": 613,
+        "tx": 504
+      }
+    },
+    "array_count": 45,
+    "nonfinite": {},
+    "streams": {
+      "ls": {
+        "n": 12700,
+        "shapes": {
+          "ls_t": [
+            12700
+          ],
+          "ls_tick": [
+            12700
+          ],
+          "ls_ff": [
+            12700,
+            4
+          ],
+          "ls_acc": [
+            12700,
+            3
+          ],
+          "ls_gyro": [
+            12700,
+            3
+          ],
+          "ls_rpy": [
+            12700,
+            3
+          ],
+          "ls_quaternion": [
+            12700,
+            4
+          ],
+          "ls_q": [
+            12700,
+            12
+          ],
+          "ls_dq": [
+            12700,
+            12
+          ],
+          "ls_tau": [
+            12700,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.424867183999595,
+        "hz": 499.47163570599685,
+        "dt_ms": {
+          "min": 0.3929009999410482,
+          "median": 1.963972999874386,
+          "p99": 3.5118396194593537,
+          "max": 11.820146000900422
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 1,
+        "gaps_over_100ms": 0
+      },
+      "lc": {
+        "n": 12714,
+        "shapes": {
+          "lc_t": [
+            12714
+          ],
+          "lc_kp": [
+            12714,
+            12
+          ],
+          "lc_kd": [
+            12714,
+            12
+          ],
+          "lc_q": [
+            12714,
+            12
+          ],
+          "lc_dq": [
+            12714,
+            12
+          ],
+          "lc_tau": [
+            12714,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.42631240599985,
+        "hz": 499.99385663963255,
+        "dt_ms": {
+          "min": 0.36473699947237037,
+          "median": 1.9967949992860667,
+          "p99": 3.0513356800656766,
+          "max": 4.061821000505006
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "sp": {
+        "n": 0,
+        "shapes": {
+          "sp_t": [
+            0
+          ],
+          "sp_mode": [
+            0
+          ],
+          "sp_gait": [
+            0
+          ],
+          "sp_raise_h": [
+            0
+          ],
+          "sp_body_h": [
+            0
+          ],
+          "sp_vel": [
+            0,
+            3
+          ],
+          "sp_yaw": [
+            0
+          ],
+          "sp_pos": [
+            0,
+            3
+          ],
+          "sp_ff": [
+            0,
+            4
+          ],
+          "sp_foot_pos": [
+            0,
+            12
+          ],
+          "sp_foot_vel": [
+            0,
+            12
+          ]
+        },
+        "length_mismatch": []
+      },
+      "rl": {
+        "n": 613,
+        "shapes": {
+          "rl_t": [
+            613
+          ],
+          "rl_source_t": [
+            613
+          ],
+          "rl_sequence": [
+            613
+          ],
+          "rl_command": [
+            613,
+            3
+          ],
+          "rl_requested": [
+            613,
+            3
+          ],
+          "rl_ready": [
+            613
+          ],
+          "rl_execute": [
+            613
+          ],
+          "rl_phase": [
+            613
+          ],
+          "rl_session": [
+            613
+          ],
+          "rl_checkpoint": [
+            613
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.382154978999097,
+        "hz": 24.111427910922526,
+        "dt_ms": {
+          "min": 39.30872099954286,
+          "median": 41.65331649983273,
+          "p99": 43.809611900342134,
+          "max": 44.26546300055634
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 612,
+        "gaps_over_100ms": 0
+      },
+      "tx": {
+        "n": 504,
+        "shapes": {
+          "tx_t": [
+            504
+          ],
+          "tx_sequence": [
+            504
+          ],
+          "tx_command": [
+            504,
+            3
+          ],
+          "tx_intent": [
+            504
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.40192654800012,
+        "hz": 19.801647684065166,
+        "dt_ms": {
+          "min": 28.904930999487988,
+          "median": 50.334941000983235,
+          "p99": 51.89554673987004,
+          "max": 52.8993799998716
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 503,
+        "gaps_over_100ms": 0
+      }
+    },
+    "tick": {
+      "modal_step": 2,
+      "histogram": {
+        "1": 1307,
+        "2": 10042,
+        "3": 1308,
+        "4": 22,
+        "5": 1,
+        "6": 1,
+        "11": 1
+      },
+      "duplicates": 17,
+      "resets_or_backwards": 0,
+      "max_step": 11,
+      "larger_than_modal": 1333,
+      "note": "tick is a timestamp, not a packet sequence; nonuniform steps alone do not prove missing packets"
+    },
+    "rl_sequence": {
+      "first": 4193,
+      "last": 4805,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "tx_sequence": {
+      "first": 0,
+      "last": 503,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "events": [
+      {
+        "label": "record_start",
+        "t": 11812.653265577
+      },
+      {
+        "label": "ready",
+        "t": 11812.729577206
+      },
+      {
+        "label": "phase_move",
+        "t": 11817.729916548
+      },
+      {
+        "label": "move_start",
+        "t": 11817.729916548
+      },
+      {
+        "label": "phase_settle",
+        "t": 11832.730631157
+      },
+      {
+        "label": "move_stop",
+        "t": 11832.730631157
+      },
+      {
+        "label": "phase_post",
+        "t": 11833.130715769
+      },
+      {
+        "label": "zero_command_confirmed",
+        "t": 11833.130715769
+      },
+      {
+        "label": "phase_done",
+        "t": 11838.131462595
+      },
+      {
+        "label": "stop_requested_on_exit",
+        "t": 11838.131587544
+      },
+      {
+        "label": "record_stop",
+        "t": 11838.132050318
+      },
+      {
+        "label": "end",
+        "t": 11838.132050318
+      }
+    ],
+    "move_seconds": 15.00071460899926,
+    "move_ls_samples": 7491,
+    "tx_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_requested_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "quaternion_norm": [
+      0.9999998211860657,
+      1.0000001192092896
+    ],
+    "keys": [
+      "ev_api",
+      "ev_label",
+      "ev_t",
+      "lc_dq",
+      "lc_kd",
+      "lc_kp",
+      "lc_q",
+      "lc_t",
+      "lc_tau",
+      "ls_acc",
+      "ls_dq",
+      "ls_ff",
+      "ls_gyro",
+      "ls_q",
+      "ls_quaternion",
+      "ls_rpy",
+      "ls_t",
+      "ls_tau",
+      "ls_tick",
+      "meta",
+      "rl_checkpoint",
+      "rl_command",
+      "rl_execute",
+      "rl_phase",
+      "rl_ready",
+      "rl_requested",
+      "rl_sequence",
+      "rl_session",
+      "rl_source_t",
+      "rl_t",
+      "sp_body_h",
+      "sp_ff",
+      "sp_foot_pos",
+      "sp_foot_vel",
+      "sp_gait",
+      "sp_mode",
+      "sp_pos",
+      "sp_raise_h",
+      "sp_t",
+      "sp_vel",
+      "sp_yaw",
+      "tx_command",
+      "tx_intent",
+      "tx_sequence",
+      "tx_t"
+    ],
+    "ok_load": true,
+    "large_ls_intervals": [
+      {
+        "ms": 11.820146000900422,
+        "after_move_start_s": 12.41350551799951,
+        "tick_step": 2
+      }
+    ],
+    "count_metadata_matches": true,
+    "empty_or_allzero_measurements": [],
+    "event_order_monotonic": true,
+    "repeated_tick_identical_q": 7,
+    "ls_coverage_relative_to_move_s": [
+      -5.023350692999884,
+      5.400801882000451
+    ],
+    "schema_errors": []
+  },
+  {
+    "file": "0.2_3.npz",
+    "meta": {
+      "format_version": 2,
+      "stop_reason": "completed",
+      "ready": true,
+      "stop_confirmed": true,
+      "passive": false,
+      "vx": 0.2,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration": 15.0,
+      "requested_duration": 15.0,
+      "recording_duration": 25.491909804999523,
+      "ready_duration": 25.393698244000916,
+      "pre": 5.0,
+      "post": 5.0,
+      "checkpoint_sha256": "3fb9c6f82b20c3e048506deeb89b0e1f33b90194f4b809a3e46dd62c0d5e2583",
+      "counts": {
+        "ls": 12709,
+        "sp": 0,
+        "lc": 12717,
+        "rl": 612,
+        "tx": 504
+      }
+    },
+    "array_count": 45,
+    "nonfinite": {},
+    "streams": {
+      "ls": {
+        "n": 12709,
+        "shapes": {
+          "ls_t": [
+            12709
+          ],
+          "ls_tick": [
+            12709
+          ],
+          "ls_ff": [
+            12709,
+            4
+          ],
+          "ls_acc": [
+            12709,
+            3
+          ],
+          "ls_gyro": [
+            12709,
+            3
+          ],
+          "ls_rpy": [
+            12709,
+            3
+          ],
+          "ls_quaternion": [
+            12709,
+            4
+          ],
+          "ls_q": [
+            12709,
+            12
+          ],
+          "ls_dq": [
+            12709,
+            12
+          ],
+          "ls_tau": [
+            12709,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.43070990099841,
+        "hz": 499.71078469583284,
+        "dt_ms": {
+          "min": 0.36949600143998396,
+          "median": 1.9405779994485783,
+          "p99": 3.5539666096883606,
+          "max": 13.45755299917073
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 1,
+        "gaps_over_100ms": 0
+      },
+      "lc": {
+        "n": 12717,
+        "shapes": {
+          "lc_t": [
+            12717
+          ],
+          "lc_kp": [
+            12717,
+            12
+          ],
+          "lc_kd": [
+            12717,
+            12
+          ],
+          "lc_q": [
+            12717,
+            12
+          ],
+          "lc_dq": [
+            12717,
+            12
+          ],
+          "lc_tau": [
+            12717,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.432149832000505,
+        "hz": 499.9970542796914,
+        "dt_ms": {
+          "min": 0.34293499993509613,
+          "median": 1.9961890002377913,
+          "p99": 3.177565899841284,
+          "max": 4.3891260011150734
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "sp": {
+        "n": 0,
+        "shapes": {
+          "sp_t": [
+            0
+          ],
+          "sp_mode": [
+            0
+          ],
+          "sp_gait": [
+            0
+          ],
+          "sp_raise_h": [
+            0
+          ],
+          "sp_body_h": [
+            0
+          ],
+          "sp_vel": [
+            0,
+            3
+          ],
+          "sp_yaw": [
+            0
+          ],
+          "sp_pos": [
+            0,
+            3
+          ],
+          "sp_ff": [
+            0,
+            4
+          ],
+          "sp_foot_pos": [
+            0,
+            12
+          ],
+          "sp_foot_vel": [
+            0,
+            12
+          ]
+        },
+        "length_mismatch": []
+      },
+      "rl": {
+        "n": 612,
+        "shapes": {
+          "rl_t": [
+            612
+          ],
+          "rl_source_t": [
+            612
+          ],
+          "rl_sequence": [
+            612
+          ],
+          "rl_command": [
+            612,
+            3
+          ],
+          "rl_requested": [
+            612,
+            3
+          ],
+          "rl_ready": [
+            612
+          ],
+          "rl_execute": [
+            612
+          ],
+          "rl_phase": [
+            612
+          ],
+          "rl_session": [
+            612
+          ],
+          "rl_checkpoint": [
+            612
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.353891888000362,
+        "hz": 24.098864296616238,
+        "dt_ms": {
+          "min": 32.79462899990904,
+          "median": 41.566631000023335,
+          "p99": 43.64838920027978,
+          "max": 44.3085480001173
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 611,
+        "gaps_over_100ms": 0
+      },
+      "tx": {
+        "n": 504,
+        "shapes": {
+          "tx_t": [
+            504
+          ],
+          "tx_sequence": [
+            504
+          ],
+          "tx_command": [
+            504,
+            3
+          ],
+          "tx_intent": [
+            504
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.39306687700082,
+        "hz": 19.808556502309713,
+        "dt_ms": {
+          "min": 18.146311000236892,
+          "median": 50.420437000866514,
+          "p99": 52.1513347608925,
+          "max": 52.99435500091931
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 503,
+        "gaps_over_100ms": 0
+      }
+    },
+    "tick": {
+      "modal_step": 2,
+      "histogram": {
+        "1": 1147,
+        "2": 10393,
+        "3": 1135,
+        "4": 19,
+        "5": 1,
+        "12": 1
+      },
+      "duplicates": 12,
+      "resets_or_backwards": 0,
+      "max_step": 12,
+      "larger_than_modal": 1156,
+      "note": "tick is a timestamp, not a packet sequence; nonuniform steps alone do not prove missing packets"
+    },
+    "rl_sequence": {
+      "first": 6477,
+      "last": 7088,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "tx_sequence": {
+      "first": 0,
+      "last": 503,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "events": [
+      {
+        "label": "record_start",
+        "t": 11907.859105555
+      },
+      {
+        "label": "ready",
+        "t": 11907.957317116
+      },
+      {
+        "label": "phase_move",
+        "t": 11912.957635261
+      },
+      {
+        "label": "move_start",
+        "t": 11912.957635261
+      },
+      {
+        "label": "phase_settle",
+        "t": 11927.957747189
+      },
+      {
+        "label": "move_stop",
+        "t": 11927.957747189
+      },
+      {
+        "label": "phase_post",
+        "t": 11928.350149043
+      },
+      {
+        "label": "zero_command_confirmed",
+        "t": 11928.350149043
+      },
+      {
+        "label": "phase_done",
+        "t": 11933.350329449
+      },
+      {
+        "label": "stop_requested_on_exit",
+        "t": 11933.350493773
+      },
+      {
+        "label": "record_stop",
+        "t": 11933.35101536
+      },
+      {
+        "label": "end",
+        "t": 11933.35101536
+      }
+    ],
+    "move_seconds": 15.000111928000479,
+    "move_ls_samples": 7494,
+    "tx_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_requested_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "quaternion_norm": [
+      0.9999998211860657,
+      1.0000001192092896
+    ],
+    "keys": [
+      "ev_api",
+      "ev_label",
+      "ev_t",
+      "lc_dq",
+      "lc_kd",
+      "lc_kp",
+      "lc_q",
+      "lc_t",
+      "lc_tau",
+      "ls_acc",
+      "ls_dq",
+      "ls_ff",
+      "ls_gyro",
+      "ls_q",
+      "ls_quaternion",
+      "ls_rpy",
+      "ls_t",
+      "ls_tau",
+      "ls_tick",
+      "meta",
+      "rl_checkpoint",
+      "rl_command",
+      "rl_execute",
+      "rl_phase",
+      "rl_ready",
+      "rl_requested",
+      "rl_sequence",
+      "rl_session",
+      "rl_source_t",
+      "rl_t",
+      "sp_body_h",
+      "sp_ff",
+      "sp_foot_pos",
+      "sp_foot_vel",
+      "sp_gait",
+      "sp_mode",
+      "sp_pos",
+      "sp_raise_h",
+      "sp_t",
+      "sp_vel",
+      "sp_yaw",
+      "tx_command",
+      "tx_intent",
+      "tx_sequence",
+      "tx_t"
+    ],
+    "ok_load": true,
+    "large_ls_intervals": [
+      {
+        "ms": 13.45755299917073,
+        "after_move_start_s": 10.022984060000454,
+        "tick_step": 2
+      }
+    ],
+    "count_metadata_matches": true,
+    "empty_or_allzero_measurements": [],
+    "event_order_monotonic": true,
+    "repeated_tick_identical_q": 2,
+    "ls_coverage_relative_to_move_s": [
+      -5.037394405999294,
+      5.393203566998636
+    ],
+    "schema_errors": []
+  },
+  {
+    "file": "0.2_4.npz",
+    "meta": {
+      "format_version": 2,
+      "stop_reason": "completed",
+      "ready": true,
+      "stop_confirmed": true,
+      "passive": false,
+      "vx": 0.2,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration": 15.0,
+      "requested_duration": 15.0,
+      "recording_duration": 25.48166543700063,
+      "ready_duration": 25.39184066800044,
+      "pre": 5.0,
+      "post": 5.0,
+      "checkpoint_sha256": "3fb9c6f82b20c3e048506deeb89b0e1f33b90194f4b809a3e46dd62c0d5e2583",
+      "counts": {
+        "ls": 12702,
+        "sp": 0,
+        "lc": 12716,
+        "rl": 617,
+        "tx": 504
+      }
+    },
+    "array_count": 45,
+    "nonfinite": {},
+    "streams": {
+      "ls": {
+        "n": 12702,
+        "shapes": {
+          "ls_t": [
+            12702
+          ],
+          "ls_tick": [
+            12702
+          ],
+          "ls_ff": [
+            12702,
+            4
+          ],
+          "ls_acc": [
+            12702,
+            3
+          ],
+          "ls_gyro": [
+            12702,
+            3
+          ],
+          "ls_rpy": [
+            12702,
+            3
+          ],
+          "ls_quaternion": [
+            12702,
+            4
+          ],
+          "ls_q": [
+            12702,
+            12
+          ],
+          "ls_dq": [
+            12702,
+            12
+          ],
+          "ls_tau": [
+            12702,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.42556776299898,
+        "hz": 499.53653418443463,
+        "dt_ms": {
+          "min": 0.37110899938852526,
+          "median": 1.9978569998784224,
+          "p99": 3.2769009994808584,
+          "max": 8.003850998647977
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "lc": {
+        "n": 12716,
+        "shapes": {
+          "lc_t": [
+            12716
+          ],
+          "lc_kp": [
+            12716,
+            12
+          ],
+          "lc_kd": [
+            12716,
+            12
+          ],
+          "lc_q": [
+            12716,
+            12
+          ],
+          "lc_dq": [
+            12716,
+            12
+          ],
+          "lc_tau": [
+            12716,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.429317938000167,
+        "hz": 500.01341093775096,
+        "dt_ms": {
+          "min": 0.3288289990450721,
+          "median": 1.9994600006612018,
+          "p99": 3.1000039191712863,
+          "max": 4.406498001117143
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "sp": {
+        "n": 0,
+        "shapes": {
+          "sp_t": [
+            0
+          ],
+          "sp_mode": [
+            0
+          ],
+          "sp_gait": [
+            0
+          ],
+          "sp_raise_h": [
+            0
+          ],
+          "sp_body_h": [
+            0
+          ],
+          "sp_vel": [
+            0,
+            3
+          ],
+          "sp_yaw": [
+            0
+          ],
+          "sp_pos": [
+            0,
+            3
+          ],
+          "sp_ff": [
+            0,
+            4
+          ],
+          "sp_foot_pos": [
+            0,
+            12
+          ],
+          "sp_foot_vel": [
+            0,
+            12
+          ]
+        },
+        "length_mismatch": []
+      },
+      "rl": {
+        "n": 617,
+        "shapes": {
+          "rl_t": [
+            617
+          ],
+          "rl_source_t": [
+            617
+          ],
+          "rl_sequence": [
+            617
+          ],
+          "rl_command": [
+            617,
+            3
+          ],
+          "rl_requested": [
+            617,
+            3
+          ],
+          "rl_ready": [
+            617
+          ],
+          "rl_execute": [
+            617
+          ],
+          "rl_phase": [
+            617
+          ],
+          "rl_session": [
+            617
+          ],
+          "rl_checkpoint": [
+            617
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.380073496999103,
+        "hz": 24.27100930471438,
+        "dt_ms": {
+          "min": 31.84551000049396,
+          "median": 41.52785800033598,
+          "p99": 43.55263445031596,
+          "max": 44.20572399976663
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 616,
+        "gaps_over_100ms": 0
+      },
+      "tx": {
+        "n": 504,
+        "shapes": {
+          "tx_t": [
+            504
+          ],
+          "tx_sequence": [
+            504
+          ],
+          "tx_command": [
+            504,
+            3
+          ],
+          "tx_intent": [
+            504
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.390267482000127,
+        "hz": 19.8107404877318,
+        "dt_ms": {
+          "min": 30.375411000932218,
+          "median": 50.32813000070746,
+          "p99": 51.86462988051062,
+          "max": 52.59699499947601
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 503,
+        "gaps_over_100ms": 0
+      }
+    },
+    "tick": {
+      "modal_step": 2,
+      "histogram": {
+        "1": 1617,
+        "2": 9426,
+        "3": 1608,
+        "4": 24,
+        "5": 6,
+        "7": 1
+      },
+      "duplicates": 19,
+      "resets_or_backwards": 0,
+      "max_step": 7,
+      "larger_than_modal": 1639,
+      "note": "tick is a timestamp, not a packet sequence; nonuniform steps alone do not prove missing packets"
+    },
+    "rl_sequence": {
+      "first": 1502,
+      "last": 2118,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "tx_sequence": {
+      "first": 0,
+      "last": 503,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "events": [
+      {
+        "label": "record_start",
+        "t": 12063.895712161
+      },
+      {
+        "label": "ready",
+        "t": 12063.98553693
+      },
+      {
+        "label": "phase_move",
+        "t": 12068.985799485
+      },
+      {
+        "label": "move_start",
+        "t": 12068.985799485
+      },
+      {
+        "label": "phase_settle",
+        "t": 12083.987374815
+      },
+      {
+        "label": "move_stop",
+        "t": 12083.987374815
+      },
+      {
+        "label": "phase_post",
+        "t": 12084.375491719
+      },
+      {
+        "label": "zero_command_confirmed",
+        "t": 12084.375491719
+      },
+      {
+        "label": "phase_done",
+        "t": 12089.375765638
+      },
+      {
+        "label": "stop_requested_on_exit",
+        "t": 12089.375863696
+      },
+      {
+        "label": "record_stop",
+        "t": 12089.377377598
+      },
+      {
+        "label": "end",
+        "t": 12089.377377598
+      }
+    ],
+    "move_seconds": 15.001575329999469,
+    "move_ls_samples": 7498,
+    "tx_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_requested_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "quaternion_norm": [
+      0.9999998211860657,
+      1.0000001192092896
+    ],
+    "keys": [
+      "ev_api",
+      "ev_label",
+      "ev_t",
+      "lc_dq",
+      "lc_kd",
+      "lc_kp",
+      "lc_q",
+      "lc_t",
+      "lc_tau",
+      "ls_acc",
+      "ls_dq",
+      "ls_ff",
+      "ls_gyro",
+      "ls_q",
+      "ls_quaternion",
+      "ls_rpy",
+      "ls_t",
+      "ls_tau",
+      "ls_tick",
+      "meta",
+      "rl_checkpoint",
+      "rl_command",
+      "rl_execute",
+      "rl_phase",
+      "rl_ready",
+      "rl_requested",
+      "rl_sequence",
+      "rl_session",
+      "rl_source_t",
+      "rl_t",
+      "sp_body_h",
+      "sp_ff",
+      "sp_foot_pos",
+      "sp_foot_vel",
+      "sp_gait",
+      "sp_mode",
+      "sp_pos",
+      "sp_raise_h",
+      "sp_t",
+      "sp_vel",
+      "sp_yaw",
+      "tx_command",
+      "tx_intent",
+      "tx_sequence",
+      "tx_t"
+    ],
+    "ok_load": true,
+    "large_ls_intervals": [],
+    "count_metadata_matches": true,
+    "empty_or_allzero_measurements": [],
+    "event_order_monotonic": true,
+    "repeated_tick_identical_q": 4,
+    "ls_coverage_relative_to_move_s": [
+      -5.035630054000649,
+      5.388362378998863
+    ],
+    "schema_errors": []
+  },
+  {
+    "file": "0.2_5.npz",
+    "meta": {
+      "format_version": 2,
+      "stop_reason": "completed",
+      "ready": true,
+      "stop_confirmed": true,
+      "passive": false,
+      "vx": 0.2,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration": 15.0,
+      "requested_duration": 15.0,
+      "recording_duration": 25.50003262699829,
+      "ready_duration": 25.414704330998575,
+      "pre": 5.0,
+      "post": 5.0,
+      "checkpoint_sha256": "3fb9c6f82b20c3e048506deeb89b0e1f33b90194f4b809a3e46dd62c0d5e2583",
+      "counts": {
+        "ls": 12726,
+        "sp": 0,
+        "lc": 12726,
+        "rl": 615,
+        "tx": 505
+      }
+    },
+    "array_count": 45,
+    "nonfinite": {},
+    "streams": {
+      "ls": {
+        "n": 12726,
+        "shapes": {
+          "ls_t": [
+            12726
+          ],
+          "ls_tick": [
+            12726
+          ],
+          "ls_ff": [
+            12726,
+            4
+          ],
+          "ls_acc": [
+            12726,
+            3
+          ],
+          "ls_gyro": [
+            12726,
+            3
+          ],
+          "ls_rpy": [
+            12726,
+            3
+          ],
+          "ls_quaternion": [
+            12726,
+            4
+          ],
+          "ls_q": [
+            12726,
+            12
+          ],
+          "ls_dq": [
+            12726,
+            12
+          ],
+          "ls_tau": [
+            12726,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.449784731999898,
+        "hz": 500.0042292695669,
+        "dt_ms": {
+          "min": 0.3802359988185344,
+          "median": 2.0000010008516256,
+          "p99": 2.997875360015315,
+          "max": 5.382793000535457
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "lc": {
+        "n": 12726,
+        "shapes": {
+          "lc_t": [
+            12726
+          ],
+          "lc_kp": [
+            12726,
+            12
+          ],
+          "lc_kd": [
+            12726,
+            12
+          ],
+          "lc_q": [
+            12726,
+            12
+          ],
+          "lc_dq": [
+            12726,
+            12
+          ],
+          "lc_tau": [
+            12726,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.449845066999842,
+        "hz": 500.0030438888675,
+        "dt_ms": {
+          "min": 0.34913699892058503,
+          "median": 1.999529999011429,
+          "p99": 2.8331851593247848,
+          "max": 4.616338999767322
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "sp": {
+        "n": 0,
+        "shapes": {
+          "sp_t": [
+            0
+          ],
+          "sp_mode": [
+            0
+          ],
+          "sp_gait": [
+            0
+          ],
+          "sp_raise_h": [
+            0
+          ],
+          "sp_body_h": [
+            0
+          ],
+          "sp_vel": [
+            0,
+            3
+          ],
+          "sp_yaw": [
+            0
+          ],
+          "sp_pos": [
+            0,
+            3
+          ],
+          "sp_ff": [
+            0,
+            4
+          ],
+          "sp_foot_pos": [
+            0,
+            12
+          ],
+          "sp_foot_vel": [
+            0,
+            12
+          ]
+        },
+        "length_mismatch": []
+      },
+      "rl": {
+        "n": 615,
+        "shapes": {
+          "rl_t": [
+            615
+          ],
+          "rl_source_t": [
+            615
+          ],
+          "rl_sequence": [
+            615
+          ],
+          "rl_command": [
+            615,
+            3
+          ],
+          "rl_requested": [
+            615,
+            3
+          ],
+          "rl_ready": [
+            615
+          ],
+          "rl_execute": [
+            615
+          ],
+          "rl_phase": [
+            615
+          ],
+          "rl_session": [
+            615
+          ],
+          "rl_checkpoint": [
+            615
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.38419548699858,
+        "hz": 24.188278896389765,
+        "dt_ms": {
+          "min": 39.76248300023144,
+          "median": 41.635537499132624,
+          "p99": 43.624128139344975,
+          "max": 44.50916199857602
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 614,
+        "gaps_over_100ms": 0
+      },
+      "tx": {
+        "n": 505,
+        "shapes": {
+          "tx_t": [
+            505
+          ],
+          "tx_sequence": [
+            505
+          ],
+          "tx_command": [
+            505,
+            3
+          ],
+          "tx_intent": [
+            505
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.413991559998976,
+        "hz": 19.831595474096407,
+        "dt_ms": {
+          "min": 3.4133909994125133,
+          "median": 50.34575299941935,
+          "p99": 51.78802313035703,
+          "max": 52.206857999408385
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 503,
+        "gaps_over_100ms": 0
+      }
+    },
+    "tick": {
+      "modal_step": 2,
+      "histogram": {
+        "1": 937,
+        "2": 10841,
+        "3": 909,
+        "4": 22,
+        "5": 2,
+        "6": 1
+      },
+      "duplicates": 13,
+      "resets_or_backwards": 0,
+      "max_step": 6,
+      "larger_than_modal": 934,
+      "note": "tick is a timestamp, not a packet sequence; nonuniform steps alone do not prove missing packets"
+    },
+    "rl_sequence": {
+      "first": 2241,
+      "last": 2855,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "tx_sequence": {
+      "first": 0,
+      "last": 504,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "events": [
+      {
+        "label": "record_start",
+        "t": 12094.348056422
+      },
+      {
+        "label": "ready",
+        "t": 12094.433384718
+      },
+      {
+        "label": "phase_move",
+        "t": 12099.433786921
+      },
+      {
+        "label": "move_start",
+        "t": 12099.433786921
+      },
+      {
+        "label": "phase_settle",
+        "t": 12114.433895896
+      },
+      {
+        "label": "move_stop",
+        "t": 12114.433895896
+      },
+      {
+        "label": "phase_post",
+        "t": 12114.847304055
+      },
+      {
+        "label": "zero_command_confirmed",
+        "t": 12114.847304055
+      },
+      {
+        "label": "phase_done",
+        "t": 12119.847332284
+      },
+      {
+        "label": "stop_requested_on_exit",
+        "t": 12119.84747152
+      },
+      {
+        "label": "record_stop",
+        "t": 12119.848089049
+      },
+      {
+        "label": "end",
+        "t": 12119.848089049
+      }
+    ],
+    "move_seconds": 15.00010897500033,
+    "move_ls_samples": 7500,
+    "tx_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_requested_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.2,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "quaternion_norm": [
+      0.9999998211860657,
+      1.0000001192092896
+    ],
+    "keys": [
+      "ev_api",
+      "ev_label",
+      "ev_t",
+      "lc_dq",
+      "lc_kd",
+      "lc_kp",
+      "lc_q",
+      "lc_t",
+      "lc_tau",
+      "ls_acc",
+      "ls_dq",
+      "ls_ff",
+      "ls_gyro",
+      "ls_q",
+      "ls_quaternion",
+      "ls_rpy",
+      "ls_t",
+      "ls_tau",
+      "ls_tick",
+      "meta",
+      "rl_checkpoint",
+      "rl_command",
+      "rl_execute",
+      "rl_phase",
+      "rl_ready",
+      "rl_requested",
+      "rl_sequence",
+      "rl_session",
+      "rl_source_t",
+      "rl_t",
+      "sp_body_h",
+      "sp_ff",
+      "sp_foot_pos",
+      "sp_foot_vel",
+      "sp_gait",
+      "sp_mode",
+      "sp_pos",
+      "sp_raise_h",
+      "sp_t",
+      "sp_vel",
+      "sp_yaw",
+      "tx_command",
+      "tx_intent",
+      "tx_sequence",
+      "tx_t"
+    ],
+    "ok_load": true,
+    "large_ls_intervals": [],
+    "count_metadata_matches": true,
+    "empty_or_allzero_measurements": [],
+    "event_order_monotonic": true,
+    "repeated_tick_identical_q": 8,
+    "ls_coverage_relative_to_move_s": [
+      -5.035563116998674,
+      5.414112640000894
+    ],
+    "schema_errors": []
+  },
+  {
+    "file": "0.4_1.npz",
+    "meta": {
+      "format_version": 2,
+      "stop_reason": "completed",
+      "ready": true,
+      "stop_confirmed": true,
+      "passive": false,
+      "vx": 0.4,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration": 15.0,
+      "requested_duration": 15.0,
+      "recording_duration": 25.88455147500099,
+      "ready_duration": 25.836003787000664,
+      "pre": 5.0,
+      "post": 5.0,
+      "checkpoint_sha256": "3fb9c6f82b20c3e048506deeb89b0e1f33b90194f4b809a3e46dd62c0d5e2583",
+      "counts": {
+        "ls": 12921,
+        "sp": 0,
+        "lc": 12923,
+        "rl": 634,
+        "tx": 513
+      }
+    },
+    "array_count": 45,
+    "nonfinite": {},
+    "streams": {
+      "ls": {
+        "n": 12921,
+        "shapes": {
+          "ls_t": [
+            12921
+          ],
+          "ls_tick": [
+            12921
+          ],
+          "ls_ff": [
+            12921,
+            4
+          ],
+          "ls_acc": [
+            12921,
+            3
+          ],
+          "ls_gyro": [
+            12921,
+            3
+          ],
+          "ls_rpy": [
+            12921,
+            3
+          ],
+          "ls_quaternion": [
+            12921,
+            4
+          ],
+          "ls_q": [
+            12921,
+            12
+          ],
+          "ls_dq": [
+            12921,
+            12
+          ],
+          "ls_tau": [
+            12921,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.84316285299974,
+        "hz": 499.93880677419924,
+        "dt_ms": {
+          "min": 0.376189000235172,
+          "median": 2.0001709990538075,
+          "p99": 2.9137631197954756,
+          "max": 5.618712999421405
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "lc": {
+        "n": 12923,
+        "shapes": {
+          "lc_t": [
+            12923
+          ],
+          "lc_kp": [
+            12923,
+            12
+          ],
+          "lc_kd": [
+            12923,
+            12
+          ],
+          "lc_q": [
+            12923,
+            12
+          ],
+          "lc_dq": [
+            12923,
+            12
+          ],
+          "lc_tau": [
+            12923,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.84361943499971,
+        "hz": 500.00736284252383,
+        "dt_ms": {
+          "min": 0.6101360013417434,
+          "median": 1.9995200000266777,
+          "p99": 2.2841959794641293,
+          "max": 3.3739549999154406
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "sp": {
+        "n": 0,
+        "shapes": {
+          "sp_t": [
+            0
+          ],
+          "sp_mode": [
+            0
+          ],
+          "sp_gait": [
+            0
+          ],
+          "sp_raise_h": [
+            0
+          ],
+          "sp_body_h": [
+            0
+          ],
+          "sp_vel": [
+            0,
+            3
+          ],
+          "sp_yaw": [
+            0
+          ],
+          "sp_pos": [
+            0,
+            3
+          ],
+          "sp_ff": [
+            0,
+            4
+          ],
+          "sp_foot_pos": [
+            0,
+            12
+          ],
+          "sp_foot_vel": [
+            0,
+            12
+          ]
+        },
+        "length_mismatch": []
+      },
+      "rl": {
+        "n": 634,
+        "shapes": {
+          "rl_t": [
+            634
+          ],
+          "rl_source_t": [
+            634
+          ],
+          "rl_sequence": [
+            634
+          ],
+          "rl_command": [
+            634,
+            3
+          ],
+          "rl_requested": [
+            634,
+            3
+          ],
+          "rl_ready": [
+            634
+          ],
+          "rl_execute": [
+            634
+          ],
+          "rl_phase": [
+            634
+          ],
+          "rl_session": [
+            634
+          ],
+          "rl_checkpoint": [
+            634
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.799901001999388,
+        "hz": 24.534977864874175,
+        "dt_ms": {
+          "min": 39.552824999191216,
+          "median": 40.7673360004992,
+          "p99": 42.00588687956042,
+          "max": 42.091143999641645
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 633,
+        "gaps_over_100ms": 0
+      },
+      "tx": {
+        "n": 513,
+        "shapes": {
+          "tx_t": [
+            513
+          ],
+          "tx_sequence": [
+            513
+          ],
+          "tx_command": [
+            513,
+            3
+          ],
+          "tx_intent": [
+            513
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.835223756999767,
+        "hz": 19.817904610223447,
+        "dt_ms": {
+          "min": 17.2026519994688,
+          "median": 50.6436305004172,
+          "p99": 51.38460935011608,
+          "max": 51.718364000407746
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 512,
+        "gaps_over_100ms": 0
+      }
+    },
+    "tick": {
+      "modal_step": 2,
+      "histogram": {
+        "1": 1864,
+        "2": 9175,
+        "3": 1862,
+        "4": 7,
+        "5": 3
+      },
+      "duplicates": 9,
+      "resets_or_backwards": 0,
+      "max_step": 5,
+      "larger_than_modal": 1872,
+      "note": "tick is a timestamp, not a packet sequence; nonuniform steps alone do not prove missing packets"
+    },
+    "rl_sequence": {
+      "first": 458,
+      "last": 1091,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "tx_sequence": {
+      "first": 0,
+      "last": 512,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "events": [
+      {
+        "label": "record_start",
+        "t": 12360.198243964
+      },
+      {
+        "label": "ready",
+        "t": 12360.246791652
+      },
+      {
+        "label": "phase_move",
+        "t": 12365.247947593
+      },
+      {
+        "label": "move_start",
+        "t": 12365.247947593
+      },
+      {
+        "label": "phase_settle",
+        "t": 12380.247969796
+      },
+      {
+        "label": "move_stop",
+        "t": 12380.247969796
+      },
+      {
+        "label": "phase_post",
+        "t": 12381.080821847
+      },
+      {
+        "label": "zero_command_confirmed",
+        "t": 12381.080821847
+      },
+      {
+        "label": "phase_done",
+        "t": 12386.081973088
+      },
+      {
+        "label": "stop_requested_on_exit",
+        "t": 12386.082077988
+      },
+      {
+        "label": "record_stop",
+        "t": 12386.082795439
+      },
+      {
+        "label": "end",
+        "t": 12386.082795439
+      }
+    ],
+    "move_seconds": 15.000022203001208,
+    "move_ls_samples": 7499,
+    "tx_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_requested_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "quaternion_norm": [
+      0.9999998807907104,
+      1.0000001192092896
+    ],
+    "keys": [
+      "ev_api",
+      "ev_label",
+      "ev_t",
+      "lc_dq",
+      "lc_kd",
+      "lc_kp",
+      "lc_q",
+      "lc_t",
+      "lc_tau",
+      "ls_acc",
+      "ls_dq",
+      "ls_ff",
+      "ls_gyro",
+      "ls_q",
+      "ls_quaternion",
+      "ls_rpy",
+      "ls_t",
+      "ls_tau",
+      "ls_tick",
+      "meta",
+      "rl_checkpoint",
+      "rl_command",
+      "rl_execute",
+      "rl_phase",
+      "rl_ready",
+      "rl_requested",
+      "rl_sequence",
+      "rl_session",
+      "rl_source_t",
+      "rl_t",
+      "sp_body_h",
+      "sp_ff",
+      "sp_foot_pos",
+      "sp_foot_vel",
+      "sp_gait",
+      "sp_mode",
+      "sp_pos",
+      "sp_raise_h",
+      "sp_t",
+      "sp_vel",
+      "sp_yaw",
+      "tx_command",
+      "tx_intent",
+      "tx_sequence",
+      "tx_t"
+    ],
+    "ok_load": true,
+    "large_ls_intervals": [],
+    "count_metadata_matches": true,
+    "empty_or_allzero_measurements": [],
+    "event_order_monotonic": true,
+    "repeated_tick_identical_q": 3,
+    "ls_coverage_relative_to_move_s": [
+      -5.008370863999517,
+      5.834769785999015
+    ],
+    "schema_errors": []
+  },
+  {
+    "file": "0.4_2.npz",
+    "meta": {
+      "format_version": 2,
+      "stop_reason": "completed",
+      "ready": true,
+      "stop_confirmed": true,
+      "passive": false,
+      "vx": 0.4,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration": 15.0,
+      "requested_duration": 15.0,
+      "recording_duration": 25.923233776000416,
+      "ready_duration": 25.844728711001153,
+      "pre": 5.0,
+      "post": 5.0,
+      "checkpoint_sha256": "3fb9c6f82b20c3e048506deeb89b0e1f33b90194f4b809a3e46dd62c0d5e2583",
+      "counts": {
+        "ls": 12896,
+        "sp": 0,
+        "lc": 12940,
+        "rl": 624,
+        "tx": 513
+      }
+    },
+    "array_count": 45,
+    "nonfinite": {},
+    "streams": {
+      "ls": {
+        "n": 12896,
+        "shapes": {
+          "ls_t": [
+            12896
+          ],
+          "ls_tick": [
+            12896
+          ],
+          "ls_ff": [
+            12896,
+            4
+          ],
+          "ls_acc": [
+            12896,
+            3
+          ],
+          "ls_gyro": [
+            12896,
+            3
+          ],
+          "ls_rpy": [
+            12896,
+            3
+          ],
+          "ls_quaternion": [
+            12896,
+            4
+          ],
+          "ls_q": [
+            12896,
+            12
+          ],
+          "ls_dq": [
+            12896,
+            12
+          ],
+          "ls_tau": [
+            12896,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.877154428000722,
+        "hz": 498.3159966787845,
+        "dt_ms": {
+          "min": 0.39837999975134153,
+          "median": 1.9970069988630712,
+          "p99": 3.17348103992117,
+          "max": 12.73788000071363
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 3,
+        "gaps_over_100ms": 0
+      },
+      "lc": {
+        "n": 12940,
+        "shapes": {
+          "lc_t": [
+            12940
+          ],
+          "lc_kp": [
+            12940,
+            12
+          ],
+          "lc_kd": [
+            12940,
+            12
+          ],
+          "lc_q": [
+            12940,
+            12
+          ],
+          "lc_dq": [
+            12940,
+            12
+          ],
+          "lc_tau": [
+            12940,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.878671522999866,
+        "hz": 499.9870255511519,
+        "dt_ms": {
+          "min": 0.34950799999933224,
+          "median": 1.9993620007880963,
+          "p99": 3.070264740636046,
+          "max": 4.805480999493739
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "sp": {
+        "n": 0,
+        "shapes": {
+          "sp_t": [
+            0
+          ],
+          "sp_mode": [
+            0
+          ],
+          "sp_gait": [
+            0
+          ],
+          "sp_raise_h": [
+            0
+          ],
+          "sp_body_h": [
+            0
+          ],
+          "sp_vel": [
+            0,
+            3
+          ],
+          "sp_yaw": [
+            0
+          ],
+          "sp_pos": [
+            0,
+            3
+          ],
+          "sp_ff": [
+            0,
+            4
+          ],
+          "sp_foot_pos": [
+            0,
+            12
+          ],
+          "sp_foot_vel": [
+            0,
+            12
+          ]
+        },
+        "length_mismatch": []
+      },
+      "rl": {
+        "n": 624,
+        "shapes": {
+          "rl_t": [
+            624
+          ],
+          "rl_source_t": [
+            624
+          ],
+          "rl_sequence": [
+            624
+          ],
+          "rl_command": [
+            624,
+            3
+          ],
+          "rl_requested": [
+            624,
+            3
+          ],
+          "rl_ready": [
+            624
+          ],
+          "rl_execute": [
+            624
+          ],
+          "rl_phase": [
+            624
+          ],
+          "rl_session": [
+            624
+          ],
+          "rl_checkpoint": [
+            624
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.807891589000064,
+        "hz": 24.139903015771246,
+        "dt_ms": {
+          "min": 33.38577399881615,
+          "median": 41.578530999686336,
+          "p99": 43.78799603979132,
+          "max": 44.31460300111212
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 623,
+        "gaps_over_100ms": 0
+      },
+      "tx": {
+        "n": 513,
+        "shapes": {
+          "tx_t": [
+            513
+          ],
+          "tx_sequence": [
+            513
+          ],
+          "tx_command": [
+            513,
+            3
+          ],
+          "tx_intent": [
+            513
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.84410942500108,
+        "hz": 19.811090859439766,
+        "dt_ms": {
+          "min": 25.890760000038426,
+          "median": 50.35111750021315,
+          "p99": 51.75764189023539,
+          "max": 52.02063599972462
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 512,
+        "gaps_over_100ms": 0
+      }
+    },
+    "tick": {
+      "modal_step": 2,
+      "histogram": {
+        "1": 1669,
+        "2": 9481,
+        "3": 1694,
+        "4": 20,
+        "5": 5,
+        "6": 3,
+        "9": 1,
+        "10": 1,
+        "11": 2
+      },
+      "duplicates": 19,
+      "resets_or_backwards": 0,
+      "max_step": 11,
+      "larger_than_modal": 1726,
+      "note": "tick is a timestamp, not a packet sequence; nonuniform steps alone do not prove missing packets"
+    },
+    "rl_sequence": {
+      "first": 416,
+      "last": 1039,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "tx_sequence": {
+      "first": 0,
+      "last": 512,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "events": [
+      {
+        "label": "record_start",
+        "t": 14532.25817766
+      },
+      {
+        "label": "ready",
+        "t": 14532.336682725
+      },
+      {
+        "label": "phase_move",
+        "t": 14537.337394232
+      },
+      {
+        "label": "move_start",
+        "t": 14537.337394232
+      },
+      {
+        "label": "phase_settle",
+        "t": 14552.338679469
+      },
+      {
+        "label": "move_stop",
+        "t": 14552.338679469
+      },
+      {
+        "label": "phase_post",
+        "t": 14553.179072682
+      },
+      {
+        "label": "zero_command_confirmed",
+        "t": 14553.179072682
+      },
+      {
+        "label": "phase_done",
+        "t": 14558.180744771
+      },
+      {
+        "label": "stop_requested_on_exit",
+        "t": 14558.180878072
+      },
+      {
+        "label": "record_stop",
+        "t": 14558.181411436
+      },
+      {
+        "label": "end",
+        "t": 14558.181411436
+      }
+    ],
+    "move_seconds": 15.001285237000047,
+    "move_ls_samples": 7472,
+    "tx_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_requested_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "quaternion_norm": [
+      0.9999998211860657,
+      1.0000001192092896
+    ],
+    "keys": [
+      "ev_api",
+      "ev_label",
+      "ev_t",
+      "lc_dq",
+      "lc_kd",
+      "lc_kp",
+      "lc_q",
+      "lc_t",
+      "lc_tau",
+      "ls_acc",
+      "ls_dq",
+      "ls_ff",
+      "ls_gyro",
+      "ls_q",
+      "ls_quaternion",
+      "ls_rpy",
+      "ls_t",
+      "ls_tau",
+      "ls_tick",
+      "meta",
+      "rl_checkpoint",
+      "rl_command",
+      "rl_execute",
+      "rl_phase",
+      "rl_ready",
+      "rl_requested",
+      "rl_sequence",
+      "rl_session",
+      "rl_source_t",
+      "rl_t",
+      "sp_body_h",
+      "sp_ff",
+      "sp_foot_pos",
+      "sp_foot_vel",
+      "sp_gait",
+      "sp_mode",
+      "sp_pos",
+      "sp_raise_h",
+      "sp_t",
+      "sp_vel",
+      "sp_yaw",
+      "tx_command",
+      "tx_intent",
+      "tx_sequence",
+      "tx_t"
+    ],
+    "ok_load": true,
+    "large_ls_intervals": [
+      {
+        "ms": 10.658006000085152,
+        "after_move_start_s": 4.784941883999636,
+        "tick_step": 2
+      },
+      {
+        "ms": 12.73788000071363,
+        "after_move_start_s": 9.391986587999781,
+        "tick_step": 2
+      },
+      {
+        "ms": 12.342517999059055,
+        "after_move_start_s": 12.885415427001135,
+        "tick_step": 11
+      }
+    ],
+    "count_metadata_matches": true,
+    "empty_or_allzero_measurements": [],
+    "event_order_monotonic": true,
+    "repeated_tick_identical_q": 9,
+    "ls_coverage_relative_to_move_s": [
+      -5.033832002000054,
+      5.842037189000621
+    ],
+    "schema_errors": []
+  },
+  {
+    "file": "0.4_3.npz",
+    "meta": {
+      "format_version": 2,
+      "stop_reason": "completed",
+      "ready": true,
+      "stop_confirmed": true,
+      "passive": false,
+      "vx": 0.4,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration": 15.0,
+      "requested_duration": 15.0,
+      "recording_duration": 25.882651128998987,
+      "ready_duration": 25.801035385999057,
+      "pre": 5.0,
+      "post": 5.0,
+      "checkpoint_sha256": "3fb9c6f82b20c3e048506deeb89b0e1f33b90194f4b809a3e46dd62c0d5e2583",
+      "counts": {
+        "ls": 12927,
+        "sp": 0,
+        "lc": 12915,
+        "rl": 624,
+        "tx": 512
+      }
+    },
+    "array_count": 45,
+    "nonfinite": {},
+    "streams": {
+      "ls": {
+        "n": 12927,
+        "shapes": {
+          "ls_t": [
+            12927
+          ],
+          "ls_tick": [
+            12927
+          ],
+          "ls_ff": [
+            12927,
+            4
+          ],
+          "ls_acc": [
+            12927,
+            3
+          ],
+          "ls_gyro": [
+            12927,
+            3
+          ],
+          "ls_rpy": [
+            12927,
+            3
+          ],
+          "ls_quaternion": [
+            12927,
+            4
+          ],
+          "ls_q": [
+            12927,
+            12
+          ],
+          "ls_dq": [
+            12927,
+            12
+          ],
+          "ls_tau": [
+            12927,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.8272649870014,
+        "hz": 500.4788546718177,
+        "dt_ms": {
+          "min": 0.40635500045027584,
+          "median": 1.992606499698013,
+          "p99": 3.3180297500621236,
+          "max": 10.648837998814997
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 2,
+        "gaps_over_100ms": 0
+      },
+      "lc": {
+        "n": 12915,
+        "shapes": {
+          "lc_t": [
+            12915
+          ],
+          "lc_kp": [
+            12915,
+            12
+          ],
+          "lc_kd": [
+            12915,
+            12
+          ],
+          "lc_q": [
+            12915,
+            12
+          ],
+          "lc_dq": [
+            12915,
+            12
+          ],
+          "lc_tau": [
+            12915,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.828011632000198,
+        "hz": 499.99977481812454,
+        "dt_ms": {
+          "min": 0.33171500035678037,
+          "median": 1.9996145001641707,
+          "p99": 3.030957878927436,
+          "max": 5.367677000322146
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "sp": {
+        "n": 0,
+        "shapes": {
+          "sp_t": [
+            0
+          ],
+          "sp_mode": [
+            0
+          ],
+          "sp_gait": [
+            0
+          ],
+          "sp_raise_h": [
+            0
+          ],
+          "sp_body_h": [
+            0
+          ],
+          "sp_vel": [
+            0,
+            3
+          ],
+          "sp_yaw": [
+            0
+          ],
+          "sp_pos": [
+            0,
+            3
+          ],
+          "sp_ff": [
+            0,
+            4
+          ],
+          "sp_foot_pos": [
+            0,
+            12
+          ],
+          "sp_foot_vel": [
+            0,
+            12
+          ]
+        },
+        "length_mismatch": []
+      },
+      "rl": {
+        "n": 624,
+        "shapes": {
+          "rl_t": [
+            624
+          ],
+          "rl_source_t": [
+            624
+          ],
+          "rl_sequence": [
+            624
+          ],
+          "rl_command": [
+            624,
+            3
+          ],
+          "rl_requested": [
+            624,
+            3
+          ],
+          "rl_ready": [
+            624
+          ],
+          "rl_execute": [
+            624
+          ],
+          "rl_phase": [
+            624
+          ],
+          "rl_session": [
+            624
+          ],
+          "rl_checkpoint": [
+            624
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.774688969000636,
+        "hz": 24.170999725710974,
+        "dt_ms": {
+          "min": 32.10282199870562,
+          "median": 41.586752000512206,
+          "p99": 43.8135508403866,
+          "max": 44.404659000065294
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 623,
+        "gaps_over_100ms": 0
+      },
+      "tx": {
+        "n": 512,
+        "shapes": {
+          "tx_t": [
+            512
+          ],
+          "tx_sequence": [
+            512
+          ],
+          "tx_command": [
+            512,
+            3
+          ],
+          "tx_intent": [
+            512
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.80012713599899,
+        "hz": 19.806103950821242,
+        "dt_ms": {
+          "min": 14.094385998760117,
+          "median": 50.41186100061168,
+          "p99": 51.8181336014095,
+          "max": 51.90957400009211
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 511,
+        "gaps_over_100ms": 0
+      }
+    },
+    "tick": {
+      "modal_step": 2,
+      "histogram": {
+        "1": 1527,
+        "2": 9884,
+        "3": 1462,
+        "4": 26,
+        "5": 4,
+        "7": 1,
+        "8": 2
+      },
+      "duplicates": 20,
+      "resets_or_backwards": 0,
+      "max_step": 8,
+      "larger_than_modal": 1495,
+      "note": "tick is a timestamp, not a packet sequence; nonuniform steps alone do not prove missing packets"
+    },
+    "rl_sequence": {
+      "first": 1194,
+      "last": 1817,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "tx_sequence": {
+      "first": 0,
+      "last": 511,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "events": [
+      {
+        "label": "record_start",
+        "t": 14564.519022139
+      },
+      {
+        "label": "ready",
+        "t": 14564.600637882
+      },
+      {
+        "label": "phase_move",
+        "t": 14569.601397914
+      },
+      {
+        "label": "move_start",
+        "t": 14569.601397914
+      },
+      {
+        "label": "phase_settle",
+        "t": 14584.601424579
+      },
+      {
+        "label": "move_stop",
+        "t": 14584.601424579
+      },
+      {
+        "label": "phase_post",
+        "t": 14585.400424748
+      },
+      {
+        "label": "zero_command_confirmed",
+        "t": 14585.400424748
+      },
+      {
+        "label": "phase_done",
+        "t": 14590.400707289
+      },
+      {
+        "label": "stop_requested_on_exit",
+        "t": 14590.400900624
+      },
+      {
+        "label": "record_stop",
+        "t": 14590.401673268
+      },
+      {
+        "label": "end",
+        "t": 14590.401673268
+      }
+    ],
+    "move_seconds": 15.000026664998586,
+    "move_ls_samples": 7503,
+    "tx_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_requested_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "quaternion_norm": [
+      0.9999998211860657,
+      1.0000001192092896
+    ],
+    "keys": [
+      "ev_api",
+      "ev_label",
+      "ev_t",
+      "lc_dq",
+      "lc_kd",
+      "lc_kp",
+      "lc_q",
+      "lc_t",
+      "lc_tau",
+      "ls_acc",
+      "ls_dq",
+      "ls_ff",
+      "ls_gyro",
+      "ls_q",
+      "ls_quaternion",
+      "ls_rpy",
+      "ls_t",
+      "ls_tau",
+      "ls_tick",
+      "meta",
+      "rl_checkpoint",
+      "rl_command",
+      "rl_execute",
+      "rl_phase",
+      "rl_ready",
+      "rl_requested",
+      "rl_sequence",
+      "rl_session",
+      "rl_source_t",
+      "rl_t",
+      "sp_body_h",
+      "sp_ff",
+      "sp_foot_pos",
+      "sp_foot_vel",
+      "sp_gait",
+      "sp_mode",
+      "sp_pos",
+      "sp_raise_h",
+      "sp_t",
+      "sp_vel",
+      "sp_yaw",
+      "tx_command",
+      "tx_intent",
+      "tx_sequence",
+      "tx_t"
+    ],
+    "ok_load": true,
+    "large_ls_intervals": [
+      {
+        "ms": 10.039537999546155,
+        "after_move_start_s": -3.2304575180005486,
+        "tick_step": 8
+      },
+      {
+        "ms": 10.648837998814997,
+        "after_move_start_s": 12.935810689999926,
+        "tick_step": 2
+      }
+    ],
+    "count_metadata_matches": true,
+    "empty_or_allzero_measurements": [],
+    "event_order_monotonic": true,
+    "repeated_tick_identical_q": 8,
+    "ls_coverage_relative_to_move_s": [
+      -5.0270820270015975,
+      5.800156295001216
+    ],
+    "schema_errors": []
+  },
+  {
+    "file": "0.4_4.npz",
+    "meta": {
+      "format_version": 2,
+      "stop_reason": "completed",
+      "ready": true,
+      "stop_confirmed": true,
+      "passive": false,
+      "vx": 0.4,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration": 15.0,
+      "requested_duration": 15.0,
+      "recording_duration": 25.88943457300047,
+      "ready_duration": 25.819672083000114,
+      "pre": 5.0,
+      "post": 5.0,
+      "checkpoint_sha256": "3fb9c6f82b20c3e048506deeb89b0e1f33b90194f4b809a3e46dd62c0d5e2583",
+      "counts": {
+        "ls": 12902,
+        "sp": 0,
+        "lc": 12921,
+        "rl": 623,
+        "tx": 513
+      }
+    },
+    "array_count": 45,
+    "nonfinite": {},
+    "streams": {
+      "ls": {
+        "n": 12902,
+        "shapes": {
+          "ls_t": [
+            12902
+          ],
+          "ls_tick": [
+            12902
+          ],
+          "ls_ff": [
+            12902,
+            4
+          ],
+          "ls_acc": [
+            12902,
+            3
+          ],
+          "ls_gyro": [
+            12902,
+            3
+          ],
+          "ls_rpy": [
+            12902,
+            3
+          ],
+          "ls_quaternion": [
+            12902,
+            4
+          ],
+          "ls_q": [
+            12902,
+            12
+          ],
+          "ls_dq": [
+            12902,
+            12
+          ],
+          "ls_tau": [
+            12902,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.838999339999646,
+        "hz": 499.28404077277156,
+        "dt_ms": {
+          "min": 0.39477400059695356,
+          "median": 1.9811219990515383,
+          "p99": 3.3506830004625954,
+          "max": 11.046759998862399
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 1,
+        "gaps_over_100ms": 0
+      },
+      "lc": {
+        "n": 12921,
+        "shapes": {
+          "lc_t": [
+            12921
+          ],
+          "lc_kp": [
+            12921,
+            12
+          ],
+          "lc_kd": [
+            12921,
+            12
+          ],
+          "lc_q": [
+            12921,
+            12
+          ],
+          "lc_dq": [
+            12921,
+            12
+          ],
+          "lc_tau": [
+            12921,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.839484894000634,
+        "hz": 500.0099674200449,
+        "dt_ms": {
+          "min": 0.32432099942525383,
+          "median": 1.9974329998149187,
+          "p99": 3.1519101194680843,
+          "max": 6.737433999660425
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "sp": {
+        "n": 0,
+        "shapes": {
+          "sp_t": [
+            0
+          ],
+          "sp_mode": [
+            0
+          ],
+          "sp_gait": [
+            0
+          ],
+          "sp_raise_h": [
+            0
+          ],
+          "sp_body_h": [
+            0
+          ],
+          "sp_vel": [
+            0,
+            3
+          ],
+          "sp_yaw": [
+            0
+          ],
+          "sp_pos": [
+            0,
+            3
+          ],
+          "sp_ff": [
+            0,
+            4
+          ],
+          "sp_foot_pos": [
+            0,
+            12
+          ],
+          "sp_foot_vel": [
+            0,
+            12
+          ]
+        },
+        "length_mismatch": []
+      },
+      "rl": {
+        "n": 623,
+        "shapes": {
+          "rl_t": [
+            623
+          ],
+          "rl_source_t": [
+            623
+          ],
+          "rl_sequence": [
+            623
+          ],
+          "rl_command": [
+            623,
+            3
+          ],
+          "rl_requested": [
+            623,
+            3
+          ],
+          "rl_ready": [
+            623
+          ],
+          "rl_execute": [
+            623
+          ],
+          "rl_phase": [
+            623
+          ],
+          "rl_session": [
+            623
+          ],
+          "rl_checkpoint": [
+            623
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.814024200999484,
+        "hz": 24.09542949045182,
+        "dt_ms": {
+          "min": 31.595417000062298,
+          "median": 41.67984949890524,
+          "p99": 44.02381641097235,
+          "max": 44.58383299970592
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 622,
+        "gaps_over_100ms": 0
+      },
+      "tx": {
+        "n": 513,
+        "shapes": {
+          "tx_t": [
+            513
+          ],
+          "tx_sequence": [
+            513
+          ],
+          "tx_command": [
+            513,
+            3
+          ],
+          "tx_intent": [
+            513
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.818070404999162,
+        "hz": 19.83107149250245,
+        "dt_ms": {
+          "min": 3.065756998694269,
+          "median": 50.41799950049608,
+          "p99": 51.948164069617626,
+          "max": 54.5129319998523
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 511,
+        "gaps_over_100ms": 0
+      }
+    },
+    "tick": {
+      "modal_step": 2,
+      "histogram": {
+        "1": 1614,
+        "2": 9620,
+        "3": 1616,
+        "4": 18,
+        "5": 2,
+        "6": 2,
+        "7": 1,
+        "8": 1,
+        "9": 2,
+        "10": 1
+      },
+      "duplicates": 24,
+      "resets_or_backwards": 0,
+      "max_step": 10,
+      "larger_than_modal": 1643,
+      "note": "tick is a timestamp, not a packet sequence; nonuniform steps alone do not prove missing packets"
+    },
+    "rl_sequence": {
+      "first": 2637,
+      "last": 3259,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "tx_sequence": {
+      "first": 0,
+      "last": 512,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "events": [
+      {
+        "label": "record_start",
+        "t": 14624.468660081
+      },
+      {
+        "label": "ready",
+        "t": 14624.538422571
+      },
+      {
+        "label": "phase_move",
+        "t": 14629.538685159
+      },
+      {
+        "label": "move_start",
+        "t": 14629.538685159
+      },
+      {
+        "label": "phase_settle",
+        "t": 14644.53878143
+      },
+      {
+        "label": "move_stop",
+        "t": 14644.53878143
+      },
+      {
+        "label": "phase_post",
+        "t": 14645.355968931
+      },
+      {
+        "label": "zero_command_confirmed",
+        "t": 14645.355968931
+      },
+      {
+        "label": "phase_done",
+        "t": 14650.35645253
+      },
+      {
+        "label": "stop_requested_on_exit",
+        "t": 14650.356551346
+      },
+      {
+        "label": "record_stop",
+        "t": 14650.358094654
+      },
+      {
+        "label": "end",
+        "t": 14650.358094654
+      }
+    ],
+    "move_seconds": 15.000096271000075,
+    "move_ls_samples": 7488,
+    "tx_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_requested_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "quaternion_norm": [
+      0.9999998211860657,
+      1.0000001192092896
+    ],
+    "keys": [
+      "ev_api",
+      "ev_label",
+      "ev_t",
+      "lc_dq",
+      "lc_kd",
+      "lc_kp",
+      "lc_q",
+      "lc_t",
+      "lc_tau",
+      "ls_acc",
+      "ls_dq",
+      "ls_ff",
+      "ls_gyro",
+      "ls_q",
+      "ls_quaternion",
+      "ls_rpy",
+      "ls_t",
+      "ls_tau",
+      "ls_tick",
+      "meta",
+      "rl_checkpoint",
+      "rl_command",
+      "rl_execute",
+      "rl_phase",
+      "rl_ready",
+      "rl_requested",
+      "rl_sequence",
+      "rl_session",
+      "rl_source_t",
+      "rl_t",
+      "sp_body_h",
+      "sp_ff",
+      "sp_foot_pos",
+      "sp_foot_vel",
+      "sp_gait",
+      "sp_mode",
+      "sp_pos",
+      "sp_raise_h",
+      "sp_t",
+      "sp_vel",
+      "sp_yaw",
+      "tx_command",
+      "tx_intent",
+      "tx_sequence",
+      "tx_t"
+    ],
+    "ok_load": true,
+    "large_ls_intervals": [
+      {
+        "ms": 11.046759998862399,
+        "after_move_start_s": 1.6627915960016253,
+        "tick_step": 10
+      }
+    ],
+    "count_metadata_matches": true,
+    "empty_or_allzero_measurements": [],
+    "event_order_monotonic": true,
+    "repeated_tick_identical_q": 10,
+    "ls_coverage_relative_to_move_s": [
+      -5.019699871998455,
+      5.819203197001116
+    ],
+    "schema_errors": []
+  },
+  {
+    "file": "0.4_5.npz",
+    "meta": {
+      "format_version": 2,
+      "stop_reason": "completed",
+      "ready": true,
+      "stop_confirmed": true,
+      "passive": false,
+      "vx": 0.4,
+      "vy": 0.0,
+      "vyaw": 0.0,
+      "duration": 15.0,
+      "requested_duration": 15.0,
+      "recording_duration": 25.896585503000097,
+      "ready_duration": 25.83113810500072,
+      "pre": 5.0,
+      "post": 5.0,
+      "checkpoint_sha256": "3fb9c6f82b20c3e048506deeb89b0e1f33b90194f4b809a3e46dd62c0d5e2583",
+      "counts": {
+        "ls": 12910,
+        "sp": 0,
+        "lc": 12920,
+        "rl": 620,
+        "tx": 513
+      }
+    },
+    "array_count": 45,
+    "nonfinite": {},
+    "streams": {
+      "ls": {
+        "n": 12910,
+        "shapes": {
+          "ls_t": [
+            12910
+          ],
+          "ls_tick": [
+            12910
+          ],
+          "ls_ff": [
+            12910,
+            4
+          ],
+          "ls_acc": [
+            12910,
+            3
+          ],
+          "ls_gyro": [
+            12910,
+            3
+          ],
+          "ls_rpy": [
+            12910,
+            3
+          ],
+          "ls_quaternion": [
+            12910,
+            4
+          ],
+          "ls_q": [
+            12910,
+            12
+          ],
+          "ls_dq": [
+            12910,
+            12
+          ],
+          "ls_tau": [
+            12910,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.83716262999951,
+        "hz": 499.6291653562365,
+        "dt_ms": {
+          "min": 0.4560999987006653,
+          "median": 1.9913029991585063,
+          "p99": 3.156222239631461,
+          "max": 10.156804999496671
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 1,
+        "gaps_over_100ms": 0
+      },
+      "lc": {
+        "n": 12920,
+        "shapes": {
+          "lc_t": [
+            12920
+          ],
+          "lc_kp": [
+            12920,
+            12
+          ],
+          "lc_kd": [
+            12920,
+            12
+          ],
+          "lc_q": [
+            12920,
+            12
+          ],
+          "lc_dq": [
+            12920,
+            12
+          ],
+          "lc_tau": [
+            12920,
+            12
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.837909247000425,
+        "hz": 500.00175619859,
+        "dt_ms": {
+          "min": 0.40915099998528603,
+          "median": 1.9990780001535313,
+          "p99": 3.11150603902206,
+          "max": 5.102789000375196
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 0,
+        "gaps_over_100ms": 0
+      },
+      "sp": {
+        "n": 0,
+        "shapes": {
+          "sp_t": [
+            0
+          ],
+          "sp_mode": [
+            0
+          ],
+          "sp_gait": [
+            0
+          ],
+          "sp_raise_h": [
+            0
+          ],
+          "sp_body_h": [
+            0
+          ],
+          "sp_vel": [
+            0,
+            3
+          ],
+          "sp_yaw": [
+            0
+          ],
+          "sp_pos": [
+            0,
+            3
+          ],
+          "sp_ff": [
+            0,
+            4
+          ],
+          "sp_foot_pos": [
+            0,
+            12
+          ],
+          "sp_foot_vel": [
+            0,
+            12
+          ]
+        },
+        "length_mismatch": []
+      },
+      "rl": {
+        "n": 620,
+        "shapes": {
+          "rl_t": [
+            620
+          ],
+          "rl_source_t": [
+            620
+          ],
+          "rl_sequence": [
+            620
+          ],
+          "rl_command": [
+            620,
+            3
+          ],
+          "rl_requested": [
+            620,
+            3
+          ],
+          "rl_ready": [
+            620
+          ],
+          "rl_execute": [
+            620
+          ],
+          "rl_phase": [
+            620
+          ],
+          "rl_session": [
+            620
+          ],
+          "rl_checkpoint": [
+            620
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.815665714000716,
+        "hz": 23.977688852094765,
+        "dt_ms": {
+          "min": 32.49694500118494,
+          "median": 41.942383999412414,
+          "p99": 44.1395202811691,
+          "max": 44.83504700147023
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 619,
+        "gaps_over_100ms": 0
+      },
+      "tx": {
+        "n": 513,
+        "shapes": {
+          "tx_t": [
+            513
+          ],
+          "tx_sequence": [
+            513
+          ],
+          "tx_command": [
+            513,
+            3
+          ],
+          "tx_intent": [
+            513
+          ]
+        },
+        "length_mismatch": [],
+        "duration": 25.829741290999664,
+        "hz": 19.822111039819266,
+        "dt_ms": {
+          "min": 8.193546998882084,
+          "median": 50.44863999955851,
+          "p99": 51.95626603093842,
+          "max": 52.18663399864454
+        },
+        "non_increasing": 0,
+        "gaps_over_10ms": 511,
+        "gaps_over_100ms": 0
+      }
+    },
+    "tick": {
+      "modal_step": 2,
+      "histogram": {
+        "1": 1126,
+        "2": 10632,
+        "3": 1103,
+        "4": 20,
+        "5": 3,
+        "10": 1,
+        "16": 1,
+        "17": 1
+      },
+      "duplicates": 22,
+      "resets_or_backwards": 0,
+      "max_step": 17,
+      "larger_than_modal": 1129,
+      "note": "tick is a timestamp, not a packet sequence; nonuniform steps alone do not prove missing packets"
+    },
+    "rl_sequence": {
+      "first": 4014,
+      "last": 4633,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "tx_sequence": {
+      "first": 0,
+      "last": 512,
+      "non_increasing": 0,
+      "missing": 0,
+      "max_step": 1
+    },
+    "events": [
+      {
+        "label": "record_start",
+        "t": 14681.733487616
+      },
+      {
+        "label": "ready",
+        "t": 14681.798935014
+      },
+      {
+        "label": "phase_move",
+        "t": 14686.799258256
+      },
+      {
+        "label": "move_start",
+        "t": 14686.799258256
+      },
+      {
+        "label": "phase_settle",
+        "t": 14701.799347823
+      },
+      {
+        "label": "move_stop",
+        "t": 14701.799347823
+      },
+      {
+        "label": "phase_post",
+        "t": 14702.628568809
+      },
+      {
+        "label": "zero_command_confirmed",
+        "t": 14702.628568809
+      },
+      {
+        "label": "phase_done",
+        "t": 14707.628629747
+      },
+      {
+        "label": "stop_requested_on_exit",
+        "t": 14707.628765463
+      },
+      {
+        "label": "record_stop",
+        "t": 14707.630073119
+      },
+      {
+        "label": "end",
+        "t": 14707.630073119
+      }
+    ],
+    "move_seconds": 15.000089567000032,
+    "move_ls_samples": 7496,
+    "tx_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_requested_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "rl_command_range": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        0.4,
+        0.0,
+        0.0
+      ],
+      "last": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "quaternion_norm": [
+      0.9999998211860657,
+      1.0000001192092896
+    ],
+    "keys": [
+      "ev_api",
+      "ev_label",
+      "ev_t",
+      "lc_dq",
+      "lc_kd",
+      "lc_kp",
+      "lc_q",
+      "lc_t",
+      "lc_tau",
+      "ls_acc",
+      "ls_dq",
+      "ls_ff",
+      "ls_gyro",
+      "ls_q",
+      "ls_quaternion",
+      "ls_rpy",
+      "ls_t",
+      "ls_tau",
+      "ls_tick",
+      "meta",
+      "rl_checkpoint",
+      "rl_command",
+      "rl_execute",
+      "rl_phase",
+      "rl_ready",
+      "rl_requested",
+      "rl_sequence",
+      "rl_session",
+      "rl_source_t",
+      "rl_t",
+      "sp_body_h",
+      "sp_ff",
+      "sp_foot_pos",
+      "sp_foot_vel",
+      "sp_gait",
+      "sp_mode",
+      "sp_pos",
+      "sp_raise_h",
+      "sp_t",
+      "sp_vel",
+      "sp_yaw",
+      "tx_command",
+      "tx_intent",
+      "tx_sequence",
+      "tx_t"
+    ],
+    "ok_load": true,
+    "large_ls_intervals": [
+      {
+        "ms": 10.156804999496671,
+        "after_move_start_s": 1.1304512660008186,
+        "tick_step": 0
+      }
+    ],
+    "count_metadata_matches": true,
+    "empty_or_allzero_measurements": [],
+    "event_order_monotonic": true,
+    "repeated_tick_identical_q": 15,
+    "ls_coverage_relative_to_move_s": [
+      -5.00644986000043,
+      5.83062320299905
+    ],
+    "schema_errors": []
+  }
+]

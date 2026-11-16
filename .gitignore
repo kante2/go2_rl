@@ -19,3 +19,7 @@ __pycache__/
 /.venv_go2_real/
 /artifacts/go2_real/
 /artifacts/go2_real_quietpaw/
+
+# Collector runtime pipes and unfinished recordings (keep completed NPZ files)
+/src/db_collector/data/.*/
+/src/db_collector/data/*.npz.tmp

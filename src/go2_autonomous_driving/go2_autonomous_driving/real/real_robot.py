@@ -140,8 +140,8 @@ class Robot(Node):
         gravity = gravity_body(state.imu_state.quaternion)
         if -gravity[2] < math.cos(math.radians(self.config['max_tilt_degrees'])):
             raise RuntimeError('Robot tilt exceeds limit')
-        if max(m.temperature for m in state.motor_state[:12]) >= 75:
-            raise RuntimeError('Motor temperature >= 75 C')
+        if max(m.temperature for m in state.motor_state[:12]) >= 90:
+            raise RuntimeError('Motor temperature >= 90 C')
         return state, q, dq
 
     def create_motor_publisher(self):
