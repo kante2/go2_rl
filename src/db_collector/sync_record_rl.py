@@ -200,6 +200,23 @@ class RemoteAudio:
         return audio, slope, t0, times, ends
 
 
+def joint_acceleration(tick, dq):
+    """Go2 펌웨어는 MotorState.ddq를 0으로 보내므로 ls_dq를 로봇 시간으로 미분한다.
+
+    ls_tick은 1 ms 로봇 클록이라 PC 수신 시각보다 지터가 작다. 같은 tick이 반복된 샘플은
+    미분에서 빼고 직전 값을 이어 쓴다. 필터는 적용하지 않는다(분석 단계에서 선택).
+    """
+    dq = np.asarray(dq, dtype=np.float64)
+    if len(dq) < 3:
+        return np.zeros_like(dq)
+    t = np.maximum.accumulate((np.asarray(tick, dtype=np.int64) - int(tick[0])) * 1e-3)
+    keep = np.r_[True, np.diff(t) > 0]
+    if keep.sum() < 3:
+        return np.zeros_like(dq)
+    acc = np.gradient(dq[keep], t[keep], axis=0)
+    return acc[np.cumsum(keep) - 1]
+
+
 def save_recording(prefix, streams, audio, events, meta):
     samples, slope, t0, times, ends = audio.arrays()
     arrays = dict(audio=samples, fs=FS, audio_slope=slope, audio_t0=t0,
@@ -210,6 +227,9 @@ def save_recording(prefix, streams, audio, events, meta):
     for name, stream in streams.items():
         records = stream.array()
         arrays.update({name + "_" + key: records[key] for key in records.dtype.names})
+    # 펌웨어 원본(항상 0)은 보존하고, ls_ddq는 ls_dq의 로봇 시간 미분으로 채운다.
+    arrays["ls_ddq_firmware"] = arrays["ls_ddq"]
+    arrays["ls_ddq"] = joint_acceleration(arrays["ls_tick"], arrays["ls_dq"])
     # 큰 npz 압축 도중 중단되더라도 완료된 파일로 보이지 않도록 임시 이름 사용.
     npz_tmp = Path(str(prefix) + ".npz.tmp")
     wav_tmp = Path(str(prefix) + ".wav.tmp")
