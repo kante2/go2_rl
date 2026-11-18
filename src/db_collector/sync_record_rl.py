@@ -59,6 +59,7 @@ SCHEMAS = {
         ("acc", "<f4", (3,)), ("gyro", "<f4", (3,)),
         ("rpy", "<f4", (3,)), ("quaternion", "<f4", (4,)),
         ("q", "<f8", (12,)), ("dq", "<f8", (12,)), ("tau", "<f8", (12,)),
+        ("ddq", "<f8", (12,)),  # MotorState.ddq, added after the 2026-10 recordings
     ]),
     "sp": np.dtype([
         ("t", "<f8"), ("mode", "<i8"), ("gait", "<i8"),
@@ -292,6 +293,8 @@ def main():
     parser.add_argument("--recover", type=Path, metavar="DIR",
                         help="남은 임시 기록 폴더를 .npz/.wav로 복구하고 종료 (--out으로 저장 prefix 지정 가능)")
     parser.add_argument("-n", "--name", help="저장 이름. 생략하면 실행 시 입력받는다.")
+    parser.add_argument("--dir", type=Path, default=DATA_DIR,
+                        help="저장 폴더 (기본 src/db_collector/data). 파일 이름은 <이름>_<시각>")
     parser.add_argument("-o", "--out", type=Path,
                         help="출력 prefix 직접 지정 (.npz/.wav 제외, --name보다 우선)")
     parser.add_argument("--host", help="원격 마이크 SSH 주소 (예: unitree@192.168.123.18). 생략하면 이 PC 마이크")
@@ -315,7 +318,7 @@ def main():
                 return 1
         # 경로 구분자/공백 등은 _로 바꿔 data 폴더 밖에 저장되지 않게 한다.
         name = re.sub(r"[^\w.-]+", "_", name).strip("._") or "record"
-        args.out = DATA_DIR / (name + "_" + datetime.now().strftime("%Y%m%d_%H%M%S"))
+        args.out = args.dir / (name + "_" + datetime.now().strftime("%Y%m%d_%H%M%S"))
     if args.device:
         device = args.device
     elif args.card or args.host:
@@ -358,7 +361,8 @@ def main():
             imu = msg.imu_state
             streams["ls"].append((time.monotonic(), msg.tick, msg.foot_force,
                 imu.accelerometer, imu.gyroscope, imu.rpy, imu.quaternion,
-                [m.q for m in motors], [m.dq for m in motors], [m.tau_est for m in motors]))
+                [m.q for m in motors], [m.dq for m in motors], [m.tau_est for m in motors],
+                [m.ddq for m in motors]))
 
         def sport(self, msg):
             streams["sp"].append((time.monotonic(), msg.mode, msg.gait_type,

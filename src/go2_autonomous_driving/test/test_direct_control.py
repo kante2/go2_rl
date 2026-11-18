@@ -87,7 +87,7 @@ def test_measured_state_rejects_stale_wrong_model_nonfinite_and_replay():
 
 
 def test_arrows_and_yaw_keys_are_distinct():
-    assert decode_velocity_keys('\x1b[A\x1b[D\x1b[Bxqe s') == (['w', 'a', 's', 'x', 'q', 'e', ' ', 's'], '')
+    assert decode_velocity_keys('\x1b[A\x1b[D\x1b[Bxqe s') == (['w', 'a', 'x', 'x', 'q', 'e', ' ', 's'], '')
     assert decode_velocity_keys('\x1b[') == ([], '\x1b[')
     assert decode_velocity_keys('jlop') == ([], '')  # old J/L/O/P layout is gone
 

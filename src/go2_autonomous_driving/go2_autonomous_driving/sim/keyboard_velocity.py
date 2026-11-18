@@ -1,6 +1,6 @@
 """Direct body-velocity keyboard for the simulation; bypasses the waypoint planner.
 
-W forward, X backward, A/D lateral left/right, S stop, Q/E rotate counter-clockwise/clockwise in place.
+W/Up forward, X/Down backward, A/D (Left/Right) lateral, S/Space stop, Q/E rotate counter-clockwise/clockwise in place.
 A command stays active until another key; Ctrl+C quits. The bridge forwards
 /go2/keyboard_velocity to MuJoCo while it is fresh.
 """
@@ -21,14 +21,14 @@ from ..core import Velocity
 
 
 def decode_velocity_keys(buffer):
-    """Arrows map to W/S/A/D (Down = stop) without leaking their trailing letters."""
+    """Arrows map to W/X/A/D (Down = backward) without leaking their trailing letters."""
     keys = []
     while buffer:
         if buffer[0] == "\x1b":
             if len(buffer) < 3:
                 break
             if buffer[1] == "[":
-                key = {"A": "w", "B": "s", "C": "d", "D": "a"}.get(buffer[2])
+                key = {"A": "w", "B": "x", "C": "d", "D": "a"}.get(buffer[2])
                 if key:
                     keys.append(key)
                 buffer = buffer[3:]
@@ -82,8 +82,8 @@ def main(args=None):
     rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)
     node = KeyboardVelocity()
     original = termios.tcgetattr(sys.stdin)
-    print(f"W/Up: forward, X: backward {node.forward:.2f} m/s, A/D/Left/Right: lateral {node.lateral:.2f} m/s, "
-          f"S/Down/Space: stop, Q/E: rotate CCW/CW {node.yaw:.2f} rad/s; "
+    print(f"W/Up: forward, X/Down: backward {node.forward:.2f} m/s, A/D/Left/Right: lateral {node.lateral:.2f} m/s, "
+          f"S/Space: stop, Q/E: rotate CCW/CW {node.yaw:.2f} rad/s; "
           "each command holds until the next key. Ctrl+C: quit", flush=True)
     buffer = ""
     try:

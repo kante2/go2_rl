@@ -20,13 +20,19 @@
 # 터미널 1: ROS 플래너·브리지
 bash /home/kante/go2_rl/sh_folder/terminal1_bridge.sh --speed 0.8 --lateral-speed 0.4 --yaw-rate 0.8
 
-# 터미널 2: MuJoCo + 모델 → http://localhost:8080
+# 터미널 2: MuJoCo + 모델 → http://localhost:8080  (--native: MuJoCo 창도 함께 띄움, 로봇 추적)
 bash /home/kante/go2_rl/sh_folder/terminal2_simulation.sh \
-  --checkpoint src/go2_autonomous_driving/model_pt/model_10000.pt --speed 0.8 --lateral-speed 0.4 --yaw-rate 0.8
+  --model 10000 --speed 0.8 --lateral-speed 0.4 --yaw-rate 0.8 --native --state-port 9881
 
 # 터미널 3: 키보드 (터미널 2 모델 로딩 후)
 bash /home/kante/go2_rl/sh_folder/terminal3_keyboard.sh --speed 0.8 --lateral-speed 0.4 --yaw-rate 0.8
+
+# (선택) 터미널 4: 시뮬 상태 → 소음 예측 모델 → http://localhost:8081
+#   터미널 2에 --state-port 9881 을 붙여 실행해야 함
+bash /home/kante/go2_rl/sh_folder/sim_noise_prediction.sh
 ```
+
+- 시뮬 소음 예측: 물리 스텝(200Hz)마다 실로봇 `/lowstate`와 같은 35개 값(발 접지력, 자세, 각속도, 관절 각도·속도)을 만들어 모델에 넣는다. 발 접지력은 MuJoCo 접촉력[N] + 실센서 공중값(8,10,12,9). 출력은 dBFS 예측값만 (실측 곡선 없음).
 
 ## 실제 로봇
 
@@ -38,7 +44,7 @@ bash /home/kante/go2_rl/scripts/run_go2_real_viewer.sh
 
 # 터미널 2: 정책 제어 → ARM 입력 → REAL POLICY READY
 bash /home/kante/go2_rl/scripts/run_go2_real_closed_loop.sh --execute \
-  --checkpoint src/go2_autonomous_driving/model_pt/model_34997.pt --speed 0.5 --lateral-speed 0.15 --yaw-rate 0.3
+  --model 34997 --speed 0.5 --lateral-speed 0.15 --yaw-rate 0.3
 
 # 터미널 3: 키보드
 bash /home/kante/go2_rl/scripts/run_go2_real_keyboard.sh --speed 0.5 --lateral-speed 0.15 --yaw-rate 0.3
@@ -50,10 +56,61 @@ bash /home/kante/go2_rl/sh_folder/terminal4_noise_record.sh
 bash /home/kante/go2_rl/sh_folder/noise_prediction_ui.sh
 ```
 
-- 실제로봇 터미널 2의 `--checkpoint`는 `artifacts/go2_real/`에 변환된 모델과 같아야 한다 (현재 model_34997). 다른 모델은 먼저 변환:
-  `bash scripts/prepare_go2_real_robot.sh --checkpoint <경로.pt>`
+- 보행 모델은 `--model <번호>` (예: `--model 34997` → `src/go2_autonomous_driving/model_pt/model_34997.pt`, .pt 경로도 가능). 실로봇은 모델별로 변환된 정책(`artifacts/go2_real/baseline/<해시>/`)이 필요하다. 현재 변환됨: **34997, 10000** (실로봇 기본 34997). 시뮬·실로봇 모두 Flat 47-입력 모델만 (9999 QuietPaw 불가). 새 모델은 먼저 변환:
+  `bash scripts/prepare_go2_real_robot.sh --model <번호>`
 - 비상 정지: 터미널 2에서 Ctrl+C (damping 후 제어 종료), 또는 리모컨 L2+B.
 - 실제로봇에서 속도를 올릴 때는 조금씩 올리며 확인한다.
+
+## 시뮬 + 실제 로봇 동시 (키보드 하나로 둘 다 이동, 데이터 동시 수집)
+
+실제로봇 키보드에 `--mirror-sim`을 붙이면 **실로봇 정책에 들어간 명령(가감속 적용 후)이 MuJoCo에도 그대로** 들어간다.
+실로봇 터미널 2가 READY일 때만 둘 다 움직이고, 정지·종료도 같이 된다. 시뮬 키보드(`terminal3_keyboard.sh`)는 **켜지 않는다**.
+두 쪽 모두 같은 정책 `model_34997` (실로봇 ONNX는 이 PT에서 변환, 해시 일치 확인). 데이터는 `src/sim_to_real_data/real_sim/`에 함께 저장된다.
+
+```bash
+# --- 시뮬 ---
+# S1: 브리지
+bash /home/kante/go2_rl/sh_folder/terminal1_bridge.sh --speed 0.5 --lateral-speed 0.15 --yaw-rate 0.3
+
+# S2: MuJoCo (실로봇과 같은 모델, viser는 8082 — 8080은 실로봇 뷰어가 사용, --native는 쓰지 않음)
+bash /home/kante/go2_rl/sh_folder/terminal2_simulation.sh \
+  --model 34997 --speed 0.5 --lateral-speed 0.15 --yaw-rate 0.3 \
+  --viewer-port 8082 --state-port 9881
+
+# S3: 시뮬 상태 기록 (q 또는 Ctrl+C로 저장) → src/sim_to_real_data/real_sim/<이름>_<시간>_sim.npz  (소음 예측 모델은 돌리지 않음)
+bash /home/kante/go2_rl/sh_folder/sim_record.sh --name NORMAL_01 --dir src/sim_to_real_data/real_sim
+
+# --- 실제 로봇 ---
+# R1: 실제 자세 뷰어 (선택) → http://localhost:8080
+bash /home/kante/go2_rl/scripts/run_go2_real_viewer.sh
+
+# R2: 정책 제어 → ARM 입력 → REAL POLICY READY
+bash /home/kante/go2_rl/scripts/run_go2_real_closed_loop.sh --execute \
+  --model 34997 --speed 0.5 --lateral-speed 0.15 --yaw-rate 0.3
+
+# R3: 키보드 (실로봇 + 시뮬 동시)
+bash /home/kante/go2_rl/scripts/run_go2_real_keyboard.sh --speed 0.5 --lateral-speed 0.15 --yaw-rate 0.3 --mirror-sim
+
+# R4: 실로봇 상태 + 소음 녹음 (q로 종료·저장 → src/sim_to_real_data/real_sim/<이름>_<시간>.npz/.wav)
+bash /home/kante/go2_rl/sh_folder/terminal4_noise_record.sh --name NORMAL_01 --dir src/sim_to_real_data/real_sim
+```
+
+- 결과 (S3·R4에 **같은 이름**을 주면 한 쌍): `NORMAL_01_<시간>.npz`, `NORMAL_01_<시간>.wav` (실로봇), `NORMAL_01_<시간>_sim.npz` (시뮬).
+- 시뮬 `_sim.npz`는 실로봇 `.npz`와 **같은 키·형태** (`ls_*`, `lc_*`, `sp_*`, 다리 순서 FR, FL, RR, RL) → 같은 코드로 읽는다.
+
+  | 키 | 실로봇 | 시뮬 |
+  |---|---|---|
+  | `ls_t, ls_tick, ls_ff, ls_acc, ls_gyro, ls_rpy, ls_quaternion, ls_q, ls_dq, ls_tau` | /lowstate ~500Hz | 물리 스텝 200Hz (`ls_ff` = 접촉력[N]+공중값, float) |
+  | `lc_t, lc_kp, lc_kd, lc_q, lc_dq, lc_tau` | /lowcmd | 정책 목표 관절각, kp/kd 20·20·40 / 1·1·2 (실로봇과 동일), dq·tau = 0 |
+  | `sp_*` | **비어 있음** (RL 제어 중 미발행) | 시뮬 정답값: 몸체 위치·속도(world), yaw rate, 발 위치·속도(body), mode/gait = -1 |
+  | `audio*`, `.wav` | 마이크 | 없음 |
+  | `sim_time, sim_command, sim_action, sim_foot_force_vec` | 없음 | 시뮬 시간, 정책 속도 명령, 정책 행동값, 발 접촉력 3축 |
+  | `meta` | JSON | JSON (`source: mujoco`, 각 키 설명 `notes`) |
+- 순서: S1 → S2(모델 로딩 완료까지) → S3 → R2(READY) → R4 기록 시작 → R3에서 조작 → R4 `q`, S3 `q`로 저장.
+- 속도 인자는 **모든 터미널 같은 값**. 실로봇 상한에 맞춰 낮게 잡는다.
+- 시간 맞추기: 실로봇 `.npz`의 `*_t`와 시뮬 CSV의 `pc_monotonic`은 같은 PC 시계(monotonic)라 바로 비교 가능.
+- 남은 차이: 실로봇은 관절 목표 변화율 제한(12 rad/s)이 있고 시뮬은 없다. 명령 전달은 상태 신호 주기만큼(수십 ms) 시뮬이 늦다.
+- PC 부하가 크면 실로봇 키보드가 상태를 늦게 받아 **안전장치로 정지**할 수 있다(`NO FRESH ROBOT STATE`). 그때는 방향키를 다시 누른다. `--native`(MuJoCo 창)는 CPU를 많이 쓰므로 동시 수집 때는 끈다.
 
 ## 추가 기능
 

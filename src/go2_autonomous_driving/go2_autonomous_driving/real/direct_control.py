@@ -78,7 +78,7 @@ def decode_velocity_keys(buffer):
             if len(buffer) < 3:
                 break
             if buffer[1] == '[':
-                key = {'A': 'w', 'B': 's', 'C': 'd', 'D': 'a'}.get(buffer[2])
+                key = {'A': 'w', 'B': 'x', 'C': 'd', 'D': 'a'}.get(buffer[2])
                 if key:
                     keys.append(key)
                 buffer = buffer[3:]
@@ -178,7 +178,7 @@ class KeyboardVelocityIntent:
 
     def handle_key(self, key, now):
         self.sync(now)
-        # Same layout as the simulation keyboard: S/Down/Space stop, Ctrl+C quits.
+        # Same layout as the simulation keyboard: Up/Down = W/X, S/Space stop, Ctrl+C quits.
         if key in (' ', 's', '\x03'):
             self.command = Velocity()
         else:

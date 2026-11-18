@@ -6,4 +6,4 @@
 set -euo pipefail
 go2_project="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 exec bash "$go2_project/scripts/run_go2_docker.sh" \
-  bash src/db_prediction/Prediction/run_live_v2.sh --card UMIK1 --web-port 8081 "$@"
+  bash src/db_prediction/realtime_prediction/run_live_v2.sh --card UMIK1 --web-port 8081 "$@"

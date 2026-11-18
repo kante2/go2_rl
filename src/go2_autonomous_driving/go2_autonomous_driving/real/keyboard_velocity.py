@@ -12,8 +12,48 @@ import termios
 import time
 import tty
 
+from ..core import Velocity
 from .direct_control import (KeyboardVelocityIntent, decode_velocity_keys, velocity_packet,
                              KEYBOARD_SPEED_KEYS, VELOCITY_LIMIT_KEYS)
+
+
+class SimMirror:
+    """Republish the real robot's policy command to the MuJoCo bridge (/go2/keyboard_velocity).
+
+    The command is the one terminal 2 reports it fed to the policy, i.e. after its
+    acceleration ramp, so both policies see the same command profile. The simulation moves
+    only while the real backend is READY and stops with it. Uses the container's default
+    ROS domain (42), not the robot's DDS domain.
+    """
+    def __init__(self):
+        import rclpy
+        from geometry_msgs.msg import TwistStamped
+        from rclpy.signals import SignalHandlerOptions
+        from std_msgs.msg import Header
+        self.rclpy, self.TwistStamped, self.Header = rclpy, TwistStamped, Header
+        # Keep Ctrl+C as KeyboardInterrupt so the real-robot stop path in main() still runs.
+        rclpy.init(args=[], signal_handler_options=SignalHandlerOptions.NO)
+        self.node = rclpy.create_node('real_keyboard_sim_mirror')
+        self.publisher = self.node.create_publisher(TwistStamped, '/go2/keyboard_velocity', 10)
+        self.error = None
+
+    def publish(self, command):
+        """Best effort: a simulation-side failure must never block real-robot commands."""
+        try:
+            message = self.TwistStamped()
+            message.header = self.Header(stamp=self.node.get_clock().now().to_msg(), frame_id='vehicle')
+            message.twist.linear.x = float(command.vx)
+            message.twist.linear.y = float(command.vy)
+            message.twist.angular.z = float(command.wz)
+            self.publisher.publish(message)
+        except Exception as error:  # noqa: BLE001
+            if self.error is None:
+                self.error = error
+                print(f'SIM MIRROR stopped: {error}; real-robot control continues.', flush=True)
+
+    def close(self):
+        self.node.destroy_node()
+        self.rclpy.try_shutdown()
 
 
 def apply_forward_speed(config, speed):
@@ -28,6 +68,8 @@ def main():
     parser.add_argument('--speed', type=float, help='W/X forward/backward speed in m/s (default from config)')
     parser.add_argument('--lateral-speed', type=float, help='A/D lateral speed in m/s')
     parser.add_argument('--yaw-rate', type=float, help='Q/E yaw rate in rad/s')
+    parser.add_argument('--mirror-sim', action='store_true',
+                        help='Also drive the MuJoCo simulation with the same command (needs sim terminals 1-2)')
     args = parser.parse_args()
     config = json.loads(args.config.read_text())
     overrides = set()
@@ -46,6 +88,7 @@ def main():
     receiver.bind(('127.0.0.1', config['keyboard_status_port']))
     receiver.setblocking(False)
     sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    mirror = SimMirror() if args.mirror_sim else None
     original = termios.tcgetattr(sys.stdin)
     sequence = 0
     buffer = ''
@@ -63,12 +106,18 @@ def main():
             sender.sendto(velocity_packet(intent.command, sequence, time.monotonic(), intent.session, intent.intent),
                           ('127.0.0.1', config['command_port']))
             sequence += 1
-    print('REAL keyboard: W/Up forward, X backward, A/D/Left/Right lateral, S/Down/Space stop, '
+        if mirror is not None:
+            # Real policy command (after terminal 2's ramp); zero until terminal 2 is READY.
+            ready = intent.ready(time.monotonic())
+            mirror.publish(Velocity(*intent.state.packet['command']) if ready else Velocity())
+    print('REAL keyboard: W/Up forward, X/Down backward, A/D/Left/Right lateral, S/Space stop, '
           'Q/E turn in place (Q counter-clockwise, E clockwise). '
           'Each command holds until the next key. Ctrl+C exits.\n'
           'Speed priority: keyboard arguments > controller settings > local config.\n'
           'Space requests controlled deceleration. Emergency damping: remote L2+B or terminal 2 Ctrl+C.\n'
-          'Waiting for DRY READY or REAL POLICY READY from terminal 2.', flush=True)
+          'Waiting for DRY READY or REAL POLICY READY from terminal 2.'
+          + ('\nSIM MIRROR: the same command also drives MuJoCo (/go2/keyboard_velocity).' if mirror else ''),
+          flush=True)
     try:
         tty.setcbreak(sys.stdin.fileno())
         while running:
@@ -118,6 +167,8 @@ def main():
             time.sleep(.02)
         receiver.close()
         sender.close()
+        if mirror is not None:
+            mirror.close()
 
 
 if __name__ == '__main__':

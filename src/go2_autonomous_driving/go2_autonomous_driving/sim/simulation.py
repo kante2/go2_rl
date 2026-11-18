@@ -28,6 +28,158 @@ def box_surface_points(boxes, position, scan_range):
             if math.hypot(point[0] - position[0], point[1] - position[1]) <= scan_range]
 
 
+class NativeWindow:
+    """Read-only MuJoCo window that mirrors env 0 and follows the robot; runs beside viser.
+
+    viewer.sync() blocks until a frame is rendered (~0.5 s with software GL in Docker), so a
+    background thread renders the latest snapshot and the simulation loop never waits for it.
+    """
+
+    def __init__(self, env, fps=30.0):
+        import threading
+        import mujoco
+        import mujoco.viewer
+        self.mujoco = mujoco
+        self.env = env
+        self.model = env.sim.mj_model
+        self.data = mujoco.MjData(self.model)  # private copy; never written back to the sim
+        self.period = 1.0 / fps
+        self.next_snapshot = 0.0
+        self.snapshot = None
+        self.snapshot_lock = threading.Lock()
+        self.stopped = threading.Event()
+        self.viewer = mujoco.viewer.launch_passive(self.model, self.data,
+                                                   show_left_ui=False, show_right_ui=False)
+        free = [j for j in range(self.model.njnt) if self.model.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE]
+        if free:
+            self.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
+            self.viewer.cam.trackbodyid = int(self.model.jnt_bodyid[free[0]])
+            self.viewer.cam.distance, self.viewer.cam.elevation = 2.5, -20.0
+        self.thread = threading.Thread(target=self.render_loop, daemon=True)
+        self.thread.start()
+
+    def sync(self):
+        """Called from the simulation loop: only hand over the latest state."""
+        now = time.monotonic()
+        if now < self.next_snapshot:
+            return
+        self.next_snapshot = now + self.period
+        sim_data = self.env.sim.data
+        state = [sim_data.qpos[0].cpu().numpy(), sim_data.qvel[0].cpu().numpy()]
+        if self.model.nmocap:
+            state += [sim_data.mocap_pos[0].cpu().numpy(), sim_data.mocap_quat[0].cpu().numpy()]
+        with self.snapshot_lock:
+            self.snapshot = state
+
+    def render_loop(self):
+        while not self.stopped.is_set() and self.viewer.is_running():
+            with self.snapshot_lock:
+                state, self.snapshot = self.snapshot, None
+            if state is None:
+                time.sleep(0.005)
+                continue
+            with self.viewer.lock():
+                self.data.qpos[:], self.data.qvel[:] = state[0], state[1]
+                if self.model.nmocap:
+                    self.data.mocap_pos[:], self.data.mocap_quat[:] = state[2], state[3]
+                self.mujoco.mj_forward(self.model, self.data)
+            self.viewer.sync()
+
+    def close(self):
+        self.stopped.set()
+        self.thread.join(timeout=2)
+        self.viewer.close()
+
+
+def quat_rotate_inverse(quat_wxyz, vectors):
+    """World -> body for unit quaternions: v_b = q^-1 v q, vectors (..., 3)."""
+    w, u = quat_wxyz[0], quat_wxyz[1:].expand_as(vectors)
+    return (vectors * (2.0 * w * w - 1.0) - 2.0 * w * u.cross(vectors, dim=-1)
+            + 2.0 * u * (u * vectors).sum(-1, keepdim=True))
+
+
+class NoiseStateSender:
+    """Stream real-robot-like state every physics step for the noise model and the recorder.
+
+    "low" matches db_prediction low_vector(): foot_force4, quaternion wxyz4, gyro3, q12, dq12,
+    legs in Unitree FR, FL, RR, RL order. Foot force is the MuJoCo contact force norm [N] plus the
+    real sensor's airborne reading, since the real Go2 foot sensor reads ~1:1 with Newtons
+    (walking sum ~148 vs 15.2 kg x g) and ~8-12 with the foot in the air.
+    "raw" carries the rest of what the real recorder stores (LowState, LowCmd, SportModeState
+    equivalents) plus simulation-only values, all in the same leg/joint order.
+    """
+
+    LEGS = ("FR", "FL", "RR", "RL")
+    AIRBORNE_FOOT_FORCE = (8.0, 10.0, 12.0, 9.0)  # FR, FL, RR, RL, from db_collector recordings
+    RAW_FIELDS = (("acc", 3), ("tau", 12), ("ddq", 12), ("q_target", 12), ("base_pos_w", 3), ("base_lin_vel_w", 3),
+                  ("yaw_rate_w", 1), ("foot_pos_b", 12), ("foot_vel_b", 12), ("foot_force_vec", 12),
+                  ("command", 3), ("action", 12))
+
+    def __init__(self, env, port):
+        import torch
+        self.torch = torch
+        self.env = env
+        self.address = ("127.0.0.1", port)
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.session = uuid.uuid4().hex
+        self.robot = env.scene["robot"]
+        names = list(self.robot.joint_names)
+        self.joint_order = torch.tensor(
+            [names.index(f"{leg}_{joint}_joint") for leg in self.LEGS for joint in ("hip", "thigh", "calf")],
+            device=env.device)
+        self.foot_sensors = [env.scene.sensors[f"feet_ground_contact_{leg}_foot_collision_force"]
+                             for leg in self.LEGS]
+        self.offset = torch.tensor(self.AIRBORNE_FOOT_FORCE, device=env.device)
+        self.imu_acc = env.scene.sensors["robot/imu_lin_acc"]
+        sites = list(self.robot.site_names)
+        self.foot_sites = torch.tensor([sites.index(leg) for leg in self.LEGS], device=env.device)
+        # PD gains per joint in FR, FL, RR, RL order (constant, like the real LowCmd kp/kd).
+        model = env.sim.mj_model
+        actuators = [model.actuator(i).name.split("/")[-1] for i in range(model.nu)]
+        order = [actuators.index(f"{leg}_{joint}_joint") for leg in self.LEGS for joint in ("hip", "thigh", "calf")]
+        self.kp = [float(model.actuator_gainprm[i, 0]) for i in order]
+        self.kd = [float(-model.actuator_biasprm[i, 2]) for i in order]
+        # One direct-drive actuator per joint, so actuator force = joint torque (real ls_tau).
+        self.actuator_order = torch.tensor(order, device=env.device)
+        self.physics_dt = env.physics_dt
+        self.tick = 0
+        update = env.scene.update
+
+        def update_and_send(*args, **kwargs):
+            update(*args, **kwargs)
+            self.send()
+        env.scene.update = update_and_send
+
+    def send(self):
+        torch, data, j = self.torch, self.robot.data, self.joint_order
+        force_vec = torch.stack([sensor.data[0] for sensor in self.foot_sensors])  # (4, 3)
+        force = force_vec.norm(dim=-1) + self.offset
+        quat, base_pos, base_vel = data.root_link_quat_w[0], data.root_link_pos_w[0], data.root_link_lin_vel_w[0]
+        foot_pos = data.site_pos_w[0, self.foot_sites] - base_pos
+        foot_vel = data.site_lin_vel_w[0, self.foot_sites] - base_vel
+        raw = [
+            self.imu_acc.data[0], data.actuator_force[0, self.actuator_order], data.joint_acc[0, j],
+            data.joint_pos_target[0, j],
+            base_pos, base_vel,
+            data.root_link_ang_vel_w[0, 2:3], quat_rotate_inverse(quat, foot_pos).reshape(-1),
+            quat_rotate_inverse(quat, foot_vel).reshape(-1), force_vec.reshape(-1),
+            self.env.command_manager.get_command("twist")[0], self.env.action_manager.action[0],
+        ]
+        values = torch.cat([force, quat, data.root_link_ang_vel_b[0], data.joint_pos[0, j],
+                            data.joint_vel[0, j], *raw]).cpu().tolist()  # one GPU->CPU copy
+        fields, start = {}, 35
+        for name, size in self.RAW_FIELDS:
+            fields[name], start = values[start:start + size], start + size
+        fields.update(kp=self.kp, kd=self.kd)
+        packet = {"session": self.session, "tick": self.tick,
+                  "sim_time": self.tick * self.physics_dt, "low": values[:35], "raw": fields}
+        self.tick += 1
+        self.socket.sendto(json.dumps(packet).encode(), self.address)
+
+    def close(self):
+        self.socket.close()
+
+
 class SimulationTransport:
     def __init__(self, config):
         self.config = config
@@ -161,6 +313,7 @@ def run(args):
     if config["obstacles"]:
         cfg.scene.entities["navigation_obstacles"] = EntityCfg(spec_fn=obstacles_spec)
     env = None
+    window = noise = None
     try:
         env = ManagerBasedRlEnv(cfg=cfg, device=device)
         agent_cfg = load_rl_cfg("Unitree-Go2-Flat")
@@ -171,9 +324,14 @@ def run(args):
         wrapped.reset()
         print(f"Loaded {checkpoint}, iter={state.get('iter')}; navigation is initially stopped", flush=True)
 
+        window = NativeWindow(env) if args.native else None
+        noise = NoiseStateSender(env, args.noise_port) if args.noise_port else None
+
         class TelemetryPolicy:
             def __call__(self, obs):
                 transport.telemetry(env)
+                if window is not None:
+                    window.sync()
                 return policy(obs)
 
         telemetry_policy = TelemetryPolicy()
@@ -196,6 +354,10 @@ def run(args):
                         time.sleep(max(0.0, deadline - time.monotonic()))
             transport.telemetry(env, force=True)
     finally:
+        if window is not None:
+            window.close()
+        if noise is not None:
+            noise.close()
         if env is not None:
             env.close()
         transport.close()
@@ -214,6 +376,11 @@ def main():
     parser.add_argument("--device")
     parser.add_argument("--viewer", choices=("viser", "none"), default="viser")
     parser.add_argument("--viewer-port", type=int, default=8080)
+    parser.add_argument("--state-port", "--noise-port", dest="noise_port", type=int,
+                        help="Stream real-robot-like physics states (200 Hz) to sim_record.sh or the "
+                             "noise predictor, e.g. 9881")
+    parser.add_argument("--native", action="store_true",
+                        help="Also open a MuJoCo window that follows the robot (needs a host display)")
     parser.add_argument("--steps", type=int, help="Stop after this many policy steps")
     parser.add_argument("--fast", action="store_true", help="Headless benchmark without real-time pacing")
     args = parser.parse_args()

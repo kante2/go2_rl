@@ -8,7 +8,7 @@
   "command_timeout": 0.3,
   "scan_range": 3.5,
   "obstacles": [
-    {"position": [2.0, 0.0, 0.3], "half_size": [0.2, 0.35, 0.3]},
-    {"position": [2.0, 1.5, 0.3], "half_size": [0.3, 0.2, 0.3]}
+    {"position": [-10.0, 0.0, 0.3], "half_size": [0.2, 0.35, 0.3]},
+    {"position": [-10.0, 1.5, 0.3], "half_size": [0.3, 0.2, 0.3]}
   ]
 }
