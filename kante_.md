@@ -2,6 +2,41 @@
 
 모든 명령은 호스트(`~/go2_rl`)에서 실행하면 Docker 컨테이너 안으로 전달된다.
 
+## 실험 수집 (시뮬 + 실로봇, 변수 사용) — 실험 조건은 `sh_folder/experiment.sh`에서 정한다
+
+1. `sh_folder/experiment.sh`의 `MODEL`, `SPEED`, `LATERAL_SPEED`, `YAW_RATE`, `DURATION`(녹화 시간, 기본 30초)을 고친다 (잠깐 바꿀 때: `SPEED=0.7 source ...`).
+2. **모든 터미널에서 먼저** `source /home/kante/go2_rl/sh_folder/experiment.sh` → 설정과 다음 녹화 이름이 출력된다.
+3. 녹화 이름은 `exp_name`이 자동으로 만든다: `<LABEL>_<SPEED>_<LATERAL_SPEED>_<YAW_RATE>_v<다음 번호>` (예: `NORMAL_0.5_0.5_0.3_v1`).
+
+```bash
+# 모든 터미널 공통 (처음 한 번)
+source /home/kante/go2_rl/sh_folder/experiment.sh
+
+# S1: 시뮬 브리지
+bash $GO2_ROOT/sh_folder/terminal1_bridge.sh --speed "$SPEED" --lateral-speed "$LATERAL_SPEED" --yaw-rate "$YAW_RATE"
+
+# S2: MuJoCo → http://localhost:8082  ("Loaded" 나올 때까지 대기)
+bash $GO2_ROOT/sh_folder/terminal2_simulation.sh --model "$MODEL" \
+  --speed "$SPEED" --lateral-speed "$LATERAL_SPEED" --yaw-rate "$YAW_RATE" --viewer-port 8082 --state-port 9881
+
+# R4: 녹화 세션 (R2보다 먼저 켜고 끝까지 유지! 실로봇 + 마이크 + 시뮬을 Enter 한 번으로 함께 녹화)
+bash $GO2_ROOT/sh_folder/record_session.sh --base "$(exp_base)" --dir "$DATA_DIR" --duration "$DURATION"
+
+# R2: 실로봇 제어 → ARM → REAL POLICY READY
+bash $GO2_ROOT/scripts/run_go2_real_closed_loop.sh --execute --model "$MODEL" \
+  --speed "$SPEED" --lateral-speed "$LATERAL_SPEED" --yaw-rate "$YAW_RATE"
+
+# R3: 키보드 (실로봇 + 시뮬 동시)
+bash $GO2_ROOT/scripts/run_go2_real_keyboard.sh --speed "$SPEED" --lateral-speed "$LATERAL_SPEED" --yaw-rate "$YAW_RATE" --mirror-sim
+```
+
+- 순서: S1 → S2 → **R4** → R2(READY) → R3. R4는 로봇 제어보다 먼저 켜야 한다. 로봇이 걷는 중에 녹화 프로그램을 새로 실행하면 DDS 연결 과정에서 R2 모터 루프가 10 ms 넘게 멈춰 안전 정지된다 (2026-11-20 확인).
+- 녹화: R4에서 **Enter** → `DURATION`초 뒤 자동 저장 → 다시 대기. 다시 Enter → `_v2`, `_v3` … (녹화 중 Enter = 바로 저장).
+- 결과: `<LABEL>_<SPEED>_<LATERAL_SPEED>_<YAW_RATE>_v<N>_<시각>.npz/.wav` (실로봇) + `..._sim.npz` (시뮬), 시작 시각이 같다.
+- S3(`sim_record.sh`)는 이제 쓰지 않는다 (R4가 UDP 9881을 직접 받음, 동시에 켜면 R4가 시작을 거부).
+- 종료: R3(S 정지 → Ctrl+C) → 로봇 잡고 R2 Ctrl+C → R4 `q` → S1·S2.
+- 조건 변경: R2를 먼저 끄고, `experiment.sh`를 고치고 **모든 터미널에서 다시 source** 한 뒤 S1·S2 → R4 → R2 → R3 순서로 다시 켠다 (R4 이름 앞부분도 바뀜).
+
 ## 속도 인자 (시뮬레이션·실제로봇 공통)
 
 | 인자 | 의미 | 단위 | 키 |
@@ -106,7 +141,7 @@ bash /home/kante/go2_rl/sh_folder/terminal4_noise_record.sh --name NORMAL_01 --d
   | `audio*`, `.wav` | 마이크 | 없음 |
   | `sim_time, sim_command, sim_action, sim_foot_force_vec` | 없음 | 시뮬 시간, 정책 속도 명령, 정책 행동값, 발 접촉력 3축 |
   | `meta` | JSON | JSON (`source: mujoco`, 각 키 설명 `notes`) |
-- 순서: S1 → S2(모델 로딩 완료까지) → S3 → R2(READY) → R4 기록 시작 → R3에서 조작 → R4 `q`, S3 `q`로 저장.
+- 순서: S1 → S2(모델 로딩 완료까지) → S3 → R4 기록 시작 → R2(READY) → R3에서 조작 → R4 `q`, S3 `q`로 저장. **R2 실행 중에 R4를 새로 켜면 R2가 안전 정지한다.** 반복 수집은 맨 위의 `record_session.sh` 사용.
 - 속도 인자는 **모든 터미널 같은 값**. 실로봇 상한에 맞춰 낮게 잡는다.
 - 시간 맞추기: 실로봇 `.npz`의 `*_t`와 시뮬 CSV의 `pc_monotonic`은 같은 PC 시계(monotonic)라 바로 비교 가능.
 - 남은 차이: 실로봇은 관절 목표 변화율 제한(12 rad/s)이 있고 시뮬은 없다. 명령 전달은 상태 신호 주기만큼(수십 ms) 시뮬이 늦다.

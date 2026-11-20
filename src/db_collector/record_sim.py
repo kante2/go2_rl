@@ -27,13 +27,20 @@ import time
 import tty
 
 import numpy as np
-from scipy.spatial.transform import Rotation
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = Path(__file__).resolve().parent / 'sim_data'
 RAW_FIELDS = ('acc', 'tau', 'ddq', 'q_target', 'base_pos_w', 'base_lin_vel_w', 'yaw_rate_w',
               'foot_pos_b', 'foot_vel_b', 'foot_force_vec', 'command', 'action')
 SIZES = (35, 3, 12, 12, 12, 3, 3, 1, 12, 12, 12, 3, 12)  # "low", then RAW_FIELDS
+
+
+def quat_to_rpy(quat):
+    """(w, x, y, z) -> [roll, pitch, yaw], intrinsic Z-Y-X (no scipy, so the host recorder can use it)."""
+    w, x, y, z = np.asarray(quat, dtype='<f8').reshape(-1, 4).T
+    return np.stack([np.arctan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y)),
+                     np.arcsin(np.clip(2 * (w * y - z * x), -1, 1)),
+                     np.arctan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))], axis=1)
 
 
 class SimRecorder:
@@ -55,7 +62,7 @@ class SimRecorder:
         low, acc, tau, ddq, q_target, pos, vel, yaw_rate, foot_pos, foot_vel, force_vec, command, action = (
             np.asarray(cols[i], dtype='<f8').reshape(n, size) for i, size in zip(range(3, 3 + len(SIZES)), SIZES))
         quat = low[:, 4:8]
-        rpy = Rotation.from_quat(quat[:, [1, 2, 3, 0]]).as_euler('ZYX')[:, ::-1] if n else np.empty((0, 3))
+        rpy = quat_to_rpy(quat)
         f32 = lambda a: np.ascontiguousarray(a, dtype='<f4')  # noqa: E731
         zeros12 = np.zeros((n, 12))
         arrays = dict(
@@ -100,6 +107,7 @@ def main():
     parser.add_argument('--dir', type=Path, default=DATA_DIR,
                         help='저장 폴더, 프로젝트 루트 기준 (기본 src/db_collector/sim_data)')
     parser.add_argument('--port', type=int, default=9881, help='simulation.py --state-port')
+    parser.add_argument('--duration', type=float, help='녹화 시간 [초]. 지나면 자동 종료·저장 (생략하면 q까지 무제한)')
     args = parser.parse_args()
     interactive = sys.stdin.isatty()
     name = args.name
@@ -126,7 +134,8 @@ def main():
         raise KeyboardInterrupt
     signal.signal(signal.SIGTERM, interrupted)  # docker stop still saves
     terminal = termios.tcgetattr(sys.stdin.fileno()) if interactive else None
-    print(f'시뮬 기록 시작: UDP {args.port} → {path}\nq 또는 Ctrl+C → 종료·저장', flush=True)
+    print(f'시뮬 기록 시작: UDP {args.port} → {path}\nq 또는 Ctrl+C → 종료·저장'
+          + (f' | {args.duration:g}초 후 자동 종료' if args.duration else ''), flush=True)
     session, last_tick, gaps, next_status = None, None, 0, time.monotonic() + 1
     try:
         if interactive:
@@ -140,6 +149,9 @@ def main():
             except socket.timeout:
                 payload = None
             now = time.monotonic()
+            if args.duration and now - record.started >= args.duration:
+                print(f'{args.duration:g}초 경과 → 자동 종료', flush=True)
+                break
             if payload:
                 try:
                     packet = json.loads(payload)

@@ -313,6 +313,8 @@ def main():
     parser.add_argument("--recover", type=Path, metavar="DIR",
                         help="남은 임시 기록 폴더를 .npz/.wav로 복구하고 종료 (--out으로 저장 prefix 지정 가능)")
     parser.add_argument("-n", "--name", help="저장 이름. 생략하면 실행 시 입력받는다.")
+    parser.add_argument("--duration", type=float,
+                        help="녹화 시간 [초]. 지나면 자동 종료·저장 (생략하면 q까지 무제한)")
     parser.add_argument("--dir", type=Path, default=DATA_DIR,
                         help="저장 폴더 (기본 src/db_collector/data). 파일 이름은 <이름>_<시각>")
     parser.add_argument("-o", "--out", type=Path,
@@ -414,7 +416,8 @@ def main():
         tty.setcbreak(sys.stdin.fileno())
         audio.start()
         events.append((started, "move_start"))
-        print("RL 정책은 별도 실행하세요. 기록 시작: q → 종료·저장 (로봇 보행은 계속됨)", flush=True)
+        print("RL 정책은 별도 실행하세요. 기록 시작: q → 종료·저장 (로봇 보행은 계속됨)"
+              + (" | %g초 후 자동 종료" % args.duration if args.duration else ""), flush=True)
         print("저장 위치: %s.npz/.wav | 마이크: %s %s" % (
             prefix, args.host or "local", device), flush=True)
         print("임시 기록: %s" % directory, flush=True)
@@ -426,6 +429,9 @@ def main():
                     break
             rclpy.spin_once(node, timeout_sec=0.02)
             now = time.monotonic()
+            if args.duration and now - started >= args.duration:
+                reason = "duration %gs" % args.duration
+                break
             if audio.first.is_set() and not audio_marked:
                 events.append((now, "audio_ok"))
                 audio_marked = True
