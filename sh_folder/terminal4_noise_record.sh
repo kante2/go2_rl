@@ -7,5 +7,5 @@ go2_project="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$HOME/unitree_ros2/setup.sh"
 export ROS_DOMAIN_ID=0  # real-robot DDS domain
 cd "$go2_project"
-exec python3 src/db_collector/sync_record_rl.py \
+exec python3 src/db_collector/RL_data_collector.py \
   --host unitree@192.168.123.18 --card UMIK1 "$@"

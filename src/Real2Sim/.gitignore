@@ -1,0 +1,18 @@
+# Keep source, documentation, configuration and PDFs in Git.
+# Raw recordings and generated outputs stay local; preserve directory structure.
+/data/**
+!/data/**/
+!/data/**/.gitkeep
+!/data/explain_data.txt
+
+/result/**
+!/result/**/
+!/result/**/.gitkeep
+
+/simulator/**
+!/simulator/**/
+!/simulator/**/.gitkeep
+
+/replay/web/data/**
+!/replay/web/data/**/
+!/replay/web/data/**/.gitkeep

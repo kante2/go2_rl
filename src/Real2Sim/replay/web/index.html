@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Go2 · Real2Sim Replay</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="chart.js" defer></script><script src="app.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="./"><span class="brand-icon">↔</span><span>GO2 <b>REPLAY</b><small>Real2Sim analysis workspace</small></span></a>
+  <span class="local"><i></i> LOCAL / READ ONLY</span>
+  <label class="trial-label">DATA PAIR <select id="trial" aria-label="데이터 시행"></select></label>
+</header>
+<main>
+  <section class="intro"><div><p class="eyebrow">LOCOMOTION / 12 JOINTS / 4 FEET</p><h1>현실과 시뮬레이션 사이.</h1><p class="subtitle">같은 관절을 따라, 매핑 전후 관측과 남아 있는 오차를 살펴봅니다.</p></div><div class="intro-index"><span id="velocity">0.2</span><small>m/s command</small></div></section>
+  <section class="modebar" aria-label="비교 방식">
+    <div class="tabs"><button id="before" class="tab selected" aria-pressed="true"><span>01</span> 보정 전 · 시간 정렬</button><button id="after" class="tab" aria-pressed="false"><span>02</span> 보정 후 · 배포 매핑</button></div>
+    <span id="status" class="status" aria-live="polite">데이터를 불러오는 중</span>
+  </section>
+  <p id="mode-note" class="mode-note"></p>
+  <div class="workspace">
+    <section class="plots">
+      <section class="panel joint-panel">
+        <div class="section-heading"><div><p class="eyebrow">JOINT OBSERVATIONS</p><h2 id="joint-title">FR · Hip</h2></div><div class="pagination"><button id="prev" aria-label="이전 관절">←</button><span><b id="page">01</b> / 12</span><button id="next" aria-label="다음 관절">→</button></div></div>
+        <nav id="joints" class="joint-list" aria-label="12개 관절 페이지"></nav>
+        <div class="legend"><span><i class="real"></i> 실제 로봇</span><span><i class="sim"></i><span id="sim-label">Baseline 시뮬레이션</span></span><small>← → 관절 이동 · Space 재생</small></div>
+        <div id="joint-charts"></div>
+      </section>
+      <section class="panel error-panel">
+        <div class="section-heading"><div><p class="eyebrow">ERROR OVER TIME</p><h2>실제–시뮬레이션 RMSE</h2></div><label>항목 <select id="rmse-quantity" aria-label="RMSE 관측 항목"><option value="q">q</option><option value="dq">dq</option><option value="ddq">ddq</option><option value="tau">tau</option></select></label></div>
+        <div class="legend"><span><i class="real"></i> 선택 관절</span><span><i class="sim"></i> 12관절 통합</span><small>과거 0.5초 이동창 · 시작은 가용 샘플</small></div>
+        <div class="chart-head"><small id="rmse-unit">rad</small><output id="rmse-output"></output></div>
+        <canvas id="rmse-canvas" class="chart" role="img" aria-label="시간에 따른 실제와 시뮬레이션의 관절 RMSE"></canvas>
+      </section>
+      <section class="transport panel">
+        <button id="play" class="play" aria-label="재생">▶</button><output id="clock">0.00 s</output><input id="seek" type="range" min="0" max="1000" step="1" aria-label="재생 시각"><label>배속 <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label><label>보기 <select id="window"><option value="0.5">0.5초</option><option value="1">1초</option><option value="3">3초</option><option value="5">5초</option><option value="all" selected>전체</option></select></label>
+      </section>
+      <section class="panel force-panel">
+        <div class="section-heading"><div><p class="eyebrow">FOOT CONTACT</p><h2>네 발의 하중 패턴</h2></div><div class="segmented"><button id="force-raw" aria-pressed="true" class="selected">원단위</button><button id="force-z" aria-pressed="false">z-score</button></div></div>
+        <p class="hint">실제 센서는 counts, 시뮬레이터는 N입니다. 절대 힘 RMSE 대신 z-score 파형 RMSE를 표시합니다. 크기 보정 정확도는 아닙니다.</p>
+        <h3>Foot force RMSE <small class="hint">z-score · 무차원</small></h3>
+        <p id="force-rmse-scope" class="hint"></p>
+        <div id="force-rmse-cards" class="force-rmse-cards" aria-live="polite"></div>
+        <div id="force-charts" class="force-grid"></div>
+      </section>
+    </section>
+    <aside>
+      <section class="panel audit"><p class="eyebrow">ERROR & TRANSFORMATION</p><h2>어디서, 무엇을 맞췄나</h2><p class="hint" id="scope"></p><div id="metric-cards"></div><div class="diagram" id="diagram"></div></section>
+      <section class="panel notes"><p class="eyebrow">READ THE RESULT</p><h3>수치의 의미</h3><div id="notes"></div></section>
+      <section class="panel contract"><p class="eyebrow">DATA MAPPING CONTRACT</p><div id="contract"></div><p class="hint">기존 데이터의 정의와 시간 기준만 맞춥니다. 물리 모델과 센서 배율은 보정하지 않습니다.</p></section>
+    </aside>
+  </div>
+  <footer><span>Go2 · model_34997.pt · <b>OFFLINE REPLAY</b></span><span id="provenance"></span></footer>
+</main>
+<div id="error" role="alert" hidden></div>
+</body>
+</html>

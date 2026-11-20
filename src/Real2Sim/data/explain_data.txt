@@ -1,0 +1,180 @@
+================================================================================
+ real_sim 폴더 데이터 설명 (시뮬 + 실제 로봇 동시 수집)
+================================================================================
+
+같은 보행 정책(model_34997)을 실제 Go2와 MuJoCo 시뮬에서 동시에 실행하고,
+실로봇 키보드(--mirror-sim) 하나로 둘을 같이 움직이며 기록한 데이터.
+실로봇 ONNX 정책은 model_34997.pt에서 변환된 것 (해시 3fb9c6f8... 일치).
+시뮬에는 실로봇 정책에 실제로 들어간 속도 명령(가감속 적용 후)이 그대로 전달된다.
+
+
+--------------------------------------------------------------------------------
+1. 파일 구성
+--------------------------------------------------------------------------------
+
+  <이름>_<YYYYmmdd_HHMMSS>.npz       실제 로봇: 상태 + 명령 + 소리 (R4, q로 저장)
+  <이름>_<YYYYmmdd_HHMMSS>.wav       실제 로봇: 같은 소리, 48 kHz / mono / 16 bit
+  <이름>_<YYYYmmdd_HHMMSS>_sim.npz   시뮬: 상태 + 명령 (S3, q 또는 Ctrl+C로 저장)
+
+  - 두 녹음은 시작·종료가 따로라 파일 이름의 시각이 몇 초 다를 수 있다.
+  - 시뮬 _sim.npz는 실로봇 .npz와 같은 키 이름·형태를 쓴다 (ls_*, lc_*, sp_*).
+    → 같은 코드로 두 파일을 읽을 수 있다.
+
+  읽는 법 (Python):
+      import numpy as np, json
+      real = np.load('NORMAL_01_20261118_150000.npz')
+      sim  = np.load('NORMAL_01_20261118_150003_sim.npz')
+      meta = json.loads(str(sim['meta']))
+
+
+--------------------------------------------------------------------------------
+2. 공통 규칙
+--------------------------------------------------------------------------------
+
+  다리 순서   : FR, FL, RR, RL  (Unitree 순서)
+  관절 순서   : 다리마다 hip, thigh, calf → 12개
+                [FR_hip, FR_thigh, FR_calf, FL_hip, ..., RL_calf]
+  쿼터니언    : w, x, y, z
+  rpy         : roll, pitch, yaw [rad]
+  시각 *_t    : 이 PC의 time.monotonic() 수신 시각 [s].
+                실로봇과 시뮬이 같은 PC 시계라서 ls_t끼리 바로 비교 가능.
+  N           : 샘플 수 (키마다 다를 수 있음)
+
+
+--------------------------------------------------------------------------------
+3. 실제 로봇 .npz  (src/db_collector/sync_record_rl.py)
+--------------------------------------------------------------------------------
+
+[ls_*] /lowstate  약 500 Hz  — 로봇 센서 원본
+  ls_t           (N,)     float64   수신 시각 [s]
+  ls_tick        (N,)     int64     로봇 내부 tick
+  ls_ff          (N,4)    int16     발 접지 센서 원본값 (약 N 단위와 1:1, 발이 떠 있어도 8~12)
+  ls_acc         (N,3)    float32   IMU 가속도 [m/s^2], 중력 포함 (서 있으면 z ≈ 9.7)
+  ls_gyro        (N,3)    float32   IMU 각속도 [rad/s], 몸체 좌표
+  ls_rpy         (N,3)    float32   자세 roll, pitch, yaw [rad]
+  ls_quaternion  (N,4)    float32   자세 쿼터니언 wxyz
+  ls_q           (N,12)   float64   관절 각도 [rad]
+  ls_dq          (N,12)   float64   관절 속도 [rad/s]
+  ls_tau         (N,12)   float64   관절 토크 추정값 [N·m] (motor tau_est)
+  ls_ddq         (N,12)   float64   관절 가속도 [rad/s^2] = ls_dq를 로봇 시간(ls_tick × 1 ms)으로
+                                    중앙차분 미분한 값. 필터 없음 (분석 시 저역통과 필터 권장).
+                                    Go2 펌웨어는 MotorState.ddq를 항상 0으로 보내므로 녹음 프로그램이 계산한다.
+  ls_ddq_firmware (N,12)  float64   펌웨어가 보낸 MotorState.ddq 원본 (항상 0, 참고용)
+                                    ※ ls_ddq / ls_ddq_firmware는 2026-11-18 이후 녹음부터 있음.
+                                      NORMAL_01_20261118_155329.npz의 ls_ddq는 수정 전이라 전부 0
+                                      → 다음 처럼 직접 계산: sync_record_rl.joint_acceleration(ls_tick, ls_dq)
+
+[lc_*] /lowcmd  약 500 Hz  — RL 제어기가 모터에 보낸 명령
+  lc_t           (N,)     float64   수신 시각 [s]
+  lc_kp          (N,12)   float64   위치 게인 (hip/thigh/calf = 20/20/40)
+  lc_kd          (N,12)   float64   속도 게인 (hip/thigh/calf = 1/1/2)
+  lc_q           (N,12)   float64   목표 관절 각도 [rad] (정책 출력)
+  lc_dq          (N,12)   float64   목표 관절 속도 (항상 0)
+  lc_tau         (N,12)   float64   피드포워드 토크 (항상 0)
+
+[sp_*] /sportmodestate  — RL 저수준 제어 중에는 이 토픽이 나오지 않아 **비어 있음** (N=0)
+  sp_t, sp_mode, sp_gait, sp_raise_h, sp_body_h, sp_vel(3), sp_yaw, sp_pos(3),
+  sp_ff(4), sp_foot_pos(12), sp_foot_vel(12)  — 키는 있지만 길이 0
+
+[audio*] UMIK-1 마이크 (로봇에 장착, SSH로 수신)
+  audio          (M,)     int16     원본 소리, 48 kHz mono PCM16
+  fs             ()       int64     48000
+  audio_t0       ()       float64   샘플 0의 추정 시각 [s] (PC monotonic)
+  audio_slope    ()       float64   샘플당 시간 [s] (≈ 1/48000)
+                                    → 샘플 n의 시각 = audio_t0 + audio_slope * n
+  audio_cb_t     (K,)     float64   오디오 묶음 수신 시각
+  audio_n_end    (K,)     int64     그 묶음까지 누적 샘플 수
+  audio_status   (0,)               사용 안 함
+
+[ev_*] 기록 구간 표시 (로봇 명령 아님)
+  ev_t           (4,)     float64   시각
+  ev_label       (4,)     str       move_start, audio_ok, move_stop, end
+  ev_api         (4,)     int64     -1
+
+[meta] JSON 문자열
+  controller='rl', topics, counts(ls/sp/lc 개수), host/device(마이크), stop_reason,
+  audio_error, timestamp_clock 등. 속도 명령은 기록하지 않음 (vx/vy/vyaw = NaN).
+
+
+--------------------------------------------------------------------------------
+4. 시뮬 _sim.npz  (src/db_collector/record_sim.py, sh_folder/sim_record.sh)
+--------------------------------------------------------------------------------
+
+모든 스트림을 물리 스텝마다 1번 기록 → 200 Hz (ls, lc, sp 개수 동일).
+
+[ls_*] 실로봇 /lowstate와 같은 키
+  ls_t           (N,)     float64   수신 시각 [s] (PC monotonic, 실로봇과 같은 시계)
+  ls_tick        (N,)     int64     물리 스텝 번호
+  ls_ff          (N,4)    float32   |발 접촉력| [N] + 실센서 공중값 (8,10,12,9)  ※ 실로봇은 int16
+  ls_acc         (N,3)    float32   IMU 가속도 [m/s^2], 중력 포함
+  ls_gyro        (N,3)    float32   몸체 각속도 [rad/s], 몸체 좌표
+  ls_rpy         (N,3)    float32   roll, pitch, yaw [rad] (쿼터니언에서 계산)
+  ls_quaternion  (N,4)    float32   자세 쿼터니언 wxyz
+  ls_q           (N,12)   float64   관절 각도 [rad]
+  ls_dq          (N,12)   float64   관절 속도 [rad/s]
+  ls_tau         (N,12)   float64   관절 토크 [N·m] (액추에이터 힘)
+  ls_ddq         (N,12)   float64   관절 가속도 [rad/s^2] (MuJoCo qacc)
+
+[lc_*] 실로봇 /lowcmd와 같은 키
+  lc_t           (N,)     float64   = ls_t
+  lc_kp          (N,12)   float64   20/20/40 (실로봇과 동일)
+  lc_kd          (N,12)   float64   1/1/2   (실로봇과 동일)
+  lc_q           (N,12)   float64   정책 목표 관절 각도 [rad]
+  lc_dq, lc_tau  (N,12)   float64   0
+
+[sp_*] 실로봇에는 없는 값을 시뮬 정답값으로 채움
+  sp_t           (N,)     float64   = ls_t
+  sp_mode, sp_gait (N,)   int64     -1 (해당 없음)
+  sp_raise_h     (N,)     float64   NaN (해당 없음)
+  sp_body_h      (N,)     float64   몸체 높이 [m] (world z)
+  sp_vel         (N,3)    float32   몸체 선속도 [m/s], world 좌표
+  sp_yaw         (N,)     float64   yaw 각속도 [rad/s], world
+  sp_pos         (N,3)    float32   몸체 위치 [m], world
+  sp_ff          (N,4)    float32   = ls_ff
+  sp_foot_pos    (N,12)   float32   발 위치 (발 - 몸체) [m], 몸체 좌표, 다리마다 xyz
+  sp_foot_vel    (N,12)   float32   발 속도 (발 - 몸체) [m/s], 몸체 좌표
+
+[sim_*] 시뮬에만 있는 값
+  sim_time            (N,)     float64   시뮬 시간 [s] (물리 스텝 × 0.005)
+  sim_command         (N,3)    float32   정책에 들어간 속도 명령 [vx, vy, wz]
+  sim_action          (N,12)   float32   정책 행동값 (원본 출력)
+  sim_foot_force_vec  (N,4,3)  float32   발 접촉력 3축 [N]
+
+[ev_*]  move_start, end (기록 시작·끝 시각)
+[meta]  JSON: source='mujoco', counts, notes(키별 설명)
+
+
+--------------------------------------------------------------------------------
+5. 실로봇 vs 시뮬 한눈에 보기
+--------------------------------------------------------------------------------
+
+  항목                         실로봇              시뮬
+  ---------------------------  ------------------  ------------------------------
+  주기                          약 500 Hz           200 Hz (물리 스텝)
+  관절 각도·속도·토크 (ls_q..)  O                   O
+  관절 가속도 (ls_ddq)          O (ls_dq 미분)       O (MuJoCo qacc)
+  발 접지력 (ls_ff)              센서 원본 int16      접촉력 N + 공중값, float
+  IMU (acc/gyro/rpy/quat)       O                   O
+  관절 명령 (lc_*)              O                   O (게인 동일)
+  몸체·발 위치/속도 (sp_*)       비어 있음            시뮬 정답값
+  소리 (audio, .wav)            O                   X
+  속도 명령                     X                   sim_command
+
+
+--------------------------------------------------------------------------------
+6. 비교할 때 주의
+--------------------------------------------------------------------------------
+
+  - 시간 맞추기: 실로봇 ls_t 와 시뮬 ls_t 는 같은 PC 시계. 겹치는 구간만 사용.
+    시뮬은 실로봇 명령을 상태 신호를 거쳐 받으므로 수십 ms 늦다.
+  - 제어 차이: 실로봇에는 관절 목표 변화율 제한(최대 12 rad/s)이 있고 시뮬에는 없다.
+    속도 명령의 가감속은 둘이 같다.
+  - 발 센서: 단위가 비슷할 뿐 같은 센서가 아니다. 착지 순간의 충격 크기는 다를 수 있다.
+  - ls_ddq: 실로봇은 ls_dq 미분값(500 Hz, 필터 없음)이라 잡음이 크고, 시뮬은 MuJoCo의 정확한 값이다.
+    비교할 때는 같은 필터를 양쪽에 적용한다.
+  - 시뮬 데이터를 미분·주파수 분석할 때는 ls_t가 아니라 sim_time(정확히 5 ms 간격)을 쓴다.
+    ls_t는 물리 4스텝이 몰려 도착해 간격이 불규칙하다 (실로봇과 시간 맞출 때만 사용).
+  - 시뮬은 q / Ctrl+C(또는 종료 신호) 때 한 번에 저장한다. 강제 종료(kill -9)·PC 다운 시 손실.
+    실로봇 녹음은 디스크에 계속 쓰므로 --recover 로 복구 가능.
+  - 소리 단위 dBFS는 디지털 상대값(마이크 게인 100% 고정 기준). 실제 음압(dB SPL)은
+    src/db_collector/7208479*.txt 캘리브레이션 파일로 후처리.
