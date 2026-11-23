@@ -1,0 +1,294 @@
+/usr/lib/python3/dist-packages/scipy/__init__.py:146: UserWarning: A NumPy version >=1.17.3 and <1.25.0 is required for this version of SciPy (detected version 1.26.4
+  warnings.warn(f"A NumPy version >={np_minversion} and <{np_maxversion}"
+train 435 pairs, val 106 pairs ([('real_sim_straight', 'NORMAL_0.7_0.5_v6'), ('real_sim_straight', 'NORMAL_0.5_0.5_v3'), ('real_sim', 'NORMAL_0.5_0.5_v4'), ('real_sim', 'NORMAL_0.5_0.5_0.5_v5')])
+model config: {'fs': 48000, 'n_samples': 4800, 'pre': 0.02, 'n_modes': 64, 'n_free': 435, 'n_feat': 13, 'stochastic': True, 'fft_sizes': (128, 256, 512, 1024), 'stoch_span': (-0.01, 0.08), 'stoch_knots': 10}
+fixed background noise: {'walk_pre_segments': 428, 'motor_noise_segments': 1034, 'walk_pre_var_db': -58.71064319490366, 'motor_var_db': -60.459796937216026, 'combined_var_db': -58.77712605320234, 'source': '/home/minseok/go2_rl/src/diffimpact/data/touchdown/pairs_real.npz'}
+stage=free step=100 loss=0.6578 IS=0.6577 lsd=0.9949 sc=0.7373 sec=2.202
+stage=free step=200 loss=0.5965 IS=0.5963 lsd=0.952 sc=0.8396 sec=4.414
+stage=free step=300 loss=0.6023 IS=0.602 lsd=0.9706 sc=0.8394 sec=6.599
+stage=free step=400 loss=0.5952 IS=0.5949 lsd=0.9647 sc=0.9579 sec=8.777
+stage=free step=500 loss=0.5935 IS=0.5932 lsd=0.9626 sc=2.327 sec=10.69
+stage=free step=600 loss=0.5573 IS=0.557 lsd=0.9349 sc=0.7735 sec=12.64
+stage=free step=700 loss=0.5863 IS=0.586 lsd=0.945 sc=0.6154 sec=14.6
+stage=free step=800 loss=0.5527 IS=0.5524 lsd=0.9206 sc=0.6397 sec=16.55
+stage=free step=900 loss=0.5518 IS=0.5515 lsd=0.9215 sc=0.7491 sec=18.5
+stage=free step=1000 loss=0.5367 IS=0.5364 lsd=0.9042 sc=0.6389 sec=20.46
+stage=free step=1100 loss=0.5276 IS=0.5272 lsd=0.9053 sc=0.6417 sec=22.41
+stage=free step=1200 loss=0.5369 IS=0.5365 lsd=0.9068 sc=0.6432 sec=24.38
+stage=free step=1300 loss=0.5672 IS=0.5668 lsd=0.933 sc=0.6508 sec=26.35
+stage=free step=1400 loss=0.534 IS=0.5336 lsd=0.9011 sc=0.6247 sec=28.31
+stage=free step=1500 loss=0.5543 IS=0.5539 lsd=0.9224 sc=0.6382 sec=30.28
+stage=free step=1600 loss=0.5417 IS=0.5413 lsd=0.9178 sc=0.6291 sec=32.56
+stage=free step=1700 loss=0.5358 IS=0.5353 lsd=0.9053 sc=0.6179 sec=34.63
+stage=free step=1800 loss=0.5588 IS=0.5583 lsd=0.9178 sc=0.623 sec=36.64
+stage=free step=1900 loss=0.5505 IS=0.5498 lsd=0.9188 sc=0.7011 sec=38.68
+stage=free step=2000 loss=0.5375 IS=0.5368 lsd=0.9126 sc=0.6489 sec=40.74
+stage=free step=2100 loss=0.5453 IS=0.5446 lsd=0.9169 sc=0.6813 sec=42.66
+stage=free step=2200 loss=0.5224 IS=0.5216 lsd=0.8974 sc=0.5889 sec=44.63
+stage=free step=2300 loss=0.5435 IS=0.5427 lsd=0.9178 sc=0.6955 sec=46.73
+stage=free step=2400 loss=0.5209 IS=0.5201 lsd=0.8978 sc=0.5854 sec=48.78
+stage=free step=2500 loss=0.5379 IS=0.5371 lsd=0.9084 sc=0.6568 sec=50.76
+stage=free step=2600 loss=0.5305 IS=0.5297 lsd=0.9018 sc=0.6326 sec=52.76
+stage=free step=2700 loss=0.54 IS=0.5393 lsd=0.9043 sc=0.5856 sec=54.74
+stage=free step=2800 loss=0.5395 IS=0.5388 lsd=0.9125 sc=0.6395 sec=56.79
+stage=free step=2900 loss=0.5515 IS=0.5507 lsd=0.9219 sc=0.6201 sec=58.83
+stage=free step=3000 loss=0.5425 IS=0.5417 lsd=0.9133 sc=0.6188 sec=61.06
+stage=free step=3100 loss=0.5375 IS=0.5367 lsd=0.909 sc=0.6164 sec=63.33
+stage=free step=3200 loss=0.5464 IS=0.5456 lsd=0.9158 sc=0.6339 sec=65.48
+stage=free step=3300 loss=0.5414 IS=0.5406 lsd=0.9149 sc=0.6696 sec=67.61
+stage=free step=3400 loss=0.5574 IS=0.5566 lsd=0.9214 sc=0.6473 sec=69.68
+stage=free step=3500 loss=0.5522 IS=0.5514 lsd=0.9237 sc=0.6829 sec=71.75
+stage=free step=3600 loss=0.5384 IS=0.5376 lsd=0.912 sc=0.6598 sec=73.82
+stage=free step=3700 loss=0.5349 IS=0.5341 lsd=0.9054 sc=0.6033 sec=75.9
+stage=free step=3800 loss=0.5365 IS=0.5357 lsd=0.9097 sc=0.6758 sec=78
+stage=free step=3900 loss=0.5144 IS=0.5136 lsd=0.8898 sc=0.6216 sec=80.14
+stage=free step=4000 loss=0.5319 IS=0.5311 lsd=0.9048 sc=0.6447 sec=82.27
+stage=feat step=100 loss=0.6376 IS=0.6366 lsd=0.9856 sc=0.6677 sec=2.107 val_IS=0.6548 val_lsd=0.9977
+stage=feat step=200 loss=0.603 IS=0.6019 lsd=0.9663 sc=0.6397 sec=4.227 val_IS=0.6525 val_lsd=0.9928
+stage=feat step=300 loss=0.6559 IS=0.6547 lsd=0.9778 sc=0.7249 sec=6.364 val_IS=0.6508 val_lsd=0.9846
+stage=feat step=400 loss=0.6261 IS=0.6249 lsd=0.9765 sc=0.6967 sec=8.531 val_IS=0.6531 val_lsd=0.9933
+stage=feat step=500 loss=0.6033 IS=0.602 lsd=0.9653 sc=0.6352 sec=10.64 val_IS=0.6485 val_lsd=0.9778
+stage=feat step=600 loss=0.5841 IS=0.5828 lsd=0.9575 sc=0.6028 sec=12.75 val_IS=0.6446 val_lsd=0.9808
+stage=feat step=700 loss=0.6326 IS=0.6312 lsd=0.9784 sc=0.6215 sec=14.92 val_IS=0.6479 val_lsd=0.9882
+stage=feat step=800 loss=0.6066 IS=0.6052 lsd=0.9675 sc=0.6575 sec=17.13 val_IS=0.6425 val_lsd=0.9833
+stage=feat step=900 loss=0.5992 IS=0.5978 lsd=0.9706 sc=0.6099 sec=19.26 val_IS=0.6472 val_lsd=0.9871
+stage=feat step=1000 loss=0.5882 IS=0.5867 lsd=0.9593 sc=0.6573 sec=21.46 val_IS=0.6449 val_lsd=0.9892
+stage=feat step=1100 loss=0.572 IS=0.5705 lsd=0.9509 sc=0.5934 sec=23.56 val_IS=0.6477 val_lsd=0.9867
+stage=feat step=1200 loss=0.5814 IS=0.5799 lsd=0.9511 sc=0.624 sec=25.76 val_IS=0.6453 val_lsd=0.9875
+stage=feat step=1300 loss=0.6106 IS=0.609 lsd=0.9567 sc=0.5941 sec=27.88 val_IS=0.6445 val_lsd=0.984
+stage=feat step=1400 loss=0.5804 IS=0.5788 lsd=0.9526 sc=0.5897 sec=29.99 val_IS=0.6471 val_lsd=0.9844
+stage=feat step=1500 loss=0.6168 IS=0.6153 lsd=0.9715 sc=0.6132 sec=32.15 val_IS=0.646 val_lsd=0.9861
+stage=feat step=1600 loss=0.5891 IS=0.5875 lsd=0.9547 sc=0.6042 sec=34.32 val_IS=0.644 val_lsd=0.9873
+stage=feat step=1700 loss=0.6322 IS=0.6306 lsd=0.9571 sc=0.5997 sec=36.45 val_IS=0.6436 val_lsd=0.9856
+stage=feat step=1800 loss=0.6229 IS=0.6213 lsd=0.9664 sc=0.6112 sec=38.52 val_IS=0.6434 val_lsd=0.9848
+stage=feat step=1900 loss=0.6192 IS=0.6176 lsd=0.9581 sc=0.6017 sec=40.68 val_IS=0.6441 val_lsd=0.9849
+stage=feat step=2000 loss=0.5784 IS=0.5769 lsd=0.9522 sc=0.5884 sec=42.91 val_IS=0.644 val_lsd=0.9849
+{
+ "spectral": {
+  "free_fit_train": {
+   "IS": 0.5340086221694946,
+   "lsd": 0.9064792394638062,
+   "sc": 0.6242880821228027
+  },
+  "feat_train": {
+   "IS": 0.6110093593597412,
+   "lsd": 0.9620451927185059,
+   "sc": 0.6090299487113953
+  },
+  "feat_val": {
+   "IS": 0.6440461277961731,
+   "lsd": 0.9849250316619873,
+   "sc": 0.6173845529556274
+  },
+  "noise_only_val": {
+   "IS": 5.297619342803955,
+   "lsd": 1.0592401027679443,
+   "sc": 0.8167603015899658
+  },
+  "template_val": {
+   "IS": 0.759997546672821,
+   "lsd": 1.032883644104004,
+   "sc": 0.624107837677002
+  },
+  "feat_val_by_walk": {
+   "lateral": {
+    "IS": 0.5967026352882385,
+    "template_IS": 0.6793563961982727,
+    "noise_only_IS": 3.471087694168091
+   },
+   "straight": {
+    "IS": 0.6913893222808838,
+    "template_IS": 0.8406386375427246,
+    "noise_only_IS": 7.124151229858398
+   }
+  }
+ },
+ "band_0_80ms_val": {
+  "model_mae_db": {
+   "50-200Hz": 2.903439998626709,
+   "200-1000Hz": 1.1167783737182617,
+   "1000-4000Hz": 0.97998046875,
+   "4000-12000Hz": 1.4040513038635254
+  },
+  "model_bias_db": {
+   "50-200Hz": 2.852280616760254,
+   "200-1000Hz": -0.28485843539237976,
+   "1000-4000Hz": -0.10312160104513168,
+   "4000-12000Hz": -0.2354198694229126
+  },
+  "noise_only_mae_db": {
+   "50-200Hz": 11.961438179016113,
+   "200-1000Hz": 9.56656265258789,
+   "1000-4000Hz": 4.313493251800537,
+   "4000-12000Hz": 3.3642215728759766
+  },
+  "train_mean_mae_db": {
+   "50-200Hz": 2.66243577003479,
+   "200-1000Hz": 2.5928053855895996,
+   "1000-4000Hz": 1.7467718124389648,
+   "4000-12000Hz": 2.129077911376953
+  },
+  "model_pearson": {
+   "50-200Hz": 0.876115017699257,
+   "200-1000Hz": 0.9042043679907869,
+   "1000-4000Hz": 0.7881734619180677,
+   "4000-12000Hz": 0.700719849386292
+  }
+ },
+ "post40": {
+  "val_mae_db": 1.8809703588485718,
+  "val_mae_db_train_mean_baseline": 2.460994005203247,
+  "val_bias_db": 1.6193006038665771,
+  "val_pearson_spearman": [
+   0.872219137661738,
+   0.8695014736629972
+  ],
+  "train_pearson_spearman": [
+   0.790756750838947,
+   0.7957224934651433
+  ]
+ },
+ "learned": {
+  "tau_ms": {
+   "FR": 3.1816591508686543,
+   "FL": 3.780580125749111,
+   "RR": 3.372545586898923,
+   "RL": 3.009129548445344
+  },
+  "shift_ms": {
+   "FR": -3.670443780720234,
+   "FL": -5.554198287427425,
+   "RR": -2.7989991940557957,
+   "RL": -2.488455967977643
+  },
+  "stoch_leg_gain": {
+   "FR": 0.7082833647727966,
+   "FL": 2.0221078395843506,
+   "RR": 1.969163179397583,
+   "RL": 0.9877355694770813
+  },
+  "free_jitter_ms_abs_median": 4.124857425689697,
+  "feat_bias": {
+   "FR": -0.013032213784754276,
+   "FL": -1.1451441049575806,
+   "RR": -1.0914950370788574,
+   "RL": -1.0362074375152588
+  },
+  "feat_weights": {
+   "FR": {
+    "foot_vx_pre": -0.04294577240943909,
+    "foot_vy_pre": 0.047005005180835724,
+    "foot_vz_pre": -0.054857946932315826,
+    "foot_speed_pre": -0.04700038582086563,
+    "foot_x": 0.05382680147886276,
+    "foot_y": -0.0670991763472557,
+    "foot_z": 0.1124371662735939,
+    "cmd_vx": 0.14035214483737946,
+    "cmd_vy": 0.09494833648204803,
+    "cmd_wz": 0.05092707276344299,
+    "log_grf_rise20": -0.0055348509922623634,
+    "log_grf_impulse20": 0.05448266118764877,
+    "pair_spread_ms": -0.02985665574669838
+   },
+   "FL": {
+    "foot_vx_pre": 0.13156357407569885,
+    "foot_vy_pre": -0.10189630836248398,
+    "foot_vz_pre": -0.31517326831817627,
+    "foot_speed_pre": -0.010592233389616013,
+    "foot_x": 0.0680507943034172,
+    "foot_y": -0.009070049971342087,
+    "foot_z": -0.16051554679870605,
+    "cmd_vx": -0.1289680153131485,
+    "cmd_vy": 0.054689500480890274,
+    "cmd_wz": 0.036152761429548264,
+    "log_grf_rise20": -0.12712600827217102,
+    "log_grf_impulse20": -0.009154402650892735,
+    "pair_spread_ms": 0.11099749803543091
+   },
+   "RR": {
+    "foot_vx_pre": 0.03642493486404419,
+    "foot_vy_pre": 0.022306835278868675,
+    "foot_vz_pre": -0.24563607573509216,
+    "foot_speed_pre": -0.047237955033779144,
+    "foot_x": 0.0787317156791687,
+    "foot_y": -0.10680659115314484,
+    "foot_z": 0.05331248790025711,
+    "cmd_vx": 0.16808749735355377,
+    "cmd_vy": -0.0003725337446667254,
+    "cmd_wz": -0.06709910929203033,
+    "log_grf_rise20": -0.10857430845499039,
+    "log_grf_impulse20": 0.004842538386583328,
+    "pair_spread_ms": -0.034104302525520325
+   },
+   "RL": {
+    "foot_vx_pre": -0.09597622603178024,
+    "foot_vy_pre": -0.04168706014752388,
+    "foot_vz_pre": -0.22359105944633484,
+    "foot_speed_pre": 0.0893944725394249,
+    "foot_x": 0.0036471716593950987,
+    "foot_y": 0.07547833770513535,
+    "foot_z": 0.17075352370738983,
+    "cmd_vx": -0.14784204959869385,
+    "cmd_vy": -0.1119237020611763,
+    "cmd_wz": -0.008637123741209507,
+    "log_grf_rise20": -0.2422165423631668,
+    "log_grf_impulse20": 0.2639944553375244,
+    "pair_spread_ms": -0.03568669408559799
+   }
+  },
+  "modes_hz_sorted": [
+   60.71805953979492,
+   66.98710632324219,
+   68.13226318359375,
+   69.74976348876953,
+   82.13766479492188,
+   85.92460632324219,
+   93.17115020751953,
+   98.5325927734375,
+   122.10596466064453,
+   123.23612976074219,
+   145.73294067382812,
+   157.8739013671875,
+   161.84622192382812,
+   185.4923095703125,
+   206.6622314453125,
+   224.0501708984375,
+   228.46295166015625,
+   291.8924560546875,
+   303.55487060546875,
+   345.8558654785156,
+   396.41510009765625,
+   409.58807373046875,
+   448.2420349121094,
+   484.93658447265625,
+   537.0433959960938,
+   567.1381225585938,
+   575.03515625,
+   666.5665893554688,
+   735.8737182617188,
+   776.0427856445312,
+   851.5228881835938,
+   924.0400390625,
+   1031.8896484375,
+   1149.4962158203125,
+   1181.83984375,
+   1328.877685546875,
+   1446.16357421875,
+   1647.8253173828125,
+   1817.8966064453125,
+   1983.361328125,
+   2113.62646484375,
+   2354.833984375,
+   2418.526123046875,
+   2762.354248046875,
+   2924.27294921875,
+   3292.072998046875,
+   4438.70556640625,
+   4956.935546875,
+   4963.46337890625,
+   4968.8486328125,
+   5658.05126953125,
+   5677.86181640625,
+   6434.03857421875,
+   6481.79296875
+{"per_recording_pearson_spearman": [0.27998878958077095, 0.1819548872180451], "median_bias_db": 1.0587329864501953}

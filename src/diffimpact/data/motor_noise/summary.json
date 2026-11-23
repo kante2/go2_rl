@@ -1,0 +1,172 @@
+{
+  "source": "NORMAL_07_20261118_174116.npz",
+  "fs": 48000,
+  "segments": [
+    {
+      "state": "stand",
+      "t_start": 0.0,
+      "t_end": 10.3,
+      "duration_s": 10.3,
+      "mean_abs_tau": 3.641,
+      "mean_abs_dq": 0.029,
+      "used": true,
+      "use_start": 0.435,
+      "use_end": 10.0
+    },
+    {
+      "state": "motor_off",
+      "t_start": 10.3,
+      "t_end": 10.4,
+      "duration_s": 0.1,
+      "mean_abs_tau": 3.647,
+      "mean_abs_dq": 0.027,
+      "used": false,
+      "use_start": 10.6,
+      "use_end": 10.1
+    },
+    {
+      "state": "moving",
+      "t_start": 10.4,
+      "t_end": 11.2,
+      "duration_s": 0.8,
+      "mean_abs_tau": 2.043,
+      "mean_abs_dq": 0.169,
+      "used": false,
+      "use_start": 10.7,
+      "use_end": 10.9
+    },
+    {
+      "state": "stand",
+      "t_start": 11.2,
+      "t_end": 13.5,
+      "duration_s": 2.3,
+      "mean_abs_tau": 2.099,
+      "mean_abs_dq": 0.044,
+      "used": true,
+      "use_start": 11.5,
+      "use_end": 13.2
+    },
+    {
+      "state": "moving",
+      "t_start": 13.5,
+      "t_end": 13.8,
+      "duration_s": 0.3,
+      "mean_abs_tau": 3.291,
+      "mean_abs_dq": 0.237,
+      "used": false,
+      "use_start": 13.8,
+      "use_end": 13.5
+    },
+    {
+      "state": "stand",
+      "t_start": 13.8,
+      "t_end": 22.6,
+      "duration_s": 8.8,
+      "mean_abs_tau": 3.144,
+      "mean_abs_dq": 0.029,
+      "used": true,
+      "use_start": 14.1,
+      "use_end": 22.3
+    },
+    {
+      "state": "moving",
+      "t_start": 22.6,
+      "t_end": 24.3,
+      "duration_s": 1.7,
+      "mean_abs_tau": 0.932,
+      "mean_abs_dq": 0.371,
+      "used": false,
+      "use_start": 22.9,
+      "use_end": 24.0
+    },
+    {
+      "state": "motor_off",
+      "t_start": 24.3,
+      "t_end": 29.9,
+      "duration_s": 5.6,
+      "mean_abs_tau": 0.103,
+      "mean_abs_dq": 0.027,
+      "used": true,
+      "use_start": 24.6,
+      "use_end": 29.6
+    }
+  ],
+  "chunks": {
+    "stand": {
+      "total": 38,
+      "outliers": 1,
+      "outlier_t_start": [
+        4.94
+      ],
+      "median_dbfs": -58.30928333042622
+    },
+    "motor_off": {
+      "total": 10,
+      "outliers": 0,
+      "outlier_t_start": [],
+      "median_dbfs": -57.81454018290261
+    }
+  },
+  "band_levels": [
+    {
+      "set": "stand (NORMAL_07)",
+      "clips": 37,
+      "rms_dbfs_median": -58.34,
+      "20-200Hz_db": -62.47,
+      "200-1000Hz_db": -68.0,
+      "1000-4000Hz_db": -66.03,
+      "4000-12000Hz_db": -70.41,
+      "12000-24000Hz_db": -85.41
+    },
+    {
+      "set": "motor_off (NORMAL_07)",
+      "clips": 10,
+      "rms_dbfs_median": -57.81,
+      "20-200Hz_db": -61.61,
+      "200-1000Hz_db": -67.02,
+      "1000-4000Hz_db": -65.56,
+      "4000-12000Hz_db": -70.29,
+      "12000-24000Hz_db": -85.87
+    },
+    {
+      "set": "walk_pre straight",
+      "clips": 212,
+      "rms_dbfs_median": -58.57,
+      "20-200Hz_db": -61.56,
+      "200-1000Hz_db": -65.75,
+      "1000-4000Hz_db": -65.68,
+      "4000-12000Hz_db": -70.62,
+      "12000-24000Hz_db": -85.28
+    },
+    {
+      "set": "walk_inter straight",
+      "clips": 212,
+      "rms_dbfs_median": -56.08,
+      "20-200Hz_db": -58.94,
+      "200-1000Hz_db": -65.25,
+      "1000-4000Hz_db": -65.85,
+      "4000-12000Hz_db": -70.83,
+      "12000-24000Hz_db": -85.72
+    },
+    {
+      "set": "walk_pre lateral",
+      "clips": 319,
+      "rms_dbfs_median": -58.73,
+      "20-200Hz_db": -61.74,
+      "200-1000Hz_db": -66.73,
+      "1000-4000Hz_db": -65.64,
+      "4000-12000Hz_db": -70.1,
+      "12000-24000Hz_db": -83.82
+    },
+    {
+      "set": "walk_inter lateral",
+      "clips": 319,
+      "rms_dbfs_median": -55.06,
+      "20-200Hz_db": -56.97,
+      "200-1000Hz_db": -65.97,
+      "1000-4000Hz_db": -65.77,
+      "4000-12000Hz_db": -70.13,
+      "12000-24000Hz_db": -83.62
+    }
+  ]
+}
