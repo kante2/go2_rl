@@ -11,6 +11,10 @@
 저장: <dir>/<base>_v<N>_<YYYYmmdd_HHMMSS>.npz/.wav  (실로봇, sync_record_rl.py와 같은 형식)
       <dir>/<base>_v<N>_<YYYYmmdd_HHMMSS>_sim.npz   (시뮬, record_sim.py와 같은 형식)
 N은 <dir>의 같은 <base> 파일을 보고 자동으로 매긴다. 시각은 모두 PC time.monotonic 수신 시각.
+
+실로봇 npz에는 R2가 정책 스텝마다 보내는 명령(UDP --command-port 9904)도 cmd_*로 저장한다
+(cmd_t, cmd_vel = 정책에 들어간 [vx, vy, wz]). 시뮬은 terminal2_simulation.sh --real-command-port 9905로
+같은 명령을 직접 받는다. 정렬에는 두 파일 모두 ls_t_sync(로봇 tick / sim_time 기준, 지터 없음)를 쓴다.
 """
 import argparse
 from datetime import datetime
@@ -28,7 +32,7 @@ import threading
 import time
 import tty
 
-from sync_record_rl import FS, SCHEMAS, DiskStream, RemoteAudio, save_recording
+from sync_record_rl import COMMAND_SCHEMA, FS, SCHEMAS, DiskStream, RemoteAudio, save_recording
 from record_sim import PROJECT_ROOT, SimRecorder
 
 
@@ -50,6 +54,8 @@ class Take:
                 raise RuntimeError('기존 파일이 있습니다: %s%s' % (self.prefix, suffix))
         self.tmp = Path(tempfile.mkdtemp(prefix='.' + self.prefix.name + '_', dir=directory))
         self.streams = {k: DiskStream(self.tmp, k, d) for k, d in SCHEMAS.items() if k != 'audio_clock'}
+        if args.command_port:
+            self.streams['cmd'] = DiskStream(self.tmp, 'cmd', COMMAND_SCHEMA)
         self.audio = RemoteAudio(args.host, device, self.tmp)
         self.sim = SimRecorder(Path(str(self.prefix) + '_sim.npz')) if args.sim_port else None
         self.sim_gaps, self.sim_last = 0, None
@@ -59,6 +65,8 @@ class Take:
         self.started = time.monotonic()
         self.audio_ok = None
         self.events = [(self.started, 'move_start')]
+        if self.sim:
+            self.sim.events = self.events  # same recording events in both files
         self.audio.start()
 
     def add(self, stream, row):
@@ -77,9 +85,10 @@ class Take:
             self.sim_last = key
 
     def status(self, now):
-        return '%.0f초 | lowstate=%d sport=%d lowcmd=%d | audio=%.1f초%s' % (
+        return '%.0f초 | lowstate=%d sport=%d lowcmd=%d%s | audio=%.1f초%s' % (
             now - self.started, self.streams['ls'].count, self.streams['sp'].count,
-            self.streams['lc'].count, self.audio.samples / FS,
+            self.streams['lc'].count,
+            ' R2명령=%d' % self.streams['cmd'].count if 'cmd' in self.streams else '', self.audio.samples / FS,
             ' | sim=%d 끊김 %d' % (len(self.sim.rows), self.sim_gaps) if self.sim else '')
 
     def finish(self, reason):
@@ -98,7 +107,9 @@ class Take:
                     duration=finished - self.started, pre=0., jump_wait=0., settle=0., post=0.,
                     start_jump=False, end_jump=False, jump_id=-1, move=False,
                     event_semantics='move_start/stop delimit recording, not robot commands',
-                    command_velocity_recorded=False, stop_reason=reason,
+                    command_velocity_recorded=bool(self.streams.get('cmd') and self.streams['cmd'].count),
+                    command_source='R2 per-step policy command (cmd_*), UDP %s' % a.command_port,
+                    stop_reason=reason,
                     host=a.host or 'local', device=self.device,
                     topics=dict(low=a.low, sport=a.sport, lowcmd=a.lowcmd),
                     counts={k: s.count for k, s in self.streams.items()},
@@ -115,6 +126,9 @@ class Take:
         if self.sim:
             n = self.sim.save()
             print('저장: %s (물리 스텝 %d, 끊김 %d)' % (self.sim.path, n, self.sim_gaps), flush=True)
+            if 'cmd' in self.streams and not self.streams['cmd'].count:
+                print('!! R2 명령 수신 없음: real_closed_loop.json command_mirror_ports에 %d이 있는지, '
+                      'R2를 새 코드로 다시 켰는지 확인' % a.command_port, flush=True)
             if not n:
                 print('!! 시뮬 수신 없음: terminal2_simulation.sh를 --state-port %d로 실행했는지 확인'
                       % a.sim_port, flush=True)
@@ -129,6 +143,8 @@ def main():
                         help='저장 폴더, 프로젝트 루트 기준')
     parser.add_argument('--duration', type=float, help='녹화 시간 [초], 오디오 수신 시작부터 (생략하면 Enter까지)')
     parser.add_argument('--sim-port', type=int, default=9881, help='시뮬 --state-port (0이면 시뮬 녹화 안 함)')
+    parser.add_argument('--command-port', type=int, default=9904,
+                        help='R2 정책 명령 UDP (real_closed_loop.json command_mirror_ports; 0이면 저장 안 함)')
     parser.add_argument('--host', help='원격 마이크 SSH 주소 (예: unitree@192.168.123.18). 생략하면 이 PC 마이크')
     parser.add_argument('--card', help='ALSA 카드 이름 (원격 기본 Microphone)')
     parser.add_argument('--device', help='ALSA 장치 전체 이름')
@@ -154,7 +170,7 @@ def main():
         parser.error('ROS 2 / unitree_ros2 환경을 source하세요: ' + str(exc))
 
     state = dict(take=None)
-    counts = dict(ls=0, sp=0, lc=0, sim=0)
+    counts = dict(ls=0, sp=0, lc=0, sim=0, cmd=0)
     quit_event = threading.Event()
 
     class Listener(Node):
@@ -211,6 +227,26 @@ def main():
             except (ValueError, KeyError, TypeError) as error:
                 print('!! 잘못된 시뮬 패킷: %s' % error, flush=True)
 
+    def command_loop(receiver):
+        while not quit_event.is_set():
+            try:
+                payload, _ = receiver.recvfrom(4096)
+            except socket.timeout:
+                continue
+            except OSError:
+                return
+            received = time.monotonic()
+            counts['cmd'] += 1
+            take = state['take']
+            if take is None:
+                continue
+            try:
+                p = json.loads(payload)
+                take.add('cmd', (float(p['monotonic']), received, int(p['sequence']), p['velocity'],
+                                 p.get('requested', p['velocity']), bool(p.get('live', True))))
+            except (ValueError, KeyError, TypeError) as error:
+                print('!! 잘못된 R2 명령 패킷: %s' % error, flush=True)
+
     def spin_loop(executor):
         while not quit_event.is_set() and rclpy.ok():
             executor.spin_once(timeout_sec=0.1)
@@ -227,6 +263,14 @@ def main():
             parser.error('UDP %d 사용 중: 기존 sim_record.sh(S3)를 끄세요. 이 세션이 시뮬도 녹화합니다.'
                          % args.sim_port)
         receiver.settimeout(.1)
+    command_receiver = None
+    if args.command_port:
+        command_receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            command_receiver.bind(('127.0.0.1', args.command_port))
+        except OSError:
+            parser.error('UDP %d 사용 중: 다른 record_session이 켜져 있는지 확인하세요.' % args.command_port)
+        command_receiver.settimeout(.1)
 
     rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
     node = Listener()
@@ -235,6 +279,8 @@ def main():
     threads = [threading.Thread(target=spin_loop, args=(executor,), daemon=True)]
     if receiver:
         threads.append(threading.Thread(target=sim_loop, args=(receiver,), daemon=True))
+    if command_receiver:
+        threads.append(threading.Thread(target=command_loop, args=(command_receiver,), daemon=True))
     for thread in threads:
         thread.start()
     handlers = {sig: signal.signal(sig, on_signal) for sig in (signal.SIGINT, signal.SIGTERM)}
@@ -253,8 +299,8 @@ def main():
         before, mark = dict(counts), time.monotonic()
         time.sleep(2)
         rates = {k: (counts[k] - before[k]) / (time.monotonic() - mark) for k in counts}
-        print('수신 확인: lowstate %.0fHz | sport %.0fHz | lowcmd %.0fHz | sim %.0fHz' % (
-            rates['ls'], rates['sp'], rates['lc'], rates['sim']), flush=True)
+        print('수신 확인: lowstate %.0fHz | sport %.0fHz | lowcmd %.0fHz | sim %.0fHz | R2명령 %.0fHz' % (
+            rates['ls'], rates['sp'], rates['lc'], rates['sim'], rates['cmd']), flush=True)
         if not rates['ls']:
             print('!! lowstate 수신 없음 (로봇 연결 / ROS_DOMAIN_ID 확인)', flush=True)
         prompt()
@@ -318,6 +364,8 @@ def main():
             thread.join(timeout=2)
         if receiver:
             receiver.close()
+        if command_receiver:
+            command_receiver.close()
         executor.shutdown()
         node.destroy_node()
         rclpy.try_shutdown()

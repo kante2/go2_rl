@@ -378,6 +378,24 @@ class Backend:
                 return
             self.stop.wait(.01)
 
+    def publish_command(self, stamp, command):
+        """Send this policy step's velocity command to the recorder / MuJoCo mirror (config
+        command_mirror_ports). Same fields as the sim command packet, so the simulation's
+        CommandWatchdog accepts it. Best effort: never raises into the control loop."""
+        ports = self.config.get('command_mirror_ports')
+        if not ports:
+            return
+        try:
+            payload = json.dumps(dict(
+                version=1, kind='go2_policy_command', sequence=self.policy_steps, monotonic=stamp,
+                session=self.session_id, velocity=[float(v) for v in command],
+                requested=[float(v) for v in getattr(self, 'requested_command', command)],
+                live=bool(self.live_policy)), separators=(',', ':'), allow_nan=False).encode()
+            for port in ports:
+                self.sender.sendto(payload, ('127.0.0.1', port))
+        except (OSError, ValueError, TypeError):
+            pass
+
     def infer_loop(self):
         previous = np.zeros(12, dtype=np.float32)
         previous_live = False
@@ -406,6 +424,7 @@ class Backend:
                                        f'{(time.monotonic() - observation_time) * 1000:.1f} ms')
                 self.target = (observation_time, targets, previous_live)
                 self.policy_steps += 1
+                self.publish_command(started, command)
                 deadline, skipped = next_period(deadline, self.mapping.meta['step_dt'], time.monotonic())
                 self.skipped_slots += skipped
                 if skipped:

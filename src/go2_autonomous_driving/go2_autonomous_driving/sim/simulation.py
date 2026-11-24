@@ -191,6 +191,18 @@ class SimulationTransport:
             config["command_timeout"], config["max_forward_speed"],
             config["max_lateral_speed"], config["max_yaw_rate"],
         )
+        # Optional: real robot R2's per-step policy command (config command_mirror_ports),
+        # used instead of the ROS bridge command while fresh, so both policies get the same
+        # command within one policy step (the keyboard mirror path samples at only 20 Hz).
+        self.real_receiver, self.real_watchdog = None, None
+        if config.get("real_command_port"):
+            self.real_receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.real_receiver.bind(("127.0.0.1", config["real_command_port"]))
+            self.real_receiver.setblocking(False)
+            self.real_watchdog = CommandWatchdog(
+                config["command_timeout"], config["max_forward_speed"],
+                config["max_lateral_speed"], config["max_yaw_rate"],
+            )
         self.next_telemetry = 0.0
         self.session = uuid.uuid4().hex
         self.reset_counter = 0
@@ -204,6 +216,15 @@ class SimulationTransport:
             except BlockingIOError:
                 break
             self.watchdog.receive(packet, now)
+        if self.real_receiver is not None:
+            for _ in range(32):
+                try:
+                    packet, _ = self.real_receiver.recvfrom(4096)
+                except BlockingIOError:
+                    break
+                self.real_watchdog.receive(packet, now)
+            if 0 <= now - self.real_watchdog.stamp <= self.real_watchdog.timeout:
+                return self.real_watchdog.command
         return self.watchdog.sample(now)
 
     def telemetry(self, env, force=False):
@@ -232,6 +253,8 @@ class SimulationTransport:
     def close(self):
         self.receiver.close()
         self.sender.close()
+        if self.real_receiver is not None:
+            self.real_receiver.close()
 
 
 def run(args):
@@ -259,6 +282,8 @@ def run(args):
         config["max_lateral_speed"] = args.lateral_speed
     if args.yaw_rate is not None:
         config["max_yaw_rate"] = args.yaw_rate
+    if args.real_command_port is not None:
+        config["real_command_port"] = args.real_command_port
     # Config paths are relative to the config file; explicit CLI paths use cwd.
     # "checkpoint": "../model_pt/model_10000.pt",  <- torch.load로 PT을 읽고 구조를 확인
     checkpoint = args.checkpoint or (config_path.parent / config["checkpoint"]).resolve()
@@ -323,6 +348,9 @@ def run(args):
         policy = runner.get_inference_policy(device=device)
         wrapped.reset()
         print(f"Loaded {checkpoint}, iter={state.get('iter')}; navigation is initially stopped", flush=True)
+        if config.get("real_command_port"):
+            print(f"Real command mirror: UDP {config['real_command_port']} (R2 per-step command overrides "
+                  f"the bridge while fresh)", flush=True)
 
         window = NativeWindow(env) if args.native else None
         noise = NoiseStateSender(env, args.noise_port) if args.noise_port else None
@@ -379,6 +407,9 @@ def main():
     parser.add_argument("--state-port", "--noise-port", dest="noise_port", type=int,
                         help="Stream real-robot-like physics states (200 Hz) to sim_record.sh or the "
                              "noise predictor, e.g. 9881")
+    parser.add_argument("--real-command-port", type=int,
+                        help="Follow the real robot's per-step policy command (R2 command_mirror_ports), "
+                             "e.g. 9905 for real+sim recording; falls back to the bridge command when stale")
     parser.add_argument("--native", action="store_true",
                         help="Also open a MuJoCo window that follows the robot (needs a host display)")
     parser.add_argument("--steps", type=int, help="Stop after this many policy steps")

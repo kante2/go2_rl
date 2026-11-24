@@ -1,0 +1,29 @@
+MODEL=34997                               # 보행 모델 번호
+SPEED=0.5                                 # 전진·후진 속도 [m/s]
+LATERAL_SPEED=0.5                         # 횡방향 속도 [m/s]
+YAW_RATE=0.3                              # 회전 속도 [rad/s]
+DURATION=30                               # 녹화 시간 [초] → 지나면 자동 종료·저장
+LABEL=NORMAL                              # 파일 이름 앞부분
+DATA_DIR=src/sim_to_real_data/real_sim    # 녹화 저장 폴더
+source /home/kante/go2_rl/sh_folder/experiment.sh
+
+
+# S1: 시뮬 브리지
+bash $GO2_ROOT/sh_folder/terminal1_bridge.sh --speed "$SPEED" --lateral-speed "$LATERAL_SPEED" --yaw-rate "$YAW_RATE"
+
+# S2: MuJoCo → http://localhost:8082
+bash $GO2_ROOT/sh_folder/terminal2_simulation.sh --model "$MODEL" \
+  --speed "$SPEED" --lateral-speed "$LATERAL_SPEED" --yaw-rate "$YAW_RATE" --viewer-port 8082 --state-port 9881
+
+# R2: 실로봇 제어 → ARM → REAL POLICY READY
+bash $GO2_ROOT/scripts/run_go2_real_closed_loop.sh --execute --model "$MODEL" \
+  --speed "$SPEED" --lateral-speed "$LATERAL_SPEED" --yaw-rate "$YAW_RATE"
+
+# R3: 키보드 (실로봇 + 시뮬 동시)
+bash $GO2_ROOT/scripts/run_go2_real_keyboard.sh --speed "$SPEED" --lateral-speed "$LATERAL_SPEED" --yaw-rate "$YAW_RATE" --mirror-sim
+
+# ── 녹화 (S3 → R4 연달아 실행, 30초 뒤 둘 다 자동 종료·저장) ──
+# S3: 시뮬 녹화
+bash $GO2_ROOT/sh_folder/sim_record.sh --name "$(exp_name)" --dir "$DATA_DIR" --duration "$DURATION"
+# R4: 실로봇 녹화
+bash $GO2_ROOT/sh_folder/terminal4_noise_record.sh --name "$(exp_name)" --dir "$DATA_DIR" --duration "$DURATION"

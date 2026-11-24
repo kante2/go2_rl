@@ -17,7 +17,7 @@ bash $GO2_ROOT/sh_folder/terminal1_bridge.sh --speed "$SPEED" --lateral-speed "$
 
 # S2: MuJoCo → http://localhost:8082  ("Loaded" 나올 때까지 대기)
 bash $GO2_ROOT/sh_folder/terminal2_simulation.sh --model "$MODEL" \
-  --speed "$SPEED" --lateral-speed "$LATERAL_SPEED" --yaw-rate "$YAW_RATE" --viewer-port 8082 --state-port 9881
+  --speed "$SPEED" --lateral-speed "$LATERAL_SPEED" --yaw-rate "$YAW_RATE" --viewer-port 8082 --state-port 9881 --real-command-port 9905
 
 # R4: 녹화 세션 (R2보다 먼저 켜고 끝까지 유지! 실로봇 + 마이크 + 시뮬을 Enter 한 번으로 함께 녹화)
 bash $GO2_ROOT/sh_folder/record_session.sh --base "$(exp_base)" --dir "$DATA_DIR" --duration "$DURATION"
@@ -33,6 +33,12 @@ bash $GO2_ROOT/scripts/run_go2_real_keyboard.sh --speed "$SPEED" --lateral-speed
 - 순서: S1 → S2 → **R4** → R2(READY) → R3. R4는 로봇 제어보다 먼저 켜야 한다. 로봇이 걷는 중에 녹화 프로그램을 새로 실행하면 DDS 연결 과정에서 R2 모터 루프가 10 ms 넘게 멈춰 안전 정지된다 (2026-11-20 확인).
 - 녹화: R4에서 **Enter** → `DURATION`초 뒤 자동 저장 → 다시 대기. 다시 Enter → `_v2`, `_v3` … (녹화 중 Enter = 바로 저장).
 - 결과: `<LABEL>_<SPEED>_<LATERAL_SPEED>_<YAW_RATE>_v<N>_<시각>.npz/.wav` (실로봇) + `..._sim.npz` (시뮬), 시작 시각이 같다.
+- 명령 동기화 (2026-11-23~): R2가 정책 스텝(50 Hz)마다 실제로 정책에 넣은 명령을 UDP로 보낸다 (`real_closed_loop.json`의 `command_mirror_ports` 9904·9905).
+  - 9905 → S2(`--real-command-port 9905`): 시뮬이 같은 명령을 직접 받는다 (기존 R3 `--mirror-sim` 경로는 20 Hz로 끊겨 40/60 ms 계단 + 지연이 생겼음). 이 명령이 끊기면 기존 브리지 명령으로 돌아간다.
+  - 9904 → R4: 실로봇 npz에 `cmd_t`, `cmd_vel`(정책 입력 [vx, vy, wz]), `cmd_req`(가감속 전), `cmd_step`, `cmd_live` 저장. `meta.command_velocity_recorded`=true.
+  - `--mirror-sim`은 남겨 둬도 된다 (9905가 살아 있으면 시뮬은 R2 명령을 우선 사용).
+- 시간 정렬: 두 파일 모두 **`ls_t_sync`** 를 쓴다. 실로봇은 `ls_tick`(1 ms), 시뮬은 `sim_time`(5 ms)을 PC monotonic 시각에 맞춘 값이라 지터가 없다. `ls_t`는 수신 시각 그대로 (실로봇은 PC 수신 지연으로 최대 ~30 ms 밀림, 시뮬은 정책 스텝마다 4스텝을 몰아 보내 −12~+7 ms 톱니). 맞춤 오차는 `meta.ls_t_sync_max_residual_ms`.
+- 시뮬 npz의 `ev_t`/`ev_label`은 실로봇 npz와 같은 녹화 이벤트(move_start, audio_ok, move_stop, end)다.
 - S3(`sim_record.sh`)는 이제 쓰지 않는다 (R4가 UDP 9881을 직접 받음, 동시에 켜면 R4가 시작을 거부).
 - 종료: R3(S 정지 → Ctrl+C) → 로봇 잡고 R2 Ctrl+C → R4 `q` → S1·S2.
 - 조건 변경: R2를 먼저 끄고, `experiment.sh`를 고치고 **모든 터미널에서 다시 source** 한 뒤 S1·S2 → R4 → R2 → R3 순서로 다시 켠다 (R4 이름 앞부분도 바뀜).
@@ -110,7 +116,7 @@ bash /home/kante/go2_rl/sh_folder/terminal1_bridge.sh --speed 0.5 --lateral-spee
 # S2: MuJoCo (실로봇과 같은 모델, viser는 8082 — 8080은 실로봇 뷰어가 사용, --native는 쓰지 않음)
 bash /home/kante/go2_rl/sh_folder/terminal2_simulation.sh \
   --model 34997 --speed 0.5 --lateral-speed 0.15 --yaw-rate 0.3 \
-  --viewer-port 8082 --state-port 9881
+  --viewer-port 8082 --state-port 9881 --real-command-port 9905
 
 # S3: 시뮬 상태 기록 (q 또는 Ctrl+C로 저장) → src/sim_to_real_data/real_sim/<이름>_<시간>_sim.npz  (소음 예측 모델은 돌리지 않음)
 bash /home/kante/go2_rl/sh_folder/sim_record.sh --name NORMAL_01 --dir src/sim_to_real_data/real_sim

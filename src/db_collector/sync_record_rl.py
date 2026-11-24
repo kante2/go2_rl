@@ -217,6 +217,41 @@ def joint_acceleration(tick, dq):
     return acc[np.cumsum(keep) - 1]
 
 
+def clock_fit(x, t, use=None):
+    """지터 없는 샘플 시계 x [s] (로봇 tick, 시뮬 sim_time)를 PC monotonic 시각으로 옮긴다.
+
+    PC 수신 시각 t는 전달 지연·몰림(burst)으로 수십 ms 흔들리므로, t ≈ a + b·x 직선을 맞추고
+    (5 ms 넘게 벗어난 샘플은 빼고 한 번 더) 직선 값을 쓴다. use로 맞출 샘플을 고를 수 있다.
+    반환: (같은 시계의 보정 시각, use 샘플의 최대 |t - 보정| [ms]). x가 거꾸로 가면 (시계 재시작) t를 그대로 돌려준다.
+    """
+    x = np.asarray(x, dtype=np.float64)
+    t = np.asarray(t, dtype=np.float64)
+    if len(x) < 2 or np.any(np.diff(x) < 0):
+        return t.copy(), float("nan")
+    x = x - x[0]
+    use = np.ones(len(x), bool) if use is None else np.asarray(use, bool).copy()
+    if use.sum() < 2:
+        use[:] = True
+    b, a = np.polyfit(x[use], t[use], 1)
+    residual = t - (a + b * x)
+    keep = use & (np.abs(residual - np.median(residual[use])) < 5e-3)
+    if keep.sum() >= 2:
+        b, a = np.polyfit(x[keep], t[keep], 1)
+    fitted = a + b * x
+    return fitted, float(np.abs(t - fitted)[use].max() * 1e3)
+
+
+# 실로봇 정책 명령 (R2 command_mirror_ports → record_session UDP 9904), 정책 스텝(50 Hz)마다 하나.
+COMMAND_SCHEMA = np.dtype([
+    ("t", "<f8"),         # R2가 이 스텝의 명령을 샘플한 PC monotonic 시각 (정책 입력 시점)
+    ("recv_t", "<f8"),    # 녹화기 수신 시각
+    ("step", "<i8"),      # R2 policy_steps
+    ("vel", "<f4", (3,)),  # 정책에 들어간 명령 [vx, vy, wz] (가감속 적용 후)
+    ("req", "<f4", (3,)),  # 키보드 요청 명령 (가감속 전)
+    ("live", "?"),        # 실제 보행 정책 단계(REAL POLICY READY 이후)인지
+])
+
+
 def save_recording(prefix, streams, audio, events, meta):
     samples, slope, t0, times, ends = audio.arrays()
     arrays = dict(audio=samples, fs=FS, audio_slope=slope, audio_t0=t0,
@@ -230,6 +265,13 @@ def save_recording(prefix, streams, audio, events, meta):
     # 펌웨어 원본(항상 0)은 보존하고, ls_ddq는 ls_dq의 로봇 시간 미분으로 채운다.
     arrays["ls_ddq_firmware"] = arrays["ls_ddq"]
     arrays["ls_ddq"] = joint_acceleration(arrays["ls_tick"], arrays["ls_dq"])
+    # ls_t(수신 시각)는 그대로 두고, 로봇 tick(1 ms) 기준의 지터 없는 시각을 따로 저장한다.
+    if len(arrays["ls_tick"]):
+        tick = np.maximum.accumulate(arrays["ls_tick"].astype(np.int64))
+        arrays["ls_t_sync"], residual = clock_fit(tick * 1e-3, arrays["ls_t"])
+        meta = dict(meta, ls_t_sync="ls_tick x 1 ms fitted to ls_t (PC monotonic); use for alignment",
+                    ls_t_sync_max_residual_ms=residual)
+    arrays["meta"] = json.dumps(meta)
     # 큰 npz 압축 도중 중단되더라도 완료된 파일로 보이지 않도록 임시 이름 사용.
     npz_tmp = Path(str(prefix) + ".npz.tmp")
     wav_tmp = Path(str(prefix) + ".wav.tmp")
@@ -279,6 +321,8 @@ def recover(directory, out=None):
             raise SystemExit("기존 파일이 있습니다. --out으로 다른 이름을 지정하세요: %s%s" % (prefix, suffix))
     streams = {name: RecoveredStream(directory / (name + ".raw"), dtype)
                for name, dtype in SCHEMAS.items() if name != "audio_clock"}
+    if (directory / "cmd.raw").exists():  # record_session의 실로봇 정책 명령
+        streams["cmd"] = RecoveredStream(directory / "cmd.raw", COMMAND_SCHEMA)
     audio = RemoteAudio.__new__(RemoteAudio)
     audio.path = directory / "audio.raw"
     audio.clock = RecoveredStream(directory / "audio_clock.raw", SCHEMAS["audio_clock"])
@@ -298,7 +342,7 @@ def recover(directory, out=None):
                 duration=finished - started, pre=0., jump_wait=0., settle=0., post=0.,
                 start_jump=False, end_jump=False, jump_id=-1, move=False,
                 event_semantics="move_start/stop delimit recording, not robot commands",
-                command_velocity_recorded=False, stop_reason="recovered", recovered_from=str(directory),
+                command_velocity_recorded="cmd" in streams, stop_reason="recovered", recovered_from=str(directory),
                 counts={name: stream.count for name, stream in streams.items()},
                 timestamp_clock="PC time.monotonic receive time")
     print("복구: %s" % directory, flush=True)

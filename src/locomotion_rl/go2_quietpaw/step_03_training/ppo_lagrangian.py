@@ -29,8 +29,8 @@ class QuietPawPPO(PPO):
     self.pid = PidLagrangian(storage.num_envs, PidLagrangianCfg(**pid), self.device)
     self.cost_value_loss_coef = cost_value_loss_coef
 
-  @staticmethod
-  def construct_algorithm(obs, env, cfg, device):
+  @classmethod
+  def construct_algorithm(cls, obs, env, cfg, device):
     # Runner 설정 원본을 보존한다. checkpoint와 YAML에 class_name 등이 남는다.
     actor_cfg = deepcopy(cfg["actor"])
     critic_cfg = deepcopy(cfg["critic"])
@@ -52,7 +52,7 @@ class QuietPawPPO(PPO):
     storage = QuietPawStorage(env.num_envs, cfg["num_steps_per_env"], obs, [env.num_actions], device)
     # 기본 Runner는 로깅 중 rnd_cfg 키를 조회한다.
     cfg["algorithm"].setdefault("rnd_cfg", None)
-    return QuietPawPPO(
+    return cls(
       actor, critic, storage, device=device, multi_gpu_cfg=cfg.get("multi_gpu"), **algorithm_cfg
     )
 

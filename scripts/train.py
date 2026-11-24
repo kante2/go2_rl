@@ -16,7 +16,10 @@ from src.locomotion_rl.go2_baseline.step_03_training.train import (
 
 
 def main():
-  if len(sys.argv) > 1 and sys.argv[1].startswith("Unitree-Go2-QuietPaw-LongStride-"):
+  if len(sys.argv) > 1 and sys.argv[1].startswith("Unitree-Go2-QuietWalk-1124-"):
+    from src.locomotion_rl.go2_quietpaw.step_03_training.train import main as quietwalk_main
+    quietwalk_main(task_prefix="Unitree-Go2-QuietWalk-1124-")
+  elif len(sys.argv) > 1 and sys.argv[1].startswith("Unitree-Go2-QuietPaw-LongStride-"):
     from src.locomotion_rl.go2_quietpaw_long_stride.step_03_training.train import main as long_stride_main
     long_stride_main()
   elif len(sys.argv) > 1 and sys.argv[1].startswith("Unitree-Go2-QuietPaw-"):

@@ -28,6 +28,8 @@ import tty
 
 import numpy as np
 
+from sync_record_rl import clock_fit
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = Path(__file__).resolve().parent / 'sim_data'
 RAW_FIELDS = ('acc', 'tau', 'ddq', 'q_target', 'base_pos_w', 'base_lin_vel_w', 'yaw_rate_w',
@@ -48,6 +50,7 @@ class SimRecorder:
         self.path = path
         self.rows, self.kp, self.kd = [], None, None
         self.started = time.monotonic()
+        self.events = None  # record_session: the take's shared (time, label) events
 
     def add(self, received, packet):
         raw = packet['raw']
@@ -59,6 +62,12 @@ class SimRecorder:
         n = len(self.rows)
         cols = list(zip(*self.rows)) if n else [[]] * (3 + len(SIZES))
         t, tick, sim_time = (np.asarray(cols[i], dtype=dtype) for i, dtype in ((0, '<f8'), (1, '<i8'), (2, '<f8')))
+        # The simulation computes one policy step (4 physics steps) in a ~4 ms burst, then sleeps,
+        # so receive times t are bunched (-12..+7 ms off sim_time). The first step of each burst
+        # arrives right after the policy read its command; map sim_time onto those arrivals.
+        burst_start = np.r_[True, np.diff(t) > 0.5 * np.median(np.diff(sim_time))] if n > 1 else np.ones(n, bool)
+        t_sync, residual = clock_fit(sim_time, t, burst_start) if n else (t, float('nan'))
+        events = self.events or [(t[0] if n else self.started, 'move_start'), (t[-1] if n else self.started, 'end')]
         low, acc, tau, ddq, q_target, pos, vel, yaw_rate, foot_pos, foot_vel, force_vec, command, action = (
             np.asarray(cols[i], dtype='<f8').reshape(n, size) for i, size in zip(range(3, 3 + len(SIZES)), SIZES))
         quat = low[:, 4:8]
@@ -67,7 +76,7 @@ class SimRecorder:
         zeros12 = np.zeros((n, 12))
         arrays = dict(
             # LowState (real: /lowstate)
-            ls_t=t, ls_tick=tick, ls_ff=f32(low[:, 0:4]), ls_acc=f32(acc), ls_gyro=f32(low[:, 8:11]),
+            ls_t=t, ls_t_sync=t_sync, ls_tick=tick, ls_ff=f32(low[:, 0:4]), ls_acc=f32(acc), ls_gyro=f32(low[:, 8:11]),
             ls_rpy=f32(rpy), ls_quaternion=f32(quat), ls_q=low[:, 11:23], ls_dq=low[:, 23:35], ls_tau=tau,
             ls_ddq=ddq,
             # SportModeState (empty on the real robot under RL control; simulation ground truth here)
@@ -82,11 +91,13 @@ class SimRecorder:
             sim_time=sim_time, sim_command=f32(command), sim_action=f32(action),
             sim_foot_force_vec=f32(force_vec.reshape(n, 4, 3)),
             # Recording events, as in the real file
-            ev_t=np.array([t[0] if n else self.started, t[-1] if n else self.started]),
-            ev_api=np.full(2, -1, '<i8'), ev_label=np.array(['move_start', 'end']),
+            ev_t=np.array([e[0] for e in events], dtype='<f8'),
+            ev_api=np.full(len(events), -1, '<i8'), ev_label=np.array([e[1] for e in events]),
             meta=json.dumps(dict(
                 source='mujoco', counts=dict(ls=n, sp=n, lc=n), rate_hz='physics step (200)',
                 timestamp_clock='PC time.monotonic receive time (same as real ls_t)',
+                ls_t_sync='sim_time fitted to burst-start receive times (PC monotonic); use for alignment',
+                ls_t_sync_max_residual_ms=residual,
                 notes=dict(ls_ff='|contact force| [N] + real airborne reading (8,10,12,9); float, real is int16',
                            ls_acc='IMU accelerometer incl. gravity', ls_gyro='base angular velocity, body frame',
                            ls_ddq='joint acceleration [rad/s^2]', ls_tau='actuator force = joint torque [N m]',

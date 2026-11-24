@@ -2,6 +2,7 @@
   "command_port": 9901,
   "telemetry_port": 9902,
   "keyboard_status_port": 9903,
+  "command_mirror_ports": [9904, 9905],
   "command_timeout": 0.3,
   "state_timeout": 0.1,
   "sensor_timeout": 0.3,
