@@ -13,9 +13,9 @@
   <label class="trial-label">DATA PAIR <select id="trial" aria-label="데이터 시행"></select></label>
 </header>
 <main>
-  <section class="intro"><div><p class="eyebrow">LOCOMOTION / 12 JOINTS / 4 FEET</p><h1>현실과 시뮬레이션 사이.</h1><p class="subtitle">같은 관절을 따라, 매핑 전후 관측과 남아 있는 오차를 살펴봅니다.</p></div><div class="intro-index"><span id="velocity">0.2</span><small>m/s command</small></div></section>
+  <section class="intro"><div><p class="eyebrow">LOCOMOTION / 12 JOINTS / 4 FEET</p><h1>현실과 시뮬레이션 사이.</h1><p class="subtitle">같은 관절을 따라, 매핑 전후 관측과 남아 있는 오차를 살펴봅니다.</p></div><div id="velocity-summary" class="intro-index" hidden><span id="velocity"></span><small>m/s command</small></div></section>
   <section class="modebar" aria-label="비교 방식">
-    <div class="tabs"><button id="before" class="tab selected" aria-pressed="true"><span>01</span> 보정 전 · 시간 정렬</button><button id="after" class="tab" aria-pressed="false"><span>02</span> 보정 후 · 배포 매핑</button></div>
+    <div class="tabs"><button id="before" class="tab selected" aria-pressed="true"><span>01</span> 시간 정렬 · 물리값</button><button id="after" class="tab" aria-pressed="false"><span>02</span> 배포 정책 입력</button></div>
     <span id="status" class="status" aria-live="polite">데이터를 불러오는 중</span>
   </section>
   <p id="mode-note" class="mode-note"></p>

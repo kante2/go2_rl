@@ -130,7 +130,7 @@ def full_replay(real_path, output, engine):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--data-dir', type=Path, default=ROOT / 'src/Real2Sim/data')
-    parser.add_argument('--output-dir', type=Path, default=ROOT / 'src/Real2Sim/result/figure_after')
+    parser.add_argument('--output-dir', type=Path, default=ROOT / 'src/Real2Sim/result/legacy')
     args = parser.parse_args()
     engine = Replay()
     for path in sorted((args.data_dir / 'real').glob('*.npz')):

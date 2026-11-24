@@ -1,4 +1,10 @@
-# Baseline 시뮬레이션 데이터 수집
+# Real2Sim scripts
+
+현재 `1118_RL_base` 분석은 [real2sim/](real2sim/README.md)의 `run_converter.sh`가 실행한다.
+결과는 `result/<dataset>/`에 저장하고, replay는 저장된 결과만 읽는다.
+전체 구조와 명령은 [상위 README](../README.md)를 참고한다.
+
+## Baseline 시뮬레이션 데이터 수집
 
 동일 baseline 체크포인트와 속도 명령으로 실제 Go2와 비교할 데이터를 수집한다.
 기존 Go2 Docker 컨테이너의 mjlab `Unitree-Go2-Flat`을 사용하며 ROS/UDP/로봇 연결은 없다.

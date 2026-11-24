@@ -1,89 +1,40 @@
 Real2Sim directory structure
 
-Code, documentation, configuration and PDFs are versioned.
-data/, result/, simulator/ and replay/web/data/ contents stay local.
-Empty marker files preserve writable data directories; generated subdirectories are listed below.
+Analysis: scripts/real2sim/run_converter.sh -> pipeline.py
+Viewer:   replay/run_replay.sh -> serve.py (read-only; no rebuild)
+Full documentation: README.md
 
-src/Real2Sim/
-  .gitignore
-  DIRECTORY_STRUCTURE.txt
-  data/
-    explain_data.txt
-    real/
-      1116_RL_base/
-      1118_RL_base/
-    sim/
-      1116_RL_base/
-      1118_RL_base/
-  reference/
-    Legged_Sim2Real_Learning.pdf
-  replay/
-    README.md
-    build_data.py
-    deployment_mapping.py
-    deployment_normalization.json
-    extract_deployment_normalization.py
-    plot_mapping.py
-    run_replay.sh
-    serve.py
+data/
+  real/<dataset>/*_real.npz
+  sim/<dataset>/*_sim.npz
+scripts/
+  real2sim/
+    config.py, pipeline.py, preprocessing.py, time_alignment.py
+    deployment_mapping.py, deployment_normalization.json
+    metrics.py, reporting.py, dataset_summary.py, storage.py, export_ui.py
+    plot_mapping.py, plot_torque.py, analyze_time_delay.py
+    run_converter.sh
     tests/
-      test_data.py
-      ui_smoke.js
-    web/
-      app.js
-      chart.js
-      index.html
-      style.css
-      data/
-  result/
-    data_mapping/
-      figure/
-    figure_after/
-      converted/
-      diagnostics/
-      grf_inputs/
-      replay_0.2s/
-      replay_1s/
-      replay_full/
-    figure_before/
-    processed/
-    synchronization/
-    unaligned/
-      figure/
-      processed/
-  scripts/
-    README.md
-    collect_sim_baseline.py
-    compare_real_sim.py
-    compare_tau.py
-    phase_synchronization.py
-    run_collect_sim_baseline.sh
-    offline_identification/
-      README.md
-      evaluate_real2sim.py
-      identify_dynamics.py
-      inspect_dataset.py
-      mujoco_replay.py
-      plot_real2sim.py
-      prepare_dataset.py
-      real2sim_common.py
-      replay_mujoco.py
-      requirements.txt
-      tests/
-        test_pipeline.py
-    outputs/
-      horizon_1s/
-    real2sim/
-      README.md
-      analyze_converter.py
-      force_diagnostics.py
-      full_record_replay.py
-      real2sim_converter.py
-      run_converter.sh
-      tests/
-        test_converter.py
-    tests/
-      test_collection.py
-      test_phase_synchronization.py
-  simulator/
-    baseline/
+    legacy/  (historical reconstruction and physics replay)
+  compare_tau.py  (plot saved torque)
+  collect_sim_baseline.py, run_collect_sim_baseline.sh
+  compare_real_sim.py, phase_synchronization.py  (older standalone analysis)
+  offline_identification/  (separate experimental workflow)
+result/<dataset>/
+  manifest.json
+  processed/*_mapping.npz
+  metrics/<trial>.json, mapping_summary.json, metrics.csv
+  analysis.md
+  figures/mapping/
+  figures/torque/
+  ui/index.json, <trial>.json
+  diagnostics/<trial>/  (optional)
+result/<dataset>_real_sim_analysis.txt  (updated with the default analysis)
+replay/
+  run_replay.sh, serve.py
+  web/index.html, app.js, chart.js, style.css
+  tests/
+reference/
+simulator/  (optional baseline collection)
+
+Raw data and generated result contents stay local; source and docs are versioned.

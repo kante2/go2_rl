@@ -7,8 +7,8 @@ import sys
 import numpy as np
 
 from real2sim_converter import ROOT, restore_output_owner
-sys.path.insert(0, str(ROOT / 'src/Real2Sim/replay'))
-from build_data import rolling_rmse
+sys.path.insert(0, str(ROOT / 'src/Real2Sim/scripts'))
+from real2sim.metrics import rolling_rmse
 
 
 def write_diagnostics(output):
@@ -85,4 +85,4 @@ def write_diagnostics(output):
 
 
 if __name__ == '__main__':
-    write_diagnostics(ROOT / 'src/Real2Sim/result/figure_after')
+    write_diagnostics(ROOT / 'src/Real2Sim/result/legacy')

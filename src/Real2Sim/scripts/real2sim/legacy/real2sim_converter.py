@@ -13,7 +13,7 @@ import sys
 
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[5]
 sys.path.insert(0, str(ROOT / 'src/go2_autonomous_driving'))
 from go2_autonomous_driving.real.real_control import PolicyMapping
 from go2_autonomous_driving.real.control_transitions import JointTargetRamp
@@ -229,7 +229,7 @@ def parse_args(argv=None):
     p.add_argument('--stage', choices=('convert', 'analyze'), required=True)
     p.add_argument('--data-dir', type=Path, default=ROOT / 'src/Real2Sim/data')
     p.add_argument('--policy-dir', type=Path, default=ROOT / 'artifacts/go2_real/baseline' / POLICY_HASH)
-    p.add_argument('--output-dir', type=Path, default=ROOT / 'src/Real2Sim/result/figure_after')
+    p.add_argument('--output-dir', type=Path, default=ROOT / 'src/Real2Sim/result/legacy')
     return p.parse_args(argv)
 
 

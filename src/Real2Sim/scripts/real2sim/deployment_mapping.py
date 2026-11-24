@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import numpy as np
 
-ROOT = Path(__file__).resolve().parents[3]
+from .config import ROOT
 SDK_JOINTS = tuple(f'{leg}_{joint}_joint' for leg in ('FR','FL','RR','RL') for joint in ('hip','thigh','calf'))
 
 

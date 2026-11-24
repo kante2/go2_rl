@@ -12,7 +12,3 @@
 /simulator/**
 !/simulator/**/
 !/simulator/**/.gitkeep
-
-/replay/web/data/**
-!/replay/web/data/**/
-!/replay/web/data/**/.gitkeep

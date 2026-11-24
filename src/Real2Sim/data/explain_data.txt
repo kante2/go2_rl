@@ -61,7 +61,7 @@
                                     Go2 펌웨어는 MotorState.ddq를 항상 0으로 보내므로 녹음 프로그램이 계산한다.
   ls_ddq_firmware (N,12)  float64   펌웨어가 보낸 MotorState.ddq 원본 (항상 0, 참고용)
                                     ※ ls_ddq / ls_ddq_firmware는 2026-11-18 이후 녹음부터 있음.
-                                      NORMAL_01_20261118_155329.npz의 ls_ddq는 수정 전이라 전부 0
+                                      real_sim/normal_01_real.npz의 ls_ddq는 수정 전이라 전부 0
                                       → 다음 처럼 직접 계산: sync_record_rl.joint_acceleration(ls_tick, ls_dq)
 
 [lc_*] /lowcmd  약 500 Hz  — RL 제어기가 모터에 보낸 명령

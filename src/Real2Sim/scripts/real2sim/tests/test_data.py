@@ -4,8 +4,9 @@ import sys
 import json
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from build_data import metric, rolling_rmse, BASE
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from real2sim.metrics import metric, rolling_rmse
+from real2sim.config import result_path
 
 
 def test_initial_state_can_be_excluded_from_metrics():
@@ -29,18 +30,37 @@ def test_rolling_rmse_excludes_invalid_initialization_and_uses_past_only():
 
 
 def test_exported_mapping_keeps_sources_and_same_evaluation_samples():
-    from build_data import PROJECT, sha
-    directory = BASE / 'web/data'
+    from real2sim.pipeline import PROJECT, sha, DEFAULT_DATASET, paired_paths
+    directory = result_path() / 'ui'
     manifest = json.loads((directory / 'index.json').read_text())
     assert manifest['schema'] == 'go2-actor-mapping-v4'
-    assert manifest['dataset'] == '1116_RL_base'
-    assert [e['id'] for e in manifest['trials']] == [f'0.2_{i}' for i in range(1,6)]
+    assert manifest['dataset'] == DEFAULT_DATASET == '1118_RL_base'
+    pairs = paired_paths(PROJECT / 'data')
+    ids = {r.stem.removesuffix('_real') for r, _ in pairs}
+    assert {e['id'] for e in manifest['trials']} | {e['id'] for e in manifest['excludedTrials']} == ids
+    empty = set()
+    for real_path, sim_path in pairs:
+        with np.load(real_path, allow_pickle=False) as real, np.load(sim_path, allow_pickle=False) as sim:
+            if not len(real['ls_t']) or not len(sim['ls_t']):
+                empty.add(real_path.stem.removesuffix('_real'))
+    assert {e['id'] for e in manifest['excludedTrials']} == empty
+    assert len(manifest['trials']) == len(pairs) - len(empty)
+    assert {p.name for p in directory.glob('*.json')} == {'index.json', *(e['file'] for e in manifest['trials'])}
     assert manifest['units']['realForce'] == 'counts'
     assert manifest['units']['simForce'] == 'N'
     for entry in manifest['trials']:
         trial = json.loads((directory / entry['file']).read_text())
         assert entry['realSha256'] == sha(Path(entry['realPath']))
         assert entry['simSha256'] == sha(Path(entry['simPath']))
+        assert Path(entry['realPath']).parent == PROJECT / 'data/real' / DEFAULT_DATASET
+        assert Path(entry['simPath']).parent == PROJECT / 'data/sim' / DEFAULT_DATASET
+        assert entry['velocity'] is None
+        sync = trial['synchronization']
+        assert sync['config']['same_shift_all_channels']
+        assert entry['lagMs'] == round(sync['applied_lag_s'] * 1000, 1)
+        if not sync['passed']:
+            assert sync['applied_lag_s'] == 0
+            assert sync['rejection_reasons']
         before, after = trial['before'], trial['after']
         assert before['kind'] == 'before' and after['kind'] == 'after'
         assert before['t'] == after['t']
@@ -67,14 +87,14 @@ def test_exported_mapping_keeps_sources_and_same_evaluation_samples():
             assert len(view['metrics']['q']) == 12
             assert len(view['errors']['quantities']['q']['joint']) == len(view['t'])
             assert np.shape(view['force']['sim_N']) == (len(view['t']),4)
-            assert view['t'][-1]-view['t'][0] > 24
+            assert view['t'][-1]-view['t'][0] > 5
             assert all(m['n'] == sum(view['evaluationMask']) for m in view['metrics']['q'])
 
 
 def test_mapping_is_interpolation_of_existing_simulation_not_a_new_trajectory():
-    from build_data import PROJECT, load, map_pair, prepare_pair, named_mapping
-    raw, rm = load(PROJECT / 'data/real/1116_RL_base/0.2_3.npz')
-    sim, sm = load(PROJECT / 'data/sim/1116_RL_base/0.2_3.npz')
+    from real2sim.pipeline import PROJECT, load, map_pair, prepare_pair, named_mapping
+    raw, rm = load(PROJECT / 'data/real/1118_RL_base/0.5_0.5_v3_real.npz')
+    sim, sm = load(PROJECT / 'data/sim/1118_RL_base/0.5_0.5_v3_sim.npz')
     original = sim['ls_q'].copy()
     before, after, _, sync, _, contract, coordinates = map_pair(raw, rm, sim, sm)
     r, s, _ = named_mapping(raw, rm, sim, sm)
@@ -100,7 +120,7 @@ def test_mapping_is_interpolation_of_existing_simulation_not_a_new_trajectory():
 
 
 def test_named_mapping_handles_reordered_simulation_channels():
-    from build_data import named_mapping, JOINTS, LEGS
+    from real2sim.pipeline import named_mapping, JOINTS, LEGS
     ji = list(reversed(range(12))); fi = [2,3,0,1]
     sim = {key: np.arange(24).reshape(2,12)[:,ji] for key in ('ls_q','ls_dq','ls_tau')}
     sim['sim_foot_fz_N'] = np.arange(8).reshape(2,4)[:,fi]
@@ -111,8 +131,8 @@ def test_named_mapping_handles_reordered_simulation_channels():
 
 
 def test_every_before_signal_uses_the_same_time_grid():
-    directory = BASE / 'web/data'
-    for path in directory.glob('0.2_*.json'):
+    directory = result_path() / 'ui'
+    for path in (directory / e['file'] for e in json.loads((directory / 'index.json').read_text())['trials']):
         data = json.loads(path.read_text())['before']
         assert np.all(np.diff(data['t']) > 0)
         for domain in ('real', 'sim'):
@@ -121,30 +141,34 @@ def test_every_before_signal_uses_the_same_time_grid():
                 assert np.isfinite(data[domain][quantity]).all()
 
 
-def test_dataset_selection_ignores_other_speeds_and_sessions(tmp_path):
-    from build_data import paired_paths, TRIALS
+def test_dataset_selection_uses_all_pairs_only_in_selected_session(tmp_path):
+    from real2sim.pipeline import paired_paths, DEFAULT_DATASET
     import pytest
-    for domain in ('real','sim'):
-        folder=tmp_path/domain/'1116_RL_base'
+    names = ('normal_01', 'straight_0.7_0.5_v1', '0.5_0.5_v1')
+    for domain in ('real', 'sim'):
+        folder = tmp_path / domain / DEFAULT_DATASET
         folder.mkdir(parents=True)
-        for name in (*TRIALS,'0.2_6','0.4_1','1.0_1'):
-            (folder/f'{name}.npz').touch()
-        (tmp_path/domain/'0.2_1.npz').touch()
-        other=tmp_path/domain/'another_session';other.mkdir()
-        (other/'0.2_1.npz').touch()
-    pairs=paired_paths(tmp_path)
-    assert [r.stem for r,s in pairs] == list(TRIALS)
-    assert all(r.parent.name == s.parent.name == '1116_RL_base' for r,s in pairs)
-    (tmp_path/'sim/1116_RL_base/0.2_3.npz').unlink()
-    with pytest.raises(FileNotFoundError,match='sim/1116_RL_base/0.2_3.npz'):
+        for name in names:
+            (folder / f'{name}_{domain}.npz').touch()
+        (folder / 'audio.wav').touch()
+        (tmp_path / domain / 'other_session').mkdir()
+        (tmp_path / domain / 'other_session' / f'old_{domain}.npz').touch()
+        (tmp_path / domain / f'old_{domain}.npz').touch()
+    pairs = paired_paths(tmp_path)
+    assert [r.stem.removesuffix('_real') for r, s in pairs] == sorted(names)
+    assert all(r.parent.name == s.parent.name == DEFAULT_DATASET for r, s in pairs)
+    (tmp_path / 'sim' / DEFAULT_DATASET / 'normal_01_sim.npz').unlink()
+    with pytest.raises(FileNotFoundError, match='normal_01_sim.npz'):
         paired_paths(tmp_path)
+    with pytest.raises(ValueError, match='single folder'):
+        paired_paths(tmp_path, '../other_session')
 
 
 def test_torque_uses_logged_values_and_same_alignment_without_action_scaling():
-    from build_data import PROJECT, load, map_pair, prepare_pair
+    from real2sim.pipeline import PROJECT, load, map_pair, prepare_pair
     folder=PROJECT/'data'
-    raw,rm=load(folder/'real/1116_RL_base/0.2_1.npz')
-    sim,sm=load(folder/'sim/1116_RL_base/0.2_1.npz')
+    raw,rm=load(folder/'real/1118_RL_base/0.5_0.5_v1_real.npz')
+    sim,sm=load(folder/'sim/1118_RL_base/0.5_0.5_v1_sim.npz')
     baseline,mapped,_,sync,_,contract,_=map_pair(raw,rm,sim,sm)
     original,_=prepare_pair(raw,sim,15.,.005)
     for j in range(12):
@@ -153,3 +177,55 @@ def test_torque_uses_logged_values_and_same_alignment_without_action_scaling():
     np.testing.assert_array_equal(mapped['real_tau'],baseline['real_tau'])
     np.testing.assert_array_equal(mapped['sim_tau'],baseline['sim_tau'])
     assert contract['deployment']['action_scale_applied_to_measured_q'] is False
+
+
+def test_shared_clock_and_validated_shift_keep_unverified_recording_identity():
+    from real2sim.pipeline import PROJECT, load, map_pair
+    raw, rm = load(PROJECT / 'data/real/1118_RL_base/0.5_0.5_v1_real.npz')
+    sim, sm = load(PROJECT / 'data/sim/1118_RL_base/0.5_0.5_v1_sim.npz')
+    before, _, timing, sync, _, contract, _ = map_pair(raw, rm, sim, sm)
+    assert sync['applied_lag_s'] == .110
+    assert sync['status'] == 'VALIDATED_WAVEFORM_ALIGNMENT'
+    assert sync['phase_validation_performed'] is True
+    assert contract['deployment']['recording_policy_hash_verified'] is False
+    assert timing['shared_pc_clock']
+    np.testing.assert_array_equal(sim['sim_foot_fz_N'], -sim['sim_foot_force_vec'][:, :, 2])
+    assert sim['sim_foot_fz_N'].min() >= 0
+    assert contract['sim_force_sign_to_load'] == -1
+    assert before['t'][0] >= timing['overlap_s'][0]
+    assert before['t'][-1] <= timing['overlap_s'][1]
+    assert np.all(before['t'][before['steady']] >= 2)
+    for quantity in ('q', 'dq', 'ddq', 'tau'):
+        values = sync['physicalComparison']['quantities'][quantity]
+        for j in range(12):
+            expected = metric(before['real_' + quantity][:, j],
+                before['sim_' + quantity + '_clock_only'][:, j], before['steady'])
+            assert values['clockOnly'][j] == expected
+
+
+def test_sim_acceleration_uses_physics_time_before_receive_clock_interpolation():
+    from real2sim.pipeline import PROJECT, load, prepare_pair
+    from real2sim.preprocessing import filtered, interp
+    raw, _ = load(PROJECT / 'data/real/1118_RL_base/0.5_0.5_v1_real.npz')
+    sim, _ = load(PROJECT / 'data/sim/1118_RL_base/0.5_0.5_v1_sim.npz')
+    data, _ = prepare_pair(raw, sim, 15., .005)
+    origin = raw['ev_t'][np.flatnonzero(raw['ev_label'] == 'move_start')[0]]
+    uniform, signal = filtered(sim['sim_time'], sim['ls_dq'], .005, 15.)
+    derivative = interp(uniform, np.gradient(signal, .005, axis=0), sim['sim_time'])
+    np.testing.assert_allclose(data['sim_ddq'], interp(sim['ls_t'] - origin, derivative, data['t']))
+
+
+def test_contact_supported_trial_applies_same_shift_to_joints_torque_and_feet():
+    from real2sim.pipeline import PROJECT, load, map_pair, prepare_pair
+    name = '0.5_0.5_0.5_v2'
+    real, rm = load(PROJECT / 'data/real/1118_RL_base' / f'{name}_real.npz')
+    sim, sm = load(PROJECT / 'data/sim/1118_RL_base' / f'{name}_sim.npz')
+    source, _ = prepare_pair(real, sim, 15., .005)
+    before, after, _, sync, _, _, _ = map_pair(real, rm, sim, sm)
+    assert sync['passed'] and sync['reference'] == 'contact_load_with_joint_consensus'
+    assert sync['applied_lag_s'] == -.135
+    for key in ('sim_q', 'sim_dq', 'sim_ddq', 'sim_tau', 'sim_foot_fz_N'):
+        expected = np.column_stack([np.interp(before['t'] - .135, source['t'], source[key][:, j])
+                                    for j in range(source[key].shape[1])])
+        np.testing.assert_allclose(before[key], expected, atol=1e-10)
+    np.testing.assert_array_equal(before['sim_foot_fz_N'], after['sim_foot_fz_N'])
