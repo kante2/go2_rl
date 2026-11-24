@@ -29,29 +29,35 @@ class QuietPawOnPolicyRunner(MjlabOnPolicyRunner):
     }
 
   def save(self, path, infos=None):
+    family = self.env.unwrapped.cfg.checkpoint_family
     infos = {
       **(infos or {}),
-      "quietpaw": self._environment_signature(),
-      "quietpaw_agent": deepcopy(self.cfg),  # 평가 시 CLI로 변경한 네트워크 크기도 복원.
+      family: self._environment_signature(),
+      f"{family}_agent": deepcopy(self.cfg),  # 평가 시 CLI로 변경한 네트워크 크기도 복원.
     }
     super().save(path, infos)
     policy_dir = str(Path(path).parent)
     self.export_policy_to_onnx(policy_dir)
-    metadata = get_base_metadata(self.env.unwrapped, "quietpaw")
+    metadata = get_base_metadata(self.env.unwrapped, family)
     cfg = self.env.unwrapped.cfg.noise_condition
     metadata.update({
-      "quietpaw_condition": "last observation: cost_limit; lower means quieter",
-      "quietpaw_cost_limit_min": cfg.min_cost_limit,
-      "quietpaw_cost_limit_max": cfg.max_cost_limit,
-      "quietpaw_cost_units": "mean per-policy-step normalized proxy; not dB",
+      f"{family}_condition": "last observation: cost_limit; lower means a stricter budget",
+      f"{family}_cost_limit_min": cfg.min_cost_limit,
+      f"{family}_cost_limit_max": cfg.max_cost_limit,
+      f"{family}_cost_units": self.env.unwrapped.cfg.cost_units,
       "policy_dt": self.env.unwrapped.step_dt,
     })
     attach_metadata_to_onnx(str(Path(policy_dir) / "policy.onnx"), metadata)
 
   def load(self, path, load_cfg=None, strict=True, map_location=None):
     loaded = torch.load(path, map_location=map_location or self.device, weights_only=False)
+    family = self.env.unwrapped.cfg.checkpoint_family
+    infos = loaded.get("infos") or {}
+    signature = infos.get(family)
+    # Older actor-only QuietPaw exports may predate configuration metadata.
+    if signature is None and (family != "quietpaw" or any(key.endswith("_agent") for key in infos)):
+      raise ValueError(f"Expected a {family} checkpoint.")
     if load_cfg is None or load_cfg.get("optimizer", False):
-      signature = (loaded.get("infos") or {}).get("quietpaw")
       if signature != self._environment_signature():
         raise ValueError(
           "QuietPaw resume requires the same environment count, cost/condition settings, "

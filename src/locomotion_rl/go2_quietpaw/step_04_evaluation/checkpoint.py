@@ -4,17 +4,17 @@ from copy import deepcopy
 
 import torch
 
-from ..step_02_learning.costs import NoiseCostCfg
 from ..step_02_learning.mdp.noise_condition import NoiseConditionCfg
 
 
 def load_evaluation_settings(env_cfg, path):
   checkpoint = torch.load(path, map_location="cpu", weights_only=False)
   infos = checkpoint.get("infos") or {}
-  if "quietpaw_agent" not in infos or "quietpaw" not in infos:
-    raise ValueError("Expected a QuietPaw checkpoint with saved model and cost settings.")
-  saved = infos["quietpaw"]
-  env_cfg.noise_cost = NoiseCostCfg(**saved["noise_cost"])
+  family = env_cfg.checkpoint_family
+  if f"{family}_agent" not in infos or family not in infos:
+    raise ValueError(f"Expected a {family} checkpoint with saved model and cost settings.")
+  saved = infos[family]
+  env_cfg.noise_cost = type(env_cfg.noise_cost)(**saved["noise_cost"])
   env_cfg.noise_condition = NoiseConditionCfg(**saved["noise_condition"])
   # Actor에 전달되는 ε의 범위를 학습과 같게 유지한다.
-  return deepcopy(infos["quietpaw_agent"])
+  return deepcopy(infos[f"{family}_agent"])

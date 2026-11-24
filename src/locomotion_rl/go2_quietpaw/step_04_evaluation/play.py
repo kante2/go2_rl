@@ -11,7 +11,6 @@ import tyro
 
 import mjlab
 from mjlab.envs import ManagerBasedRlEnv
-from ..step_01_environment.quietpaw_env import QuietPawEnv
 from .checkpoint import load_evaluation_settings
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.tasks.registry import list_tasks, load_env_cfg, load_rl_cfg, load_runner_cls
@@ -100,7 +99,7 @@ def run_play(task_id: str, cfg: PlayConfig):
     print(
       "[WARN] Video recording with dummy agents is disabled (no checkpoint/log_dir)."
     )
-  env = QuietPawEnv(cfg=env_cfg, device=device, render_mode=render_mode)
+  env = env_cfg.build_env(device=device, render_mode=render_mode)
 
   if TRAINED_MODE and cfg.video:
     print("[INFO] Recording videos during play")
@@ -162,12 +161,12 @@ def run_play(task_id: str, cfg: PlayConfig):
   env.close()  # 뷰어 종료 후 시뮬레이션 리소스 해제.
 
 
-def main():
+def main(task_prefix="Unitree-Go2-QuietPaw-"):
   # Parse first argument to choose the task.
   # Import local tasks to populate the registry.
   import src.locomotion_rl  # noqa: F401
 
-  all_tasks = [task for task in list_tasks() if task.startswith("Unitree-Go2-QuietPaw-")]
+  all_tasks = [task for task in list_tasks() if task.startswith(task_prefix)]
   # chosen_task는 CLI 첫 태스크 이름, remaining_args는 --checkpoint-file/--viewer 등의 옵션이다.
   chosen_task, remaining_args = tyro.cli(
     tyro.extras.literal_type_from_choices(all_tasks),

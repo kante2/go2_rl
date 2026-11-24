@@ -40,6 +40,16 @@ class QuietPawEnv(ManagerBasedRlEnv):
     self.landing = LandingMeasurements(self.num_envs, 4, self.device)
     super().load_managers()
 
+  def _step_noise_cost(self):
+    costs = noise_cost(
+      self.landing.peak_forces, self.landing.impact_speed_squared, self.cfg.noise_cost
+    )
+    return torch.where(
+      self.reset_terminated,
+      costs.clamp_min(self.cfg.noise_cost.failure_cost),
+      costs,
+    )
+
   def _reset_idx(self, env_ids=None):
     super()._reset_idx(env_ids)
     self.landing.reset(env_ids)
@@ -72,14 +82,7 @@ class QuietPawEnv(ManagerBasedRlEnv):
     self.metrics_manager.compute()
 
     # 비용은 reset 전 물리 상태에서 계산한다. reward와 분리하며 dt를 곱하지 않는다.
-    costs = noise_cost(
-      self.landing.peak_forces, self.landing.impact_speed_squared, self.cfg.noise_cost
-    )
-    costs = torch.where(
-      self.reset_terminated,
-      costs.clamp_min(self.cfg.noise_cost.failure_cost),
-      costs,
-    )
+    costs = self._step_noise_cost()
     # reset 후 속도는 새 에피소드의 값이다. 평가용 추종 오차도 여기서 보존한다.
     command = self.command_manager.get_command("twist")
     tracking_error = torch.linalg.vector_norm(

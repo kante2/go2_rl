@@ -1,5 +1,6 @@
 """Assemble environment defaults from the preparation and learning stages."""
 
+from typing import ClassVar
 from dataclasses import dataclass, field, replace
 
 from mjlab.envs import ManagerBasedRlEnvCfg
@@ -26,6 +27,13 @@ from ..step_02_learning.mdp.noise_condition import NoiseConditionCfg
 @dataclass
 class QuietPawEnvCfg(ManagerBasedRlEnvCfg):
   """기존 mjlab 환경 설정에 QuietPaw의 비용·조건 설정을 추가한다."""
+
+  checkpoint_family: ClassVar[str] = "quietpaw"
+  cost_units: ClassVar[str] = "mean per-policy-step normalized proxy; not dB"
+
+  def build_env(self, **kwargs):
+    from .quietpaw_env import QuietPawEnv
+    return QuietPawEnv(self, **kwargs)
 
   noise_cost: NoiseCostCfg = field(default_factory=NoiseCostCfg)
   noise_condition: NoiseConditionCfg = field(default_factory=NoiseConditionCfg)

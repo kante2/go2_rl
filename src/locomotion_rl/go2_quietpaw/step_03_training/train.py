@@ -16,7 +16,6 @@ from mjlab.utils.torch import configure_torch_backends
 from mjlab.utils.wrappers import VideoRecorder
 
 from ..step_01_environment.base_env import QuietPawEnvCfg
-from ..step_01_environment.quietpaw_env import QuietPawEnv
 
 
 @dataclass(frozen=True)
@@ -48,7 +47,7 @@ def run_train(task_id: str, cfg: TrainConfig, log_dir: Path) -> None:
   if cfg.agent.resume:
     resume_path = get_checkpoint_path(log_dir.parent, cfg.agent.load_run, cfg.agent.load_checkpoint)
 
-  env = QuietPawEnv(cfg.env, device=device, render_mode="rgb_array" if cfg.video else None)
+  env = cfg.env.build_env(device=device, render_mode="rgb_array" if cfg.video else None)
   try:
     if cfg.video:
       env = VideoRecorder(
@@ -89,10 +88,10 @@ def launch_training(task_id: str, args: TrainConfig | None = None):
   run_train(task_id, args, log_dir)
 
 
-def main():
+def main(task_prefix="Unitree-Go2-QuietPaw-"):
   import src.locomotion_rl  # noqa: F401; registry 등록.
 
-  tasks = [task for task in list_tasks() if task.startswith("Unitree-Go2-QuietPaw-")]
+  tasks = [task for task in list_tasks() if task.startswith(task_prefix)]
   task, remaining_args = tyro.cli(
     tyro.extras.literal_type_from_choices(tasks), add_help=False,
     return_unknown_args=True, config=mjlab.TYRO_FLAGS,
