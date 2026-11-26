@@ -1,0 +1,295 @@
+/usr/lib/python3/dist-packages/scipy/__init__.py:146: UserWarning: A NumPy version >=1.17.3 and <1.25.0 is required for this version of SciPy (detected version 1.26.4
+  warnings.warn(f"A NumPy version >={np_minversion} and <{np_maxversion}"
+train 435 pairs, val 106 pairs ([('real_sim_straight', 'NORMAL_0.7_0.5_v6'), ('real_sim_straight', 'NORMAL_0.5_0.5_v3'), ('real_sim', 'NORMAL_0.5_0.5_v4'), ('real_sim', 'NORMAL_0.5_0.5_0.5_v5')])
+model config: {'fs': 48000, 'n_samples': 4800, 'pre': 0.02, 'n_modes': 64, 'n_free': 435, 'n_feat': 13, 'stochastic': True, 'fft_sizes': (128, 256, 512, 1024), 'stoch_span': (-0.01, 0.08), 'stoch_knots': 10}
+fixed background noise: {'walk_pre_segments': 428, 'motor_noise_segments': 1034, 'walk_pre_var_db': -58.71064319490366, 'motor_var_db': -60.459796937216026, 'combined_var_db': -58.77712605320234, 'source': '/home/minseok/go2_rl/src/diffimpact/data/touchdown/pairs_real.npz'}
+stage=free step=100 loss=0.6628 IS=0.6628 lsd=0.9913 sc=0.6265 sec=2.351
+stage=free step=200 loss=0.6273 IS=0.627 lsd=1.009 sc=1.898 sec=4.464
+stage=free step=300 loss=0.6125 IS=0.6122 lsd=0.9878 sc=1.144 sec=6.606
+stage=free step=400 loss=0.5959 IS=0.5957 lsd=0.9576 sc=0.8201 sec=8.799
+stage=free step=500 loss=0.5598 IS=0.5595 lsd=0.9336 sc=0.7155 sec=10.94
+stage=free step=600 loss=0.5546 IS=0.5543 lsd=0.9172 sc=0.625 sec=13
+stage=free step=700 loss=0.579 IS=0.5786 lsd=0.9501 sc=0.6772 sec=15.03
+stage=free step=800 loss=0.5581 IS=0.5578 lsd=0.9271 sc=0.7023 sec=17.17
+stage=free step=900 loss=0.5483 IS=0.548 lsd=0.9214 sc=0.6448 sec=19.32
+stage=free step=1000 loss=0.5446 IS=0.5442 lsd=0.9193 sc=0.9782 sec=21.55
+stage=free step=1100 loss=0.531 IS=0.5306 lsd=0.9107 sc=0.7328 sec=23.46
+stage=free step=1200 loss=0.5355 IS=0.5352 lsd=0.9045 sc=0.6676 sec=25.54
+stage=free step=1300 loss=0.5736 IS=0.5732 lsd=0.9435 sc=0.7254 sec=27.84
+stage=free step=1400 loss=0.5369 IS=0.5365 lsd=0.9029 sc=0.6415 sec=30.08
+stage=free step=1500 loss=0.5573 IS=0.5569 lsd=0.9224 sc=0.641 sec=32.21
+stage=free step=1600 loss=0.5428 IS=0.5424 lsd=0.9185 sc=0.66 sec=34.36
+stage=free step=1700 loss=0.5387 IS=0.5383 lsd=0.9084 sc=0.6695 sec=36.58
+stage=free step=1800 loss=0.5546 IS=0.5541 lsd=0.9224 sc=0.7108 sec=38.77
+stage=free step=1900 loss=0.5484 IS=0.548 lsd=0.9166 sc=0.6649 sec=40.76
+stage=free step=2000 loss=0.5376 IS=0.5372 lsd=0.9123 sc=0.6427 sec=42.71
+stage=free step=2100 loss=0.5431 IS=0.5427 lsd=0.9142 sc=0.6963 sec=44.65
+stage=free step=2200 loss=0.5238 IS=0.5234 lsd=0.899 sc=0.6167 sec=46.59
+stage=free step=2300 loss=0.5452 IS=0.5448 lsd=0.9187 sc=0.7127 sec=48.54
+stage=free step=2400 loss=0.5199 IS=0.5195 lsd=0.8946 sc=0.5809 sec=50.68
+stage=free step=2500 loss=0.5414 IS=0.5409 lsd=0.9122 sc=0.646 sec=52.87
+stage=free step=2600 loss=0.5298 IS=0.5294 lsd=0.8984 sc=0.6391 sec=55.04
+stage=free step=2700 loss=0.5429 IS=0.5425 lsd=0.9049 sc=0.6148 sec=57.14
+stage=free step=2800 loss=0.5431 IS=0.5427 lsd=0.9142 sc=0.6793 sec=59.34
+stage=free step=2900 loss=0.5524 IS=0.552 lsd=0.9205 sc=0.6319 sec=61.47
+stage=free step=3000 loss=0.5436 IS=0.5432 lsd=0.9132 sc=0.6394 sec=63.6
+stage=free step=3100 loss=0.5359 IS=0.5355 lsd=0.9091 sc=0.6254 sec=65.72
+stage=free step=3200 loss=0.5471 IS=0.5467 lsd=0.9183 sc=0.6367 sec=68.12
+stage=free step=3300 loss=0.5443 IS=0.5439 lsd=0.9171 sc=0.6889 sec=70.56
+stage=free step=3400 loss=0.5615 IS=0.5611 lsd=0.9275 sc=0.6623 sec=72.86
+stage=free step=3500 loss=0.556 IS=0.5556 lsd=0.9267 sc=0.6884 sec=75.01
+stage=free step=3600 loss=0.5439 IS=0.5435 lsd=0.9175 sc=0.6638 sec=77.2
+stage=free step=3700 loss=0.5372 IS=0.5368 lsd=0.9076 sc=0.6244 sec=79.35
+stage=free step=3800 loss=0.5378 IS=0.5374 lsd=0.908 sc=0.655 sec=81.44
+stage=free step=3900 loss=0.5157 IS=0.5153 lsd=0.8889 sc=0.6113 sec=83.7
+stage=free step=4000 loss=0.5351 IS=0.5347 lsd=0.9083 sc=0.6593 sec=86.07
+stage=feat step=100 loss=0.6366 IS=0.6358 lsd=0.9818 sc=0.6841 sec=2.45 val_IS=0.6631 val_lsd=0.9903
+stage=feat step=200 loss=0.6115 IS=0.6105 lsd=0.9721 sc=0.6671 sec=4.765 val_IS=0.6611 val_lsd=0.9883
+stage=feat step=300 loss=0.6548 IS=0.6536 lsd=0.9786 sc=0.7278 sec=7.129 val_IS=0.6571 val_lsd=0.9823
+stage=feat step=400 loss=0.6331 IS=0.6317 lsd=0.9783 sc=0.6756 sec=9.407 val_IS=0.6563 val_lsd=0.9954
+stage=feat step=500 loss=0.6062 IS=0.6047 lsd=0.9651 sc=0.6445 sec=11.66 val_IS=0.6553 val_lsd=0.9819
+stage=feat step=600 loss=0.594 IS=0.5924 lsd=0.9624 sc=0.6556 sec=13.85 val_IS=0.6554 val_lsd=0.9837
+stage=feat step=700 loss=0.6419 IS=0.6402 lsd=0.9864 sc=0.6918 sec=16.24 val_IS=0.657 val_lsd=0.9963
+stage=feat step=800 loss=0.6096 IS=0.6079 lsd=0.9664 sc=0.6564 sec=18.36 val_IS=0.65 val_lsd=0.985
+stage=feat step=900 loss=0.6025 IS=0.6008 lsd=0.9723 sc=0.6328 sec=20.35 val_IS=0.6531 val_lsd=0.9825
+stage=feat step=1000 loss=0.5922 IS=0.5904 lsd=0.9584 sc=0.6757 sec=22.54 val_IS=0.6526 val_lsd=0.9864
+stage=feat step=1100 loss=0.5762 IS=0.5743 lsd=0.9526 sc=0.5918 sec=24.39 val_IS=0.6525 val_lsd=0.9835
+stage=feat step=1200 loss=0.5866 IS=0.5847 lsd=0.9562 sc=0.646 sec=26.29 val_IS=0.6498 val_lsd=0.9901
+stage=feat step=1300 loss=0.6185 IS=0.6167 lsd=0.9663 sc=0.6448 sec=28.2 val_IS=0.6499 val_lsd=0.9855
+stage=feat step=1400 loss=0.5877 IS=0.5859 lsd=0.9572 sc=0.6248 sec=30.12 val_IS=0.6509 val_lsd=0.9853
+stage=feat step=1500 loss=0.626 IS=0.6242 lsd=0.9761 sc=0.6456 sec=32.11 val_IS=0.6511 val_lsd=0.9881
+stage=feat step=1600 loss=0.5954 IS=0.5936 lsd=0.9586 sc=0.6392 sec=34.31 val_IS=0.6493 val_lsd=0.99
+stage=feat step=1700 loss=0.6331 IS=0.6313 lsd=0.9676 sc=0.6311 sec=36.46 val_IS=0.6495 val_lsd=0.9866
+stage=feat step=1800 loss=0.6283 IS=0.6266 lsd=0.9708 sc=0.6221 sec=38.45 val_IS=0.6482 val_lsd=0.9867
+stage=feat step=1900 loss=0.6234 IS=0.6216 lsd=0.9641 sc=0.6285 sec=40.56 val_IS=0.6487 val_lsd=0.9856
+stage=feat step=2000 loss=0.584 IS=0.5822 lsd=0.9572 sc=0.5951 sec=42.72 val_IS=0.6488 val_lsd=0.9858
+{
+ "spectral": {
+  "free_fit_train": {
+   "IS": 0.5372204780578613,
+   "lsd": 0.9082724452018738,
+   "sc": 0.6353241801261902
+  },
+  "feat_train": {
+   "IS": 0.6158896684646606,
+   "lsd": 0.9666826725006104,
+   "sc": 0.6243927478790283
+  },
+  "feat_val": {
+   "IS": 0.6487586498260498,
+   "lsd": 0.9858008623123169,
+   "sc": 0.6362547278404236
+  },
+  "noise_only_val": {
+   "IS": 5.297619342803955,
+   "lsd": 1.0592401027679443,
+   "sc": 0.8167603015899658
+  },
+  "template_val": {
+   "IS": 0.759997546672821,
+   "lsd": 1.032883644104004,
+   "sc": 0.624107837677002
+  },
+  "feat_val_by_walk": {
+   "lateral": {
+    "IS": 0.5973492860794067,
+    "template_IS": 0.6793563961982727,
+    "noise_only_IS": 3.471087694168091
+   },
+   "straight": {
+    "IS": 0.7001681327819824,
+    "template_IS": 0.8406386375427246,
+    "noise_only_IS": 7.124151229858398
+   }
+  }
+ },
+ "band_0_80ms_val": {
+  "model_mae_db": {
+   "50-200Hz": 2.088465452194214,
+   "200-1000Hz": 1.128478765487671,
+   "1000-4000Hz": 1.0089670419692993,
+   "4000-12000Hz": 1.465726613998413
+  },
+  "model_bias_db": {
+   "50-200Hz": 1.87961745262146,
+   "200-1000Hz": 0.16682732105255127,
+   "1000-4000Hz": -0.23433801531791687,
+   "4000-12000Hz": -0.5458929538726807
+  },
+  "noise_only_mae_db": {
+   "50-200Hz": 11.961438179016113,
+   "200-1000Hz": 9.56656265258789,
+   "1000-4000Hz": 4.313493251800537,
+   "4000-12000Hz": 3.3642215728759766
+  },
+  "train_mean_mae_db": {
+   "50-200Hz": 2.66243577003479,
+   "200-1000Hz": 2.5928053855895996,
+   "1000-4000Hz": 1.7467718124389648,
+   "4000-12000Hz": 2.129077911376953
+  },
+  "model_pearson": {
+   "50-200Hz": 0.8494019961282435,
+   "200-1000Hz": 0.8870590891522339,
+   "1000-4000Hz": 0.7768380857890801,
+   "4000-12000Hz": 0.6824977870825313
+  }
+ },
+ "post40": {
+  "val_mae_db": 1.4235610961914062,
+  "val_mae_db_train_mean_baseline": 2.460994005203247,
+  "val_bias_db": 0.6119624972343445,
+  "val_pearson_spearman": [
+   0.8609444523862155,
+   0.8213265486056881
+  ],
+  "train_pearson_spearman": [
+   0.7862537647208452,
+   0.7691209250995354
+  ]
+ },
+ "learned": {
+  "tau_ms": {
+   "FR": 3.165804548189044,
+   "FL": 3.483764361590147,
+   "RR": 3.1510007102042437,
+   "RL": 3.1678974628448486
+  },
+  "shift_ms": {
+   "FR": -2.6691188104450703,
+   "FL": -5.009903106838465,
+   "RR": -2.3995221126824617,
+   "RL": -2.10198643617332
+  },
+  "stoch_leg_gain": {
+   "FR": 1.0142182111740112,
+   "FL": 2.0229671001434326,
+   "RR": 1.6544736623764038,
+   "RL": 1.0454543828964233
+  },
+  "free_jitter_ms_abs_median": 4.371558666229248,
+  "feat_bias": {
+   "FR": -0.14672735333442688,
+   "FL": -1.1998859643936157,
+   "RR": -1.0446419715881348,
+   "RL": -0.9799200892448425
+  },
+  "feat_weights": {
+   "FR": {
+    "foot_vx_pre": -0.0320303700864315,
+    "foot_vy_pre": 0.03949625417590141,
+    "foot_vz_pre": -0.06487715989351273,
+    "foot_speed_pre": -0.03319111093878746,
+    "foot_x": 0.04396510124206543,
+    "foot_y": -0.050541456788778305,
+    "foot_z": 0.11327843368053436,
+    "cmd_vx": 0.12709973752498627,
+    "cmd_vy": 0.08438709378242493,
+    "cmd_wz": 0.06173582747578621,
+    "log_grf_rise20": -0.0161955114454031,
+    "log_grf_impulse20": 0.05009891092777252,
+    "is_second": -0.06887206435203552
+   },
+   "FL": {
+    "foot_vx_pre": 0.11892299354076385,
+    "foot_vy_pre": -0.07726681232452393,
+    "foot_vz_pre": -0.4480324387550354,
+    "foot_speed_pre": -0.04849105328321457,
+    "foot_x": 0.051465850323438644,
+    "foot_y": -0.021434035152196884,
+    "foot_z": -0.12287217378616333,
+    "cmd_vx": -0.10818248242139816,
+    "cmd_vy": 0.06624001264572144,
+    "cmd_wz": 0.02660965360701084,
+    "log_grf_rise20": -0.17651419341564178,
+    "log_grf_impulse20": -0.04599960520863533,
+    "is_second": 0.17127090692520142
+   },
+   "RR": {
+    "foot_vx_pre": 0.045610878616571426,
+    "foot_vy_pre": 0.02164061926305294,
+    "foot_vz_pre": -0.22958965599536896,
+    "foot_speed_pre": -0.039667196571826935,
+    "foot_x": 0.11761313676834106,
+    "foot_y": -0.084274522960186,
+    "foot_z": 0.038057055324316025,
+    "cmd_vx": 0.16669782996177673,
+    "cmd_vy": 0.010273572988808155,
+    "cmd_wz": -0.06430322676897049,
+    "log_grf_rise20": -0.11039092391729355,
+    "log_grf_impulse20": 0.0192550215870142,
+    "is_second": 0.059400346130132675
+   },
+   "RL": {
+    "foot_vx_pre": -0.09011899679899216,
+    "foot_vy_pre": -0.008029605261981487,
+    "foot_vz_pre": -0.24189218878746033,
+    "foot_speed_pre": 0.06049983575940132,
+    "foot_x": -0.12022966146469116,
+    "foot_y": 0.14425694942474365,
+    "foot_z": 0.20965567231178284,
+    "cmd_vx": -0.041994087398052216,
+    "cmd_vy": -0.17659135162830353,
+    "cmd_wz": -0.0005544386804103851,
+    "log_grf_rise20": -0.29458069801330566,
+    "log_grf_impulse20": 0.4050264060497284,
+    "is_second": -0.4873029589653015
+   }
+  },
+  "modes_hz_sorted": [
+   56.65461730957031,
+   59.33005905151367,
+   67.2108154296875,
+   72.83940887451172,
+   82.01493835449219,
+   82.39622497558594,
+   92.44696807861328,
+   106.28978729248047,
+   123.24311065673828,
+   125.98141479492188,
+   149.6626434326172,
+   157.3396453857422,
+   172.13157653808594,
+   175.9596405029297,
+   210.49655151367188,
+   224.1678466796875,
+   225.83316040039062,
+   265.6611022949219,
+   283.64788818359375,
+   327.66265869140625,
+   409.45489501953125,
+   410.1720886230469,
+   488.709716796875,
+   492.5821838378906,
+   533.9292602539062,
+   539.19189453125,
+   621.8875122070312,
+   668.7792358398438,
+   762.2523193359375,
+   790.3932495117188,
+   865.97900390625,
+   922.0223999023438,
+   1023.05224609375,
+   1121.0791015625,
+   1250.0269775390625,
+   1387.6590576171875,
+   1480.220458984375,
+   1643.56982421875,
+   1741.0465087890625,
+   1964.069091796875,
+   2103.96484375,
+   2351.922119140625,
+   2405.2646484375,
+   2471.235107421875,
+   3024.4755859375,
+   3751.513671875,
+   3944.00537109375,
+   4875.224609375,
+   4927.42138671875,
+   5714.775390625,
+   5767.0830078125,
+   5803.95068359375,
+   7224.38037109375,
+   7245.216796875,
+   8982.68457031
+{"per_recording_pearson_spearman": [0.6519308994169843, 0.6466165413533834], "median_bias_db": -1.0879230499267578}

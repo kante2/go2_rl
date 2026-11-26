@@ -1,0 +1,296 @@
+/usr/lib/python3/dist-packages/scipy/__init__.py:146: UserWarning: A NumPy version >=1.17.3 and <1.25.0 is required for this version of SciPy (detected version 1.26.4
+  warnings.warn(f"A NumPy version >={np_minversion} and <{np_maxversion}"
+train 437 pairs, val 106 pairs ([('real_sim_straight', 'NORMAL_0.7_0.5_v6'), ('real_sim_straight', 'NORMAL_0.5_0.5_v3'), ('real_sim', 'NORMAL_0.5_0.5_v4'), ('real_sim', 'NORMAL_0.5_0.5_0.5_v5')])
+model config: {'fs': 48000, 'n_samples': 4800, 'pre': 0.02, 'n_modes': 64, 'n_free': 437, 'n_feat': 13, 'stochastic': True, 'fft_sizes': (128, 256, 512, 1024), 'stoch_span': (-0.01, 0.08), 'stoch_knots': 10}
+fixed background noise: {'walk_pre_segments': 428, 'motor_noise_segments': 1034, 'walk_pre_var_db': -58.71064319490366, 'motor_var_db': -60.459796937216026, 'combined_var_db': -58.77712605320234, 'source': '/home/minseok/go2_rl/src/diffimpact/data/touchdown/pairs_real.npz'}
+stage=free step=100 loss=0.6828 IS=0.6827 lsd=1.009 sc=0.7855 sec=2.146
+stage=free step=200 loss=0.6285 IS=0.6283 lsd=1.004 sc=1.512 sec=4.093
+stage=free step=300 loss=0.6861 IS=0.6855 lsd=1.067 sc=7.145 sec=5.987
+stage=free step=400 loss=0.648 IS=0.6476 lsd=1.041 sc=3.608 sec=7.91
+stage=free step=500 loss=0.5764 IS=0.5761 lsd=0.9584 sc=0.8743 sec=9.84
+stage=free step=600 loss=0.5767 IS=0.5763 lsd=0.9376 sc=0.796 sec=11.68
+stage=free step=700 loss=0.5567 IS=0.5564 lsd=0.9312 sc=0.7139 sec=13.49
+stage=free step=800 loss=0.5747 IS=0.5743 lsd=0.9434 sc=0.8933 sec=15.17
+stage=free step=900 loss=0.5754 IS=0.575 lsd=0.9336 sc=0.7627 sec=16.97
+stage=free step=1000 loss=0.5726 IS=0.5723 lsd=0.9407 sc=0.8266 sec=18.74
+stage=free step=1100 loss=0.5363 IS=0.536 lsd=0.9014 sc=0.7246 sec=20.53
+stage=free step=1200 loss=0.5469 IS=0.5466 lsd=0.919 sc=0.7009 sec=22.39
+stage=free step=1300 loss=0.5252 IS=0.5248 lsd=0.8926 sc=0.6479 sec=24.15
+stage=free step=1400 loss=0.535 IS=0.5347 lsd=0.9017 sc=0.6483 sec=25.85
+stage=free step=1500 loss=0.5531 IS=0.5528 lsd=0.92 sc=0.7548 sec=27.56
+stage=free step=1600 loss=0.531 IS=0.5306 lsd=0.9066 sc=0.7109 sec=29.26
+stage=free step=1700 loss=0.556 IS=0.5557 lsd=0.9217 sc=0.6723 sec=30.96
+stage=free step=1800 loss=0.5671 IS=0.5668 lsd=0.9288 sc=0.6764 sec=32.66
+stage=free step=1900 loss=0.5376 IS=0.5373 lsd=0.9147 sc=0.7831 sec=34.39
+stage=free step=2000 loss=0.5226 IS=0.5223 lsd=0.8956 sc=0.6194 sec=36.09
+stage=free step=2100 loss=0.5594 IS=0.5591 lsd=0.9286 sc=0.7829 sec=37.8
+stage=free step=2200 loss=0.5337 IS=0.5333 lsd=0.9041 sc=0.6291 sec=39.65
+stage=free step=2300 loss=0.531 IS=0.5307 lsd=0.9026 sc=0.656 sec=41.75
+stage=free step=2400 loss=0.5523 IS=0.552 lsd=0.9173 sc=0.6285 sec=43.86
+stage=free step=2500 loss=0.5375 IS=0.5372 lsd=0.9063 sc=0.6301 sec=45.87
+stage=free step=2600 loss=0.5596 IS=0.5593 lsd=0.9293 sc=0.6638 sec=47.6
+stage=free step=2700 loss=0.5553 IS=0.555 lsd=0.9287 sc=0.6861 sec=49.33
+stage=free step=2800 loss=0.5411 IS=0.5407 lsd=0.9116 sc=0.6411 sec=51.21
+stage=free step=2900 loss=0.5525 IS=0.5521 lsd=0.9235 sc=0.6846 sec=53.15
+stage=free step=3000 loss=0.5317 IS=0.5314 lsd=0.9002 sc=0.6616 sec=55
+stage=free step=3100 loss=0.5351 IS=0.5347 lsd=0.9061 sc=0.6554 sec=56.81
+stage=free step=3200 loss=0.5339 IS=0.5336 lsd=0.9057 sc=0.657 sec=58.77
+stage=free step=3300 loss=0.5335 IS=0.5331 lsd=0.9036 sc=0.6462 sec=60.78
+stage=free step=3400 loss=0.5452 IS=0.5448 lsd=0.9132 sc=0.6619 sec=62.55
+stage=free step=3500 loss=0.5489 IS=0.5486 lsd=0.9204 sc=0.6552 sec=64.4
+stage=free step=3600 loss=0.5338 IS=0.5335 lsd=0.9019 sc=0.6629 sec=66.33
+stage=free step=3700 loss=0.5509 IS=0.5505 lsd=0.9186 sc=0.6759 sec=68.14
+stage=free step=3800 loss=0.5376 IS=0.5372 lsd=0.9119 sc=0.6351 sec=69.93
+stage=free step=3900 loss=0.5524 IS=0.552 lsd=0.9237 sc=0.7476 sec=71.87
+stage=free step=4000 loss=0.5308 IS=0.5305 lsd=0.8989 sc=0.6303 sec=73.66
+stage=feat step=100 loss=0.604 IS=0.6035 lsd=0.9658 sc=0.7052 sec=1.898 val_IS=0.6762 val_lsd=0.9893
+stage=feat step=200 loss=0.6259 IS=0.6252 lsd=0.9644 sc=0.6711 sec=3.854 val_IS=0.6657 val_lsd=0.9832
+stage=feat step=300 loss=0.6113 IS=0.6104 lsd=0.9806 sc=0.7252 sec=5.826 val_IS=0.6669 val_lsd=0.9889
+stage=feat step=400 loss=0.608 IS=0.607 lsd=0.9531 sc=0.6628 sec=7.85 val_IS=0.6673 val_lsd=0.9823
+stage=feat step=500 loss=0.617 IS=0.616 lsd=0.9888 sc=0.7069 sec=9.77 val_IS=0.6706 val_lsd=0.9819
+stage=feat step=600 loss=0.6225 IS=0.6215 lsd=0.9804 sc=0.6733 sec=11.79 val_IS=0.6714 val_lsd=0.9923
+stage=feat step=700 loss=0.6185 IS=0.6174 lsd=0.994 sc=0.6972 sec=13.71 val_IS=0.666 val_lsd=0.9838
+stage=feat step=800 loss=0.6304 IS=0.6293 lsd=0.9605 sc=0.6542 sec=15.7 val_IS=0.6683 val_lsd=0.9772
+stage=feat step=900 loss=0.6156 IS=0.6145 lsd=0.9672 sc=0.6865 sec=17.7 val_IS=0.6617 val_lsd=0.9944
+stage=feat step=1000 loss=0.6599 IS=0.6588 lsd=0.9722 sc=0.6777 sec=19.69 val_IS=0.6615 val_lsd=0.9846
+stage=feat step=1100 loss=0.5871 IS=0.5859 lsd=0.9395 sc=0.6367 sec=21.81 val_IS=0.6651 val_lsd=0.9818
+stage=feat step=1200 loss=0.6021 IS=0.6009 lsd=0.9701 sc=0.6986 sec=24.15 val_IS=0.6628 val_lsd=0.9823
+stage=feat step=1300 loss=0.586 IS=0.5848 lsd=0.9531 sc=0.6327 sec=26.23 val_IS=0.6624 val_lsd=0.9819
+stage=feat step=1400 loss=0.5837 IS=0.5825 lsd=0.9509 sc=0.6606 sec=28.37 val_IS=0.665 val_lsd=0.9796
+stage=feat step=1500 loss=0.5992 IS=0.598 lsd=0.965 sc=0.6637 sec=30.41 val_IS=0.6615 val_lsd=0.9796
+stage=feat step=1600 loss=0.6427 IS=0.6416 lsd=0.9665 sc=0.6827 sec=32.61 val_IS=0.6628 val_lsd=0.9787
+stage=feat step=1700 loss=0.6129 IS=0.6118 lsd=0.9635 sc=0.6433 sec=34.78 val_IS=0.6614 val_lsd=0.9818
+stage=feat step=1800 loss=0.6349 IS=0.6338 lsd=0.985 sc=0.6688 sec=36.95 val_IS=0.6619 val_lsd=0.9819
+stage=feat step=1900 loss=0.6395 IS=0.6383 lsd=0.9733 sc=0.6683 sec=39.18 val_IS=0.6628 val_lsd=0.981
+stage=feat step=2000 loss=0.5872 IS=0.586 lsd=0.962 sc=0.6671 sec=41.22 val_IS=0.6626 val_lsd=0.9807
+{
+ "spectral": {
+  "free_fit_train": {
+   "IS": 0.5387101769447327,
+   "lsd": 0.9096048474311829,
+   "sc": 0.653062641620636
+  },
+  "feat_train": {
+   "IS": 0.6211466789245605,
+   "lsd": 0.9671892523765564,
+   "sc": 0.6592215299606323
+  },
+  "feat_val": {
+   "IS": 0.6625692248344421,
+   "lsd": 0.9807227253913879,
+   "sc": 0.6668980717658997
+  },
+  "noise_only_val": {
+   "IS": 5.318490028381348,
+   "lsd": 1.0596542358398438,
+   "sc": 0.8166487812995911
+  },
+  "template_val": {
+   "IS": 0.7668431997299194,
+   "lsd": 1.038970708847046,
+   "sc": 0.6255408525466919
+  },
+  "feat_val_by_walk": {
+   "lateral": {
+    "IS": 0.6166913509368896,
+    "template_IS": 0.6892741918563843,
+    "noise_only_IS": 3.4788670539855957
+   },
+   "straight": {
+    "IS": 0.7084469795227051,
+    "template_IS": 0.844412088394165,
+    "noise_only_IS": 7.158114910125732
+   }
+  }
+ },
+ "band_0_80ms_val": {
+  "model_mae_db": {
+   "50-200Hz": 1.4582926034927368,
+   "200-1000Hz": 1.123586654663086,
+   "1000-4000Hz": 0.9324266910552979,
+   "4000-12000Hz": 1.409225583076477
+  },
+  "model_bias_db": {
+   "50-200Hz": 0.8723547458648682,
+   "200-1000Hz": -0.04294321686029434,
+   "1000-4000Hz": -0.30864453315734863,
+   "4000-12000Hz": -0.6462656259536743
+  },
+  "noise_only_mae_db": {
+   "50-200Hz": 11.93379020690918,
+   "200-1000Hz": 9.422794342041016,
+   "1000-4000Hz": 4.079476833343506,
+   "4000-12000Hz": 3.0505330562591553
+  },
+  "train_mean_mae_db": {
+   "50-200Hz": 2.625861644744873,
+   "200-1000Hz": 2.524979591369629,
+   "1000-4000Hz": 1.6775712966918945,
+   "4000-12000Hz": 1.9695360660552979
+  },
+  "model_pearson": {
+   "50-200Hz": 0.8701682095595992,
+   "200-1000Hz": 0.8863166492493691,
+   "1000-4000Hz": 0.7990692869062261,
+   "4000-12000Hz": 0.6845633769587594
+  }
+ },
+ "post40": {
+  "val_mae_db": 2.5100057125091553,
+  "val_mae_db_train_mean_baseline": 2.437903642654419,
+  "val_bias_db": 2.377784252166748,
+  "val_pearson_spearman": [
+   0.871684822830405,
+   0.8599289618862886
+  ],
+  "train_pearson_spearman": [
+   0.7572424309095117,
+   0.7558856830291191
+  ]
+ },
+ "learned": {
+  "tau_ms": {
+   "FR": 3.208098467439413,
+   "FL": 4.738820251077414,
+   "RR": 3.254787065088749,
+   "RL": 3.8364052306860685
+  },
+  "shift_ms": {
+   "FR": -5.323091521859169,
+   "FL": -7.4248770251870155,
+   "RR": -5.129377823323011,
+   "RL": -4.223091062158346
+  },
+  "stoch_leg_gain": {
+   "FR": 1.0970048904418945,
+   "FL": 1.819385051727295,
+   "RR": 1.9800653457641602,
+   "RL": 1.101516842842102
+  },
+  "free_jitter_ms_abs_median": 4.116364479064941,
+  "feat_bias": {
+   "FR": -0.27150046825408936,
+   "FL": -1.1628844738006592,
+   "RR": -1.2457261085510254,
+   "RL": -0.983720600605011
+  },
+  "feat_weights": {
+   "FR": {
+    "foot_vx_pre": -0.03522488847374916,
+    "foot_vy_pre": 0.07656970620155334,
+    "foot_vz_pre": -0.08607719838619232,
+    "foot_speed_pre": -0.0486871711909771,
+    "foot_x": 0.05348082259297371,
+    "foot_y": -0.05544331669807434,
+    "foot_z": 0.12779541313648224,
+    "cmd_vx": 0.14948633313179016,
+    "cmd_vy": 0.10189500451087952,
+    "cmd_wz": 0.06469257920980453,
+    "log_grf_rise20": 0.028754588216543198,
+    "log_grf_impulse20": -0.025097545236349106,
+    "is_second": 0.029917031526565552
+   },
+   "FL": {
+    "foot_vx_pre": 0.15938299894332886,
+    "foot_vy_pre": -0.06105751544237137,
+    "foot_vz_pre": -0.22649584710597992,
+    "foot_speed_pre": -0.0027133997064083815,
+    "foot_x": 0.01675443723797798,
+    "foot_y": -0.050398509949445724,
+    "foot_z": -0.09398753941059113,
+    "cmd_vx": -0.10619868338108063,
+    "cmd_vy": 0.10959631204605103,
+    "cmd_wz": 0.014976766891777515,
+    "log_grf_rise20": -0.23742713034152985,
+    "log_grf_impulse20": 0.10781709104776382,
+    "is_second": 0.22678495943546295
+   },
+   "RR": {
+    "foot_vx_pre": 0.035852912813425064,
+    "foot_vy_pre": 0.002351346192881465,
+    "foot_vz_pre": -0.19586901366710663,
+    "foot_speed_pre": -0.01735510304570198,
+    "foot_x": 0.12441619485616684,
+    "foot_y": -0.12338632345199585,
+    "foot_z": 0.015402480028569698,
+    "cmd_vx": 0.18706786632537842,
+    "cmd_vy": -0.008811681531369686,
+    "cmd_wz": -0.059070099145174026,
+    "log_grf_rise20": -0.07306370139122009,
+    "log_grf_impulse20": -0.03455103561282158,
+    "is_second": 0.0519091933965683
+   },
+   "RL": {
+    "foot_vx_pre": -0.10135436803102493,
+    "foot_vy_pre": -0.06578090041875839,
+    "foot_vz_pre": -0.21794001758098602,
+    "foot_speed_pre": 0.025644663721323013,
+    "foot_x": 0.02741902321577072,
+    "foot_y": 0.06612958759069443,
+    "foot_z": 0.01018599234521389,
+    "cmd_vx": 0.04434598237276077,
+    "cmd_vy": -0.03887275233864784,
+    "cmd_wz": 0.02752613089978695,
+    "log_grf_rise20": -0.2885410189628601,
+    "log_grf_impulse20": 0.31088683009147644,
+    "is_second": -0.2332715541124344
+   }
+  },
+  "modes_hz_sorted": [
+   55.281681060791016,
+   64.98876190185547,
+   68.98161315917969,
+   71.2197036743164,
+   71.420654296875,
+   88.56198120117188,
+   99.18348693847656,
+   114.89614868164062,
+   119.3421859741211,
+   126.27287292480469,
+   138.21417236328125,
+   154.15963745117188,
+   180.0435333251953,
+   192.35556030273438,
+   216.8253631591797,
+   245.62808227539062,
+   265.0618591308594,
+   268.0905456542969,
+   329.7955627441406,
+   335.74835205078125,
+   439.9360656738281,
+   443.0845031738281,
+   447.8079528808594,
+   515.3035888671875,
+   527.8734130859375,
+   554.7442626953125,
+   627.0308227539062,
+   629.03369140625,
+   758.975830078125,
+   802.2825317382812,
+   912.2369995117188,
+   973.4973754882812,
+   1044.961181640625,
+   1195.269287109375,
+   1204.12939453125,
+   1368.880859375,
+   1511.589599609375,
+   1618.2862548828125,
+   1781.45654296875,
+   1932.7037353515625,
+   2096.340087890625,
+   2296.84375,
+   2892.960205078125,
+   3774.049072265625,
+   4679.16650390625,
+   5237.47509765625,
+   5691.962890625,
+   6045.35009765625,
+   6986.22119140625,
+   7896.625,
+   8591.822265625,
+   8724.0947265625,
+   8775.2119140625,
+   9852.0576171875,
+   10007.0986328125,
+  
+{"per_recording_pearson_spearman": [0.7126304059840995, 0.7353383458646616], "median_bias_db": 3.319673538208008}

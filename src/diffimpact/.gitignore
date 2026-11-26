@@ -1,0 +1,14 @@
+# 데이터는 스크립트로 다시 만들 수 있음 (README "재현" 참고). 작은 요약 파일만 커밋
+data/**
+!data/**/
+!data/**/summary.json
+!data/**/pairs_summary.json
+!data/motor_noise/band_levels.csv
+!data/motor_noise/segments.csv
+!data/motor_noise/noise_spectra.png
+# 모델 체크포인트·합성 소리는 커밋하지 않음
+runs/**/*.pt
+runs/**/wav/
+# 이전 실험은 지표·로그만 (그림 제외)
+runs/archive/**/figures/
+__pycache__/

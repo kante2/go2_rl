@@ -1,0 +1,119 @@
+{
+  "real": {
+    "groups_total": 562,
+    "pairs": 542,
+    "pairs_in_npz": 531,
+    "dropped_groups": {
+      "size1": 19,
+      "size3": 1
+    },
+    "diagonal_counts": {
+      "FL+RR": 273,
+      "FR+RL": 269
+    },
+    "lead_counts": {
+      "front": 404,
+      "rear": 138
+    },
+    "pair_spread_ms_by_walk": {
+      "lateral": {
+        "count": 327.0,
+        "mean": 15.5,
+        "std": 10.7,
+        "min": 0.0,
+        "50%": 14.2,
+        "95%": 33.9,
+        "max": 64.1
+      },
+      "straight": {
+        "count": 215.0,
+        "mean": 11.3,
+        "std": 7.3,
+        "min": 0.0,
+        "50%": 10.6,
+        "95%": 24.0,
+        "max": 34.4
+      }
+    },
+    "pairs_per_trial": {
+      "real_sim/NORMAL_0.5_0.5_0.5_v1": 20,
+      "real_sim/NORMAL_0.5_0.5_0.5_v2": 24,
+      "real_sim/NORMAL_0.5_0.5_0.5_v3": 22,
+      "real_sim/NORMAL_0.5_0.5_0.5_v4": 28,
+      "real_sim/NORMAL_0.5_0.5_0.5_v5": 27,
+      "real_sim/NORMAL_0.5_0.5_v1": 25,
+      "real_sim/NORMAL_0.5_0.5_v2": 26,
+      "real_sim/NORMAL_0.5_0.5_v3": 24,
+      "real_sim/NORMAL_0.5_0.5_v4": 24,
+      "real_sim/NORMAL_01": 41,
+      "real_sim/NORMAL_04": 58,
+      "real_sim_straight/NORMAL_0.5_0.5_v1": 22,
+      "real_sim_straight/NORMAL_0.5_0.5_v2": 15,
+      "real_sim_straight/NORMAL_0.5_0.5_v3": 25,
+      "real_sim_straight/NORMAL_0.7_0.5_v1": 38,
+      "real_sim_straight/NORMAL_0.7_0.5_v2": 26,
+      "real_sim_straight/NORMAL_0.7_0.5_v3": 24,
+      "real_sim_straight/NORMAL_0.7_0.5_v4": 13,
+      "real_sim_straight/NORMAL_0.7_0.5_v5": 22,
+      "real_sim_straight/NORMAL_0.7_0.5_v6": 27
+    }
+  },
+  "sim": {
+    "groups_total": 468,
+    "pairs": 466,
+    "pairs_in_npz": 456,
+    "dropped_groups": {
+      "size1": 2
+    },
+    "diagonal_counts": {
+      "FR+RL": 233,
+      "FL+RR": 233
+    },
+    "lead_counts": {
+      "rear": 286,
+      "front": 180
+    },
+    "pair_spread_ms_by_walk": {
+      "lateral": {
+        "count": 283.0,
+        "mean": 15.4,
+        "std": 12.3,
+        "min": 0.0,
+        "50%": 20.0,
+        "95%": 35.0,
+        "max": 70.0
+      },
+      "straight": {
+        "count": 183.0,
+        "mean": 13.7,
+        "std": 12.0,
+        "min": 0.0,
+        "50%": 10.0,
+        "95%": 39.5,
+        "max": 60.0
+      }
+    },
+    "pairs_per_trial": {
+      "real_sim/NORMAL_0.5_0.5_0.5_v1": 18,
+      "real_sim/NORMAL_0.5_0.5_0.5_v2": 17,
+      "real_sim/NORMAL_0.5_0.5_0.5_v3": 16,
+      "real_sim/NORMAL_0.5_0.5_0.5_v4": 20,
+      "real_sim/NORMAL_0.5_0.5_0.5_v5": 22,
+      "real_sim/NORMAL_0.5_0.5_v1": 19,
+      "real_sim/NORMAL_0.5_0.5_v2": 21,
+      "real_sim/NORMAL_0.5_0.5_v3": 20,
+      "real_sim/NORMAL_0.5_0.5_v4": 22,
+      "real_sim/NORMAL_01": 48,
+      "real_sim/NORMAL_04": 57,
+      "real_sim_straight/NORMAL_0.5_0.5_v1": 18,
+      "real_sim_straight/NORMAL_0.5_0.5_v2": 11,
+      "real_sim_straight/NORMAL_0.5_0.5_v3": 21,
+      "real_sim_straight/NORMAL_0.7_0.5_v1": 39,
+      "real_sim_straight/NORMAL_0.7_0.5_v2": 18,
+      "real_sim_straight/NORMAL_0.7_0.5_v3": 21,
+      "real_sim_straight/NORMAL_0.7_0.5_v4": 10,
+      "real_sim_straight/NORMAL_0.7_0.5_v5": 18,
+      "real_sim_straight/NORMAL_0.7_0.5_v6": 20
+    }
+  }
+}

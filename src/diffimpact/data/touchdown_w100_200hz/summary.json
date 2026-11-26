@@ -1,0 +1,950 @@
+{
+  "settings": {
+    "on_delta": 10.0,
+    "off_delta": 4.0,
+    "rise_delta": 2.0,
+    "min_swing_s": 0.06,
+    "min_stance_s": 0.04,
+    "group_window_s": 0.08,
+    "peak_window_s": 0.03,
+    "vel_window_s": 0.01,
+    "pre_s": 0.02,
+    "post_s": 0.08,
+    "audio_lag_applied_s": 0.0,
+    "grid_hz": 1000.0,
+    "legs": [
+      "FR",
+      "FL",
+      "RR",
+      "RL"
+    ],
+    "real_rate_hz": 200.0,
+    "sim_air": [
+      8.0,
+      10.0,
+      12.0,
+      9.0
+    ]
+  },
+  "trials": [
+    {
+      "dataset": "real_sim",
+      "walk": "lateral",
+      "trial": "NORMAL_0.5_0.5_0.5_v1",
+      "real_file": "NORMAL_0.5_0.5_0.5_v1_20261120_175036.npz",
+      "sim_file": "NORMAL_0.5_0.5_0.5_v1_20261120_175034_sim.npz",
+      "cmd_vx": 0.0,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.5,
+      "real_status": "ok",
+      "real_duration_s": 9.980000000217842,
+      "real_air": [
+        10.0,
+        3.0,
+        10.0,
+        8.0
+      ],
+      "real_touchdowns": {
+        "FR": 10,
+        "FL": 11,
+        "RR": 11,
+        "RL": 12
+      },
+      "real_groups": 23,
+      "real_groups_in_npz": 23,
+      "real_pair_fraction": 0.9130434782608695,
+      "sim_status": "ok",
+      "sim_duration_s": 9.99499999999989,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 9,
+        "FL": 9,
+        "RR": 9,
+        "RL": 9
+      },
+      "sim_groups": 18,
+      "sim_groups_in_npz": 18,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim",
+      "walk": "lateral",
+      "trial": "NORMAL_0.5_0.5_0.5_v2",
+      "real_file": "NORMAL_0.5_0.5_0.5_v2_20261120_175056.npz",
+      "sim_file": "NORMAL_0.5_0.5_0.5_v2_20261120_175054_sim.npz",
+      "cmd_vx": 0.0,
+      "cmd_vy": 0.0,
+      "cmd_wz": -0.5,
+      "real_status": "ok",
+      "real_duration_s": 9.980000000217842,
+      "real_air": [
+        9.0,
+        3.0,
+        10.0,
+        8.0
+      ],
+      "real_touchdowns": {
+        "FR": 13,
+        "FL": 12,
+        "RR": 12,
+        "RL": 13
+      },
+      "real_groups": 25,
+      "real_groups_in_npz": 24,
+      "real_pair_fraction": 1.0,
+      "sim_status": "ok",
+      "sim_duration_s": 9.995000000000346,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 9,
+        "FL": 8,
+        "RR": 8,
+        "RL": 9
+      },
+      "sim_groups": 17,
+      "sim_groups_in_npz": 17,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim",
+      "walk": "lateral",
+      "trial": "NORMAL_0.5_0.5_0.5_v3",
+      "real_file": "NORMAL_0.5_0.5_0.5_v3_20261120_175354.npz",
+      "sim_file": "NORMAL_0.5_0.5_0.5_v3_20261120_175352_sim.npz",
+      "cmd_vx": 0.0,
+      "cmd_vy": 0.0,
+      "cmd_wz": -0.699999988079071,
+      "real_status": "ok",
+      "real_duration_s": 9.980000000217842,
+      "real_air": [
+        9.0,
+        3.0,
+        9.0,
+        8.0
+      ],
+      "real_touchdowns": {
+        "FR": 11,
+        "FL": 12,
+        "RR": 12,
+        "RL": 12
+      },
+      "real_groups": 24,
+      "real_groups_in_npz": 24,
+      "real_pair_fraction": 0.9583333333333334,
+      "sim_status": "ok",
+      "sim_duration_s": 9.99499999999989,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 9,
+        "FL": 8,
+        "RR": 8,
+        "RL": 9
+      },
+      "sim_groups": 17,
+      "sim_groups_in_npz": 17,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim",
+      "walk": "lateral",
+      "trial": "NORMAL_0.5_0.5_0.5_v4",
+      "real_file": "NORMAL_0.5_0.5_0.5_v4_20261120_175410.npz",
+      "sim_file": "NORMAL_0.5_0.5_0.5_v4_20261120_175408_sim.npz",
+      "cmd_vx": 0.0,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.699999988079071,
+      "real_status": "ok",
+      "real_duration_s": 9.980000000217842,
+      "real_air": [
+        9.0,
+        3.0,
+        10.0,
+        8.0
+      ],
+      "real_touchdowns": {
+        "FR": 14,
+        "FL": 15,
+        "RR": 15,
+        "RL": 15
+      },
+      "real_groups": 30,
+      "real_groups_in_npz": 30,
+      "real_pair_fraction": 0.9666666666666667,
+      "sim_status": "ok",
+      "sim_duration_s": 10.0,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 10,
+        "FL": 11,
+        "RR": 11,
+        "RL": 10
+      },
+      "sim_groups": 21,
+      "sim_groups_in_npz": 21,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim",
+      "walk": "lateral",
+      "trial": "NORMAL_0.5_0.5_0.5_v5",
+      "real_file": "NORMAL_0.5_0.5_0.5_v5_20261120_175427.npz",
+      "sim_file": "NORMAL_0.5_0.5_0.5_v5_20261120_175426_sim.npz",
+      "cmd_vx": 0.0,
+      "cmd_vy": 0.0,
+      "cmd_wz": -0.699999988079071,
+      "real_status": "ok",
+      "real_duration_s": 9.980000000217842,
+      "real_air": [
+        8.0,
+        3.0,
+        10.0,
+        8.0
+      ],
+      "real_touchdowns": {
+        "FR": 15,
+        "FL": 14,
+        "RR": 14,
+        "RL": 14
+      },
+      "real_groups": 29,
+      "real_groups_in_npz": 29,
+      "real_pair_fraction": 0.9655172413793104,
+      "sim_status": "ok",
+      "sim_duration_s": 9.99499999999989,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 11,
+        "FL": 12,
+        "RR": 11,
+        "RL": 11
+      },
+      "sim_groups": 23,
+      "sim_groups_in_npz": 22,
+      "sim_pair_fraction": 0.9565217391304348,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim",
+      "walk": "lateral",
+      "trial": "NORMAL_0.5_0.5_v1",
+      "real_file": "NORMAL_0.5_0.5_v1_20261120_174435.npz",
+      "sim_file": "NORMAL_0.5_0.5_v1_20261120_174434_sim.npz",
+      "cmd_vx": 0.0,
+      "cmd_vy": -0.5,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 9.980000000217842,
+      "real_air": [
+        9.0,
+        4.0,
+        11.0,
+        9.0
+      ],
+      "real_touchdowns": {
+        "FR": 13,
+        "FL": 13,
+        "RR": 13,
+        "RL": 13
+      },
+      "real_groups": 26,
+      "real_groups_in_npz": 26,
+      "real_pair_fraction": 1.0,
+      "sim_status": "ok",
+      "sim_duration_s": 9.99499999999989,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 10,
+        "FL": 9,
+        "RR": 9,
+        "RL": 10
+      },
+      "sim_groups": 19,
+      "sim_groups_in_npz": 19,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim",
+      "walk": "lateral",
+      "trial": "NORMAL_0.5_0.5_v2",
+      "real_file": "NORMAL_0.5_0.5_v2_20261120_174453.npz",
+      "sim_file": "NORMAL_0.5_0.5_v2_20261120_174452_sim.npz",
+      "cmd_vx": 0.0,
+      "cmd_vy": -0.5,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 9.980000000217842,
+      "real_air": [
+        9.0,
+        4.0,
+        11.0,
+        9.0
+      ],
+      "real_touchdowns": {
+        "FR": 14,
+        "FL": 13,
+        "RR": 13,
+        "RL": 14
+      },
+      "real_groups": 27,
+      "real_groups_in_npz": 27,
+      "real_pair_fraction": 1.0,
+      "sim_status": "ok",
+      "sim_duration_s": 9.99499999999989,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 11,
+        "FL": 10,
+        "RR": 10,
+        "RL": 11
+      },
+      "sim_groups": 21,
+      "sim_groups_in_npz": 21,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim",
+      "walk": "lateral",
+      "trial": "NORMAL_0.5_0.5_v3",
+      "real_file": "NORMAL_0.5_0.5_v3_20261120_174510.npz",
+      "sim_file": "NORMAL_0.5_0.5_v3_20261120_174509_sim.npz",
+      "cmd_vx": 0.0,
+      "cmd_vy": 0.5,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 9.975000000217733,
+      "real_air": [
+        10.0,
+        3.75,
+        11.0,
+        8.0
+      ],
+      "real_touchdowns": {
+        "FR": 13,
+        "FL": 12,
+        "RR": 12,
+        "RL": 13
+      },
+      "real_groups": 25,
+      "real_groups_in_npz": 25,
+      "real_pair_fraction": 1.0,
+      "sim_status": "ok",
+      "sim_duration_s": 9.995000000000346,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 11,
+        "FL": 10,
+        "RR": 10,
+        "RL": 11
+      },
+      "sim_groups": 21,
+      "sim_groups_in_npz": 21,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim",
+      "walk": "lateral",
+      "trial": "NORMAL_0.5_0.5_v4",
+      "real_file": "NORMAL_0.5_0.5_v4_20261120_174625.npz",
+      "sim_file": "NORMAL_0.5_0.5_v4_20261120_174624_sim.npz",
+      "cmd_vx": 0.0,
+      "cmd_vy": 0.5,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 9.980000000217842,
+      "real_air": [
+        10.0,
+        4.0,
+        11.0,
+        8.0
+      ],
+      "real_touchdowns": {
+        "FR": 13,
+        "FL": 12,
+        "RR": 13,
+        "RL": 14
+      },
+      "real_groups": 27,
+      "real_groups_in_npz": 27,
+      "real_pair_fraction": 0.9259259259259259,
+      "sim_status": "ok",
+      "sim_duration_s": 9.99499999999989,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 11,
+        "FL": 11,
+        "RR": 11,
+        "RL": 12
+      },
+      "sim_groups": 23,
+      "sim_groups_in_npz": 22,
+      "sim_pair_fraction": 0.9565217391304348,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim",
+      "walk": "lateral",
+      "trial": "NORMAL_01",
+      "real_file": "NORMAL_01_20261118_155329.npz",
+      "sim_file": "NORMAL_01_20261118_155249_sim.npz",
+      "cmd_vx": 0.0,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 115.83500000252843,
+      "real_air": [
+        19.0,
+        19.0,
+        22.0,
+        18.0
+      ],
+      "real_touchdowns": {
+        "FR": 21,
+        "FL": 25,
+        "RR": 25,
+        "RL": 24
+      },
+      "real_groups": 51,
+      "real_groups_in_npz": 51,
+      "real_pair_fraction": 0.8235294117647058,
+      "sim_status": "ok",
+      "sim_duration_s": 157.26999999999998,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 23,
+        "FL": 25,
+        "RR": 25,
+        "RL": 23
+      },
+      "sim_groups": 48,
+      "sim_groups_in_npz": 48,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim",
+      "walk": "lateral",
+      "trial": "NORMAL_04",
+      "real_file": "NORMAL_04_20261118_173733.npz",
+      "sim_file": "NORMAL_04_20261118_173732_sim.npz",
+      "cmd_vx": 0.4000000059604645,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 37.41499999401094,
+      "real_air": [
+        5.0,
+        5.0,
+        9.0,
+        7.0
+      ],
+      "real_touchdowns": {
+        "FR": 29,
+        "FL": 29,
+        "RR": 29,
+        "RL": 29
+      },
+      "real_groups": 58,
+      "real_groups_in_npz": 58,
+      "real_pair_fraction": 1.0,
+      "sim_status": "ok",
+      "sim_duration_s": 37.475000000000364,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 29,
+        "FL": 28,
+        "RR": 28,
+        "RL": 29
+      },
+      "sim_groups": 57,
+      "sim_groups_in_npz": 57,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim",
+      "walk": "lateral",
+      "trial": "NORMAL_07",
+      "real_file": "NORMAL_07_20261118_174116.npz",
+      "sim_file": "NORMAL_07_20261118_174115_sim.npz",
+      "cmd_vx": NaN,
+      "cmd_vy": NaN,
+      "cmd_wz": NaN,
+      "real_status": "no_touchdowns",
+      "real_air": [
+        3.0,
+        4.0,
+        9.0,
+        7.0
+      ],
+      "sim_status": "missing_or_empty",
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim_straight",
+      "walk": "straight",
+      "trial": "NORMAL_0.5_0.5_v1",
+      "real_file": "NORMAL_0.5_0.5_v1_20261120_172658.npz",
+      "sim_file": "NORMAL_0.5_0.5_v1_20261120_172657_sim.npz",
+      "cmd_vx": 0.5,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 9.975000000217733,
+      "real_air": [
+        12.0,
+        5.0,
+        12.0,
+        10.0
+      ],
+      "real_touchdowns": {
+        "FR": 11,
+        "FL": 11,
+        "RR": 11,
+        "RL": 11
+      },
+      "real_groups": 22,
+      "real_groups_in_npz": 22,
+      "real_pair_fraction": 1.0,
+      "sim_status": "ok",
+      "sim_duration_s": 9.99499999999989,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 9,
+        "FL": 10,
+        "RR": 10,
+        "RL": 9
+      },
+      "sim_groups": 19,
+      "sim_groups_in_npz": 18,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim_straight",
+      "walk": "straight",
+      "trial": "NORMAL_0.5_0.5_v2",
+      "real_file": "NORMAL_0.5_0.5_v2_20261120_172758.npz",
+      "sim_file": "NORMAL_0.5_0.5_v2_20261120_172757_sim.npz",
+      "cmd_vx": 0.5,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 9.965000000217515,
+      "real_air": [
+        12.0,
+        5.0,
+        12.0,
+        10.0
+      ],
+      "real_touchdowns": {
+        "FR": 8,
+        "FL": 8,
+        "RR": 8,
+        "RL": 8
+      },
+      "real_groups": 16,
+      "real_groups_in_npz": 16,
+      "real_pair_fraction": 1.0,
+      "sim_status": "ok",
+      "sim_duration_s": 9.99499999999989,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 6,
+        "FL": 6,
+        "RR": 6,
+        "RL": 6
+      },
+      "sim_groups": 12,
+      "sim_groups_in_npz": 12,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim_straight",
+      "walk": "straight",
+      "trial": "NORMAL_0.5_0.5_v3",
+      "real_file": "NORMAL_0.5_0.5_v3_20261120_172826.npz",
+      "sim_file": "NORMAL_0.5_0.5_v3_20261120_172825_sim.npz",
+      "cmd_vx": 0.5,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 9.975000000217733,
+      "real_air": [
+        12.0,
+        5.0,
+        12.0,
+        10.0
+      ],
+      "real_touchdowns": {
+        "FR": 12,
+        "FL": 13,
+        "RR": 13,
+        "RL": 12
+      },
+      "real_groups": 25,
+      "real_groups_in_npz": 25,
+      "real_pair_fraction": 1.0,
+      "sim_status": "ok",
+      "sim_duration_s": 9.99499999999989,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 11,
+        "FL": 11,
+        "RR": 11,
+        "RL": 11
+      },
+      "sim_groups": 22,
+      "sim_groups_in_npz": 22,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim_straight",
+      "walk": "straight",
+      "trial": "NORMAL_0.7_0.5_v1",
+      "real_file": "NORMAL_0.7_0.5_v1_20261120_173201.npz",
+      "sim_file": "NORMAL_0.7_0.5_v1_20261120_173157_sim.npz",
+      "cmd_vx": 0.699999988079071,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 14.285000000311811,
+      "real_air": [
+        10.0,
+        4.0,
+        11.0,
+        9.0
+      ],
+      "real_touchdowns": {
+        "FR": 19,
+        "FL": 19,
+        "RR": 20,
+        "RL": 19
+      },
+      "real_groups": 39,
+      "real_groups_in_npz": 39,
+      "real_pair_fraction": 0.9743589743589743,
+      "sim_status": "ok",
+      "sim_duration_s": 19.120000000000346,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 19,
+        "FL": 20,
+        "RR": 20,
+        "RL": 19
+      },
+      "sim_groups": 39,
+      "sim_groups_in_npz": 39,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim_straight",
+      "walk": "straight",
+      "trial": "NORMAL_0.7_0.5_v2",
+      "real_file": "NORMAL_0.7_0.5_v2_20261120_173316.npz",
+      "sim_file": "NORMAL_0.7_0.5_v2_20261120_173314_sim.npz",
+      "cmd_vx": 0.699999988079071,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 9.975000000217733,
+      "real_air": [
+        10.0,
+        4.0,
+        11.0,
+        10.0
+      ],
+      "real_touchdowns": {
+        "FR": 14,
+        "FL": 13,
+        "RR": 13,
+        "RL": 14
+      },
+      "real_groups": 27,
+      "real_groups_in_npz": 27,
+      "real_pair_fraction": 1.0,
+      "sim_status": "ok",
+      "sim_duration_s": 9.99499999999989,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 10,
+        "FL": 9,
+        "RR": 9,
+        "RL": 10
+      },
+      "sim_groups": 19,
+      "sim_groups_in_npz": 19,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim_straight",
+      "walk": "straight",
+      "trial": "NORMAL_0.7_0.5_v3",
+      "real_file": "NORMAL_0.7_0.5_v3_20261120_173414.npz",
+      "sim_file": "NORMAL_0.7_0.5_v3_20261120_173413_sim.npz",
+      "cmd_vx": 0.699999988079071,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 9.965000000217515,
+      "real_air": [
+        10.0,
+        4.0,
+        11.0,
+        9.0
+      ],
+      "real_touchdowns": {
+        "FR": 12,
+        "FL": 12,
+        "RR": 12,
+        "RL": 12
+      },
+      "real_groups": 24,
+      "real_groups_in_npz": 24,
+      "real_pair_fraction": 1.0,
+      "sim_status": "ok",
+      "sim_duration_s": 10.010000000000218,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 11,
+        "FL": 11,
+        "RR": 11,
+        "RL": 11
+      },
+      "sim_groups": 22,
+      "sim_groups_in_npz": 21,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim_straight",
+      "walk": "straight",
+      "trial": "NORMAL_0.7_0.5_v4",
+      "real_file": "NORMAL_0.7_0.5_v4_20261120_173617.npz",
+      "sim_file": "NORMAL_0.7_0.5_v4_20261120_173617_sim.npz",
+      "cmd_vx": 0.699999988079071,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 9.970000000217624,
+      "real_air": [
+        10.0,
+        4.0,
+        11.0,
+        9.0
+      ],
+      "real_touchdowns": {
+        "FR": 6,
+        "FL": 7,
+        "RR": 7,
+        "RL": 6
+      },
+      "real_groups": 13,
+      "real_groups_in_npz": 13,
+      "real_pair_fraction": 1.0,
+      "sim_status": "ok",
+      "sim_duration_s": 9.995000000000346,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 5,
+        "FL": 5,
+        "RR": 5,
+        "RL": 5
+      },
+      "sim_groups": 10,
+      "sim_groups_in_npz": 10,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim_straight",
+      "walk": "straight",
+      "trial": "NORMAL_0.7_0.5_v5",
+      "real_file": "NORMAL_0.7_0.5_v5_20261120_173723.npz",
+      "sim_file": "NORMAL_0.7_0.5_v5_20261120_173722_sim.npz",
+      "cmd_vx": 0.699999988079071,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 9.975000000217733,
+      "real_air": [
+        9.0,
+        4.0,
+        11.0,
+        9.0
+      ],
+      "real_touchdowns": {
+        "FR": 11,
+        "FL": 12,
+        "RR": 11,
+        "RL": 11
+      },
+      "real_groups": 23,
+      "real_groups_in_npz": 22,
+      "real_pair_fraction": 0.9565217391304348,
+      "sim_status": "ok",
+      "sim_duration_s": 9.995000000000346,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 9,
+        "FL": 10,
+        "RR": 10,
+        "RL": 9
+      },
+      "sim_groups": 19,
+      "sim_groups_in_npz": 19,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    },
+    {
+      "dataset": "real_sim_straight",
+      "walk": "straight",
+      "trial": "NORMAL_0.7_0.5_v6",
+      "real_file": "NORMAL_0.7_0.5_v6_20261120_173836.npz",
+      "sim_file": "NORMAL_0.7_0.5_v6_20261120_173834_sim.npz",
+      "cmd_vx": 0.699999988079071,
+      "cmd_vy": 0.0,
+      "cmd_wz": 0.0,
+      "real_status": "ok",
+      "real_duration_s": 9.980000000217842,
+      "real_air": [
+        9.0,
+        4.0,
+        11.0,
+        9.0
+      ],
+      "real_touchdowns": {
+        "FR": 14,
+        "FL": 14,
+        "RR": 14,
+        "RL": 14
+      },
+      "real_groups": 28,
+      "real_groups_in_npz": 28,
+      "real_pair_fraction": 1.0,
+      "sim_status": "ok",
+      "sim_duration_s": 9.99499999999989,
+      "sim_air": [
+        8.0,
+        10.0,
+        12.0,
+        9.0
+      ],
+      "sim_touchdowns": {
+        "FR": 10,
+        "FL": 11,
+        "RR": 11,
+        "RL": 10
+      },
+      "sim_groups": 21,
+      "sim_groups_in_npz": 21,
+      "sim_pair_fraction": 1.0,
+      "audio_onset_vs_touchdown_s": NaN
+    }
+  ]
+}
