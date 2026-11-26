@@ -1,6 +1,8 @@
 # Go2 NoiseAware
 
-학습된 소음 모델(DiffImpact 앙상블)로 MuJoCo 착지마다 소음을 추정해, 저소음 보행을 학습하는 패키지입니다. `go2_quietpaw`와 같은 구조(보상/비용 분리, quietness 조건, PPO-Lagrangian)를 쓰고, **소음 비용 함수만** QuietPaw의 물리량 대리식에서 실측 녹음으로 학습한 모델로 바꿉니다.
+학습된 소음 모델(DiffImpact 앙상블)로 MuJoCo 착지마다 소음을 추정해, 저소음 보행을 학습하는 패키지입니다. `go2_quietpaw`와 같은 구조(보상/비용 분리, quietness 조건, PPO-Lagrangian)를 쓰고, **소음 추정만** QuietPaw의 물리량 대리식에서 실측 녹음으로 학습한 모델로 바꿉니다.
+
+`noise_model/`의 출력은 **정책 스텝마다 환경별 소음 dB 하나**입니다. 이 값을 비용(보상)으로 바꾸는 식은 아직 정하지 않았고, 이 모듈에 넣지 않습니다.
 
 ## 현재 상태
 
@@ -8,7 +10,7 @@
 |---|---|
 | `noise_model/`: 소음 예측 모델 + MuJoCo 입력 모듈 | **완료, 검증됨** |
 | `step_01_environment/`: 환경에 착지 추적 연결 (QuietPaw 환경 상속) | 예정 |
-| `step_02_learning/`: 비용 설정, quietness → cost_limit 재조정 | 예정 |
+| `step_02_learning/`: 소음 dB → 비용 설계, quietness → cost_limit 재조정 | 예정 (재설계) |
 | `step_03_training/`, `step_04_evaluation/`: QuietPaw 재사용 | 예정 |
 
 ## 소음 모델 (`noise_model/`)
@@ -16,8 +18,8 @@
 | 파일 | 역할 |
 |---|---|
 | `diffimpact_ensemble.pt` (+ `.json`) | 모델 3개(시드)의 계수·정규화·입력 범위·K 표, 213 KB (아래 "모델 출처") |
-| `diffimpact.py` | `DiffImpactNoiseModel`: 착지 특징 → A-가중 에너지. `touchdown_cost`: 에너지 → 비용 |
-| `touchdown_features.py` | `TouchdownFeatureTracker`: 물리 substep 상태 → 착지 특징 (학습 데이터와 같은 정의). `DiffImpactNoiseCost`: 추적 + 모델 + 비용을 묶은 env용 래퍼 |
+| `diffimpact.py` | `DiffImpactNoiseModel`: 착지 특징 → 발별 A-가중 에너지·dB |
+| `touchdown_features.py` | `TouchdownFeatureTracker`: 물리 substep 상태 → 착지 특징 (학습 데이터와 같은 정의). `DiffImpactStepNoise`: 추적 + 모델 → 정책 스텝별 소음 dB (env용 래퍼) |
 
 ### 무엇을 예측하나
 
@@ -33,7 +35,7 @@ log A_i = w_다리 · z_i + b_다리                    z_i = (clip(x_i) − μ)
 - **단위:** dB re FS²입니다. 녹음 디지털 풀스케일 기준이고 마이크 보정이 없는 **상대값**입니다. 실로봇 RL 보행 착지 한 발이 대략 -73 ~ -57 dB입니다. 절대 dBA는 UMIK-1 교정 상수를 더하면 됩니다.
 - **Δ:** 세트(대각 쌍) 첫 착지 기준 이 발의 착지 시각입니다. 모델 소리가 힘 센서 착지보다 몇 ms 먼저 시작해서, 첫 발은 창 앞부분이 잘리기 때문에 필요합니다.
 - **원본 모델과의 일치:** 로컬 검증 스크립트로 확인했습니다. 세트 dB 중앙값 차이가 실로봇·MuJoCo·sport mode에서 +0.05 ~ +0.11 dB, 상관 0.997 이상입니다.
-- **속도:** RTX 5060 Ti에서 착지 4,096개에 1.7 ms입니다.
+- **속도:** 노트북 RTX 2060에서 착지 16k개 추론이 1.35 ms입니다. CPU 로봇 1대 기준 정책 스텝당 착지 추적 5.9 ms + 추론 1.0 ms입니다.
 
 ### 입력: MuJoCo에서 넘길 값
 
@@ -74,38 +76,49 @@ log A_i = w_다리 · z_i + b_다리                    z_i = (clip(x_i) − μ)
 모델은 추정값으로 학습됐으므로 같은 추정값을 넣어야 합니다.
 
 - **착지 판정:** 접촉력이 1 N을 넘는 순간입니다(QuietPaw와 같음). reset 직후 이미 닿아 있는 발도 첫 접촉으로 셉니다.
-- **확정 시점:** 착지 특징은 **착지 후 4 substep(20 ms) 뒤**에 확정됩니다. 충격량 때문입니다. 정책 스텝(20 ms) 기준으로 최대 1스텝 늦게 비용이 들어옵니다.
+- **확정 시점:** 착지 특징은 **착지 후 4 substep(20 ms) 뒤**에 확정됩니다. 충격량 때문입니다. 정책 스텝(20 ms) 기준으로 최대 1스텝 늦게 소음 값이 나옵니다.
 - **검증:** 로컬 검증 스크립트로 MuJoCo 녹화 세션 20개를 substep 단위로 재생했습니다.
   - 학습 데이터 착지 928개가 모두 같은 시각에 검출됐습니다.
   - 특징 12개의 중앙값 차이가 0입니다(몸통 vz 상관 0.95, 나머지 1.00).
   - 예측 dB 차이는 95%가 0.04 dB 안입니다.
 
-### 비용
+### 출력: 정책 스텝 소음 (에너지 합 → dB)
 
 ```
-cost_착지 = max(dB − floor, 0) / (ref − floor)  +  ood_weight · Σ_속도특징 |x − clip(x)| / σ
-스텝 비용 = 그 정책 스텝에 확정된 착지들의 cost 합 (착지 없으면 0)
+스텝 에너지 = Σ_i E_i        (그 정책 스텝에 확정된 착지들, 발별 앙상블 에너지의 선형 합)
+스텝 dB    = 10·log10(스텝 에너지)     착지가 없으면 no_touchdown_db (기본 -inf)
 ```
 
-| 설정 (`DiffImpactCostCfg`) | 기본값 | 의미 |
+`end_step()` 반환 dict (모두 환경별):
+
+| 키 | 모양 | 의미 |
 |---|---|---|
-| `floor_db` | 학습 실측 발별 예측의 1 백분위 (-72.6 dB) | 이보다 조용해도 추가 이득 없음 (모델이 모르는 영역 추구 방지) |
-| `ref_db` | 50 백분위 (-63.7 dB) | (ref − floor)가 비용 1 단위 |
-| `ood_weight` | 0.1 | 범위 밖 거리 [σ]당 비용. 범위 안으로 돌아오는 신호 |
-| `failure_cost` | 1.0 | 넘어짐 종료 |
+| `db` | (B,) | 스텝 소음 [dB re FS², A-가중, 0~80 ms, 배경 제외] |
+| `energy` | (B,) | 스텝 에너지 [FS²], 착지 없으면 0 |
+| `touchdown` | (B,) bool | 이번 스텝에 확정된 착지가 있는지 |
+| `foot_energy`, `foot_db` | (B, 4) | 발별 값 (확정 안 된 발은 0, -inf) |
+| `ood` | (B,) | 확정 착지의 속도 특징 범위 밖 거리 합 [σ] (진단값) |
+| `log` | dict | 배치 요약: 착지 수, `step_db`(착지 있는 스텝 평균), 앙상블 dB 표준편차, 특징별 범위 밖 비율 |
 
-- **상한은 두지 않습니다.** 시끄러울수록 비용이 계속 커져서, 줄이는 방향의 신호가 끊기지 않습니다.
-- **입력 클리핑:** 특징을 학습 범위(1~99 백분위)로 자른 뒤 모델에 넣습니다. 범위 밖에서 직선 외삽으로 폭주하는 것을 막기 위해서입니다. sport mode 데이터에서 클리핑 없이 최대 20 dB 과대 예측한 적이 있습니다.
-- **범위 밖 페널티는 속도 특징(발 vx·vy·vz, 몸통 vz)에만 겁니다.** 같은 정책에서도 MuJoCo 착지 발 높이가 실로봇보다 약 3 cm 낮아 시뮬 착지의 72%가 foot_z 범위 밖입니다. 여기에 페널티를 걸면 소음과 무관한 자세 변경을 유도하기 때문입니다. 모든 특징의 범위 밖 비율은 감시용으로 로그에 남깁니다.
-- **기준 비용 수준:** 착지당 비용의 5/50/95%는 실로봇 착지 0.22 / 0.93 / 1.66, MuJoCo 착지 0.57 / 1.21 / 1.87입니다. QuietPaw cost_limit 범위는 이 수준과 착지 빈도에 맞춰 다시 정해야 합니다.
+- **dB를 더하지 않고 에너지를 더합니다.** −62 dB 두 발 = −59 dB입니다. 대각 두 발이 같은 스텝에 확정되면 학습 정답(세트 0~80 ms 소리)과 같은 정의가 됩니다. 두 발 시간차가 커서 다른 스텝에 확정되면 각 스텝에 나뉘어 들어갑니다.
+- **착지가 없는 스텝은 -inf입니다.** 정책 스텝의 약 93%가 이렇습니다(트롯 0.6 s 주기). 보상에 쓸 때는 `touchdown`으로 거르거나 `energy`를 쓰거나 `no_touchdown_db`를 유한값으로 지정하세요.
+- **입력 클리핑:** 특징을 학습 범위(1~99 백분위)로 자른 뒤 모델에 넣습니다. 범위 밖에서 직선 외삽으로 폭주하는 것을 막기 위해서입니다. sport mode 데이터에서 클리핑 없이 최대 20 dB 과대 예측한 적이 있습니다. 범위 밖 거리는 `ood`, 비율은 `log`로 볼 수 있습니다.
+- **예외: 발·몸통 수직 속도는 조용한 쪽으로 외삽합니다** (`extrapolate_quiet`, 기본 `("foot_vz_pre", "body_vz_pre")`).
+  - 클리핑하면 학습 데이터의 가장 조용한 착지에서 예측이 멈춰, 그보다 조용한 보행을 보상하지 못합니다.
+  - 두 특징은 부호 제약으로 학습돼 범위 밖에서도 "느릴수록 조용" 방향이 유지됩니다. 조용한 방향은 앙상블 가중치 부호로 자동 판정합니다(`model.quiet_direction`).
+  - 시끄러운 쪽은 그대로 클리핑합니다.
+  - 외삽 예: 발 vz 범위 끝 −0.13 m/s → 0에서 −69.1 → −69.9 dB, 몸통 vz +0.02 → +0.1 m/s에서 −72.0 dB, +0.3 m/s에서 −77.2 dB. **몸통 vz 쪽은 여지가 커서**, 착지 순간 몸통이 위로 움직이게 하는 보행(통통 튀는 보행)으로 예측을 낮출 수 있습니다. 학습 중 `ood_frac/body_vz_pre`를 감시하세요.
+  - 외삽 구간의 실제 소리는 데이터가 없어 검증되지 않았습니다. 학습된 정책을 실로봇에서 녹음해 모델을 다시 학습하는 것이 근본 해결입니다.
+  - 끄려면 `DiffImpactNoiseModel(extrapolate_quiet=())`.
+- **비용 설계 참고값:** `model.db_ref`에 학습 실측 착지의 발별 예측 dB 백분위가 있습니다(p1 −72.6, p5 −71.0, p50 −63.7, p95 −57.9, p99 −56.9).
 
 ### 사용 예 (env step 안)
 
 ```python
-from src.locomotion_rl.go2_noise_aware.noise_model import DiffImpactNoiseCost, unitree_joint_order
+from src.locomotion_rl.go2_noise_aware.noise_model import DiffImpactStepNoise, unitree_joint_order
 
 # load_managers
-self.noise = DiffImpactNoiseCost(self.num_envs, self.device)
+self.noise = DiffImpactStepNoise(self.num_envs, self.device)
 self.unitree_j = unitree_joint_order(robot.joint_names)
 
 # step
@@ -118,20 +131,21 @@ for _ in range(self.cfg.decimation):
   pos_b = quat_rotate_inverse(d.root_link_quat_w, d.site_pos_w[:, feet] - d.root_link_pos_w[:, None])
   self.noise.sample(rel_v, pos_b, contact_force_norm, d.joint_pos[:, self.unitree_j],
                     joint_torque[:, self.unitree_j], d.root_link_quat_w, command)
-noise_cost, log = self.noise.end_step()                     # (B,), 진단값
+noise = self.noise.end_step()
+noise["db"], noise["touchdown"]                             # (B,) 스텝 소음 dB, 착지 여부
 
 # _reset_idx
 self.noise.reset(env_ids)
 ```
 
-로그(`log`)에는 확정된 착지 수, 평균 예측 dB, 앙상블 모델 간 dB 표준편차, 특징별 범위 밖 비율이 들어 있습니다.
+`noise["log"]`에는 확정된 착지 수, 착지 있는 스텝의 평균 dB, 앙상블 모델 간 dB 표준편차, 특징별 범위 밖 비율이 들어 있습니다.
 
 ### 한계
 
 - **접촉력 효과가 거의 없습니다.** 학습 데이터에서 충격량과 발 하강 속도가 함께 움직여(상관 0.82) 충격량 가중치가 대부분 0입니다. 소음은 주로 발 하강 속도와 몸통 낙하 속도로 결정됩니다.
 - **착지 이벤트만 봅니다.** 발 끌기, 미끄러짐, 입각기 소리는 예측하지 않으므로 보행 보상 쪽 제약(발 들기 높이, 미끄러짐 페널티)이 필요합니다.
 - **보행 방식이 크게 바뀌면 절대 레벨이 어긋납니다.** sport mode에서 순위는 맞지만(녹화 내 상관 0.57) 레벨은 3 dB 낮았습니다. 튐·재접촉 소리는 모델에 없습니다.
-- **앙상블은 시드만 다릅니다.** 모델 간 표준편차가 불확실성을 잘 나타내지 못합니다. 불확실성 기반 비관적 비용을 쓰려면 녹화 단위 부트스트랩 앙상블이 필요합니다.
+- **앙상블은 시드만 다릅니다.** 모델 간 표준편차가 불확실성을 잘 나타내지 못합니다. 불확실성을 비용에 반영하려면 녹화 단위 부트스트랩 앙상블이 필요합니다.
 
 ## 테스트
 
@@ -139,7 +153,7 @@ self.noise.reset(env_ids)
 python3 -m unittest src.locomotion_rl.go2_noise_aware.tests.test_noise_model   # 저장소 루트, docker (mjlab 필요)
 ```
 
-단위 테스트(11개)는 방향, 클리핑, 비용 경계, 다리 기구학, 토크 기반 접촉력, 착지 시점·세트 판정을 검사합니다. `src/locomotion_rl/__init__.py`가 mjlab 태스크를 등록하므로 mjlab이 있는 환경에서 실행합니다.
+단위 테스트(11개)는 방향, 클리핑, 조용한 쪽 외삽, 스텝 소음(에너지 합 → dB), 다리 기구학, 토크 기반 접촉력, 착지 시점·세트 판정을 검사합니다. `src/locomotion_rl/__init__.py`가 mjlab 태스크를 등록하므로 mjlab이 있는 환경에서 실행합니다.
 
 ## 모델 출처
 

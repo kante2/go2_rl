@@ -257,21 +257,23 @@ class TouchdownFeatureTracker:
     self.set_start = torch.where(td, start, self.set_start)
 
 
-class DiffImpactNoiseCost:
-  """착지 추적 + 앙상블 소음 모델 + 비용. 정책 한 스텝 = 물리 substep 여러 번.
+class DiffImpactStepNoise:
+  """착지 추적 + 앙상블 소음 모델 → 정책 스텝마다 소음 dB 하나 (환경별). 비용 변환은 하지 않는다.
 
-  env 에서: begin_step() → substep 마다 sample(...) → end_step() 이 스텝 비용 (B,) 과 진단값을 돌려준다.
-  스텝 비용 = 그 스텝에 확정된 착지들의 비용 합 (착지가 없으면 0).
+  env 에서: begin_step() → 물리 substep 마다 sample(...) → end_step().
+  스텝 소음 = 이번 정책 스텝에 확정된 착지들의 A-가중 0~80 ms 에너지를 선형으로 더한 뒤 dB:
+    energy = Σ_i E_i,   db = 10·log10(energy)   [dB re FS², A-가중, 배경 제외, 미보정]
+  확정된 착지가 없는 스텝은 energy = 0, db = no_touchdown_db (기본 -inf), touchdown = False.
   substep 에서는 특징만 모으고, 모델 추론은 end_step 에서 B×4 전체에 한 번 한다 (GPU→CPU 동기화 없음).
-  한 발은 정책 스텝(20 ms) 안에 착지가 많아야 한 번 확정된다 (확정까지 20 ms).
+  한 발은 정책 스텝(20 ms) 안에 많아야 한 번 확정된다 (착지 후 20 ms 에 확정).
+  대각 두 발이 서로 다른 스텝에 확정되면 각 스텝에 나뉘어 들어간다 (세트 단위 합이 아니라 스텝 단위 합).
   """
 
-  def __init__(self, num_envs: int, device: str, cfg=None, model=None, **tracker_kwargs):
-    from .diffimpact import DiffImpactCostCfg, DiffImpactNoiseModel
-    self.cfg = cfg or DiffImpactCostCfg()
-    self.model = model or DiffImpactNoiseModel(self.cfg.table_path, device)
-    self.floor_db = self.cfg.floor_db if self.cfg.floor_db is not None else self.model.db_ref["p1"]
-    self.ref_db = self.cfg.ref_db if self.cfg.ref_db is not None else self.model.db_ref["p50"]
+  def __init__(self, num_envs: int, device: str, model=None, table_path=None,
+               no_touchdown_db: float = float("-inf"), **tracker_kwargs):
+    from .diffimpact import DEFAULT_TABLE, DiffImpactNoiseModel
+    self.model = model or DiffImpactNoiseModel(table_path or DEFAULT_TABLE, device)
+    self.no_touchdown_db = no_touchdown_db
     self.tracker = TouchdownFeatureTracker(num_envs, self.model.features, device, **tracker_kwargs)
     self.num_envs, self.device = num_envs, device
     self.step_feats = torch.zeros_like(self.tracker.feats)
@@ -295,19 +297,30 @@ class DiffImpactNoiseCost:
 
   @torch.no_grad()
   def end_step(self):
-    from .diffimpact import touchdown_cost
+    """반환 dict (모두 환경별):
+      db (B,)          스텝 소음 [dB re FS²] = 10·log10(Σ 확정 착지 에너지), 착지 없으면 no_touchdown_db
+      energy (B,)      Σ 확정 착지 에너지 [FS²] (착지 없으면 0)
+      touchdown (B,)   이번 스텝에 확정된 착지가 있는지
+      foot_energy (B, 4), foot_db (B, 4)  발별 값 (확정 안 된 발은 0, -inf)
+      ood (B,)         확정 착지의 범위 밖 거리 합 [σ] (진단값)
+      log              배치 요약: touchdowns, step_db (착지 있는 스텝 평균), ensemble_db_std, ood_frac/<특징>
+    """
     B, F = self.num_envs, len(self.model.features)
     out = self.model.foot_energy(self.step_feats.view(B * 4, F), self.legs, self.step_offset.view(B * 4),
                                  mask=self.step_ready.view(B * 4))
     mask = self.step_ready.float()
-    cost = touchdown_cost(out, self.floor_db, self.ref_db, self.cfg.ood_weight).view(B, 4)
-    step_cost = (cost * mask).sum(-1)
-    n = mask.sum()
-    denom = n.clamp_min(1)
+    foot_e = out["energy"].view(B, 4) * mask
+    energy = foot_e.sum(-1)
+    touchdown = self.step_ready.any(-1)
+    db = torch.where(touchdown, 10.0 * torch.log10(energy.clamp_min(1e-30)),
+                     torch.full_like(energy, self.no_touchdown_db))
+    foot_db = torch.where(self.step_ready, out["db"].view(B, 4), torch.full_like(foot_e, float("-inf")))
+    n_td, n_step = mask.sum(), touchdown.float().sum()
     log = {
-      "touchdowns": n,
-      "touchdown_db": (out["db"].view(B, 4) * mask).sum() / denom,
-      "ensemble_db_std": (out["db_std"].view(B, 4) * mask).sum() / denom,
+      "touchdowns": n_td,
+      "step_db": torch.where(touchdown, db, torch.zeros_like(db)).sum() / n_step.clamp_min(1),
+      "ensemble_db_std": (out["db_std"].view(B, 4) * mask).sum() / n_td.clamp_min(1),
     }
     log.update({f"ood_frac/{f}": v for f, v in zip(self.model.features, out["ood_frac"])})
-    return step_cost, log
+    return dict(db=db, energy=energy, touchdown=touchdown, foot_energy=foot_e, foot_db=foot_db,
+                ood=(out["ood"].view(B, 4) * mask).sum(-1), log=log)

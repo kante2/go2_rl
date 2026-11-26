@@ -1,4 +1,4 @@
-"""DiffImpact 앙상블 소음 모델 (RL 비용용, 순수 torch · GPU 배치).
+"""DiffImpact 앙상블 소음 모델 (RL 착지 소음 추정, 순수 torch · GPU 배치).
 
 착지 한 번(발 i)의 A-가중 0~80 ms 기대 에너지(배경 제외, 단위 FS², 미보정)를
   E_i = A_i² · K_다리(Δ_i, τ_i)
@@ -12,24 +12,32 @@
   body_vz_pre       : 착지 직전 10 ms 평균 몸통 수직 속도 [m/s]
   log_grf_impulse20 : ln(착지 후 20 ms 수직 접촉력 충격량 [N·s]) — 착지 1 스텝 뒤 확정
   is_second         : 대각 짝 발이 먼저 닿은 경우 1
-특징은 학습 범위(기본 1~99 백분위)로 클리핑해 넣고, 벗어난 거리(σ 단위)는 ood 로 따로 돌려준다.
-ood 페널티는 OOD_PENALTY_FEATURES (착지 동작 = 속도) 에만 건다. 자세·명령 특징은 시뮬-실제 차이가 커서
-(같은 정책에서 MuJoCo 착지 발 높이가 실로봇보다 ~3 cm 낮음) 페널티를 걸면 소음과 무관한 자세 변경을 유도한다.
+특징은 학습 범위(기본 1~99 백분위)로 클리핑해 넣고, 벗어난 거리(σ 단위)는 ood 로 따로 돌려준다 (진단값).
+예외: QUIET_EXTRAPOLATE_FEATURES (발·몸통 수직 속도) 는 **조용한 쪽만 클리핑하지 않고 외삽**한다.
+  부호 제약으로 학습돼 범위 밖에서도 "느릴수록 조용" 방향이 유지되므로, 학습 데이터보다 조용한 착지도
+  계속 낮게 예측한다 (클리핑하면 데이터의 가장 조용한 착지에서 예측이 멈춰 더 조용한 보행을 보상하지 못함).
+  시끄러운 쪽은 그대로 클리핑한다. 조용한 방향은 앙상블 가중치 부호로 정한다 (모델·다리 모두 같은 부호여야 함).
+  외삽 폭은 물리적으로 짧다: 발 vz 는 0 을 넘을 수 없다 (학습 범위 끝 −0.13 m/s → 0 에서 약 −0.8 dB).
+  ood/ood_frac 은 외삽 구간도 학습 범위 밖으로 센다.
+ood 는 OOD_FEATURES (착지 동작 = 속도) 만 합산한다. 자세·명령 특징은 시뮬-실제 차이가 원래 크다
+(같은 정책에서 MuJoCo 착지 발 높이가 실로봇보다 ~3 cm 낮음). 특징별 범위 밖 비율은 ood_frac 으로 모두 돌려준다.
+비용(보상) 변환은 이 모듈에 없다. db_ref (학습 실측 착지의 발별 예측 dB 백분위) 는 비용 설계 참고용으로 남긴다.
 """
 
-from dataclasses import dataclass
 from pathlib import Path
 
 import torch
 
 DEFAULT_TABLE = Path(__file__).with_name("diffimpact_ensemble.pt")
 DB_PER_NEPER = 10.0 / 2.302585092994046  # 10/ln(10)
-OOD_PENALTY_FEATURES = ("foot_vx_pre", "foot_vy_pre", "foot_vz_pre", "body_vz_pre")
+OOD_FEATURES = ("foot_vx_pre", "foot_vy_pre", "foot_vz_pre", "body_vz_pre")
+QUIET_EXTRAPOLATE_FEATURES = ("foot_vz_pre", "body_vz_pre")
 
 
 class DiffImpactNoiseModel:
   def __init__(self, path: str | Path = DEFAULT_TABLE, device: str = "cpu",
-               ood_features: tuple[str, ...] = OOD_PENALTY_FEATURES):
+               ood_features: tuple[str, ...] = OOD_FEATURES,
+               extrapolate_quiet: tuple[str, ...] = QUIET_EXTRAPOLATE_FEATURES):
     blob = torch.load(path, map_location=device, weights_only=False)
     self.features: list[str] = list(blob["features"])
     self.ood_mask = torch.tensor([f in ood_features for f in self.features], dtype=torch.float32, device=device)
@@ -56,6 +64,28 @@ class DiffImpactNoiseModel:
     self.offset_grid = blob["offset_grid"].to(device)  # (O,) 등간격 [s]
     self.logK = blob["logK"].to(device)  # (M, 4, O, T)
     self.n_models = self.w.shape[0]
+
+    # 클리핑 경계: 기본은 학습 범위 (lo, hi). 조용한 쪽 외삽 특징은 그 쪽 경계를 ±inf 로.
+    self.clip_lo, self.clip_hi = self.lo.clone(), self.hi.clone()
+    self.quiet_direction: dict[str, int] = {}  # +1: 값이 클수록 조용, -1: 작을수록 조용
+    for name in extrapolate_quiet:
+      if name not in self.features:
+        continue
+      k = self.features.index(name)
+      wk = self.w[..., k]
+      if torch.all(wk <= 0) and torch.any(wk < 0):
+        self.clip_hi[:, k] = float("inf")
+        self.quiet_direction[name] = +1
+      elif torch.all(wk >= 0) and torch.any(wk > 0):
+        self.clip_lo[:, k] = float("-inf")
+        self.quiet_direction[name] = -1
+      elif torch.all(wk == 0):
+        continue  # 효과 없음
+      else:
+        raise ValueError(f"{name}: ensemble weights have mixed signs; cannot extrapolate one side.")
+      if k == self.tf:  # τ 도 같은 특징을 쓰면 τ 방향도 조용한 쪽이어야 함 (τ 는 sigmoid 로 유계)
+        if not (torch.all(self.tau_w * self.quiet_direction[name] >= 0)):
+          raise ValueError(f"{name}: tau direction disagrees with amplitude direction.")
 
   def feature_index(self, name: str) -> int:
     return self.features.index(name)
@@ -89,13 +119,13 @@ class DiffImpactNoiseModel:
     mask: (N,) bool — 감시용 ood_frac 을 이 착지들로만 계산 (None = 전체). 에너지는 전체 계산.
 
     반환: energy (N,) 앙상블 선형 평균, db (N,), db_std (N,) 모델 간 dB 표준편차,
-          ood (N,) 페널티 대상 특징의 범위 밖 거리 합 [σ], ood_frac (F,) 특징별 범위 밖 비율 (전체 특징, 감시용).
+          ood (N,) OOD_FEATURES 의 범위 밖 거리 합 [σ] (진단값), ood_frac (F,) 특징별 범위 밖 비율 (전체 특징, 감시용).
     """
     x = x.to(self.device, torch.float32)
     legs = legs.to(self.device, torch.long)
     offset = (torch.zeros(len(x), device=self.device) if offset is None
               else offset.to(self.device, torch.float32).clamp(0, float(self.offset_grid[-1])))
-    xc = torch.maximum(torch.minimum(x[None], self.hi[:, None]), self.lo[:, None])  # (M, N, F)
+    xc = torch.maximum(torch.minimum(x[None], self.clip_hi[:, None]), self.clip_lo[:, None])  # (M, N, F)
     z = (xc - self.mu[:, None]) / self.sd[:, None]
     m_idx = torch.arange(self.n_models, device=x.device)[:, None]
     log_a = (self.w[m_idx, legs[None]] * z).sum(-1) + self.b[m_idx, legs[None]]  # (M, N)
@@ -106,7 +136,8 @@ class DiffImpactNoiseModel:
     log_e = 2 * log_a + self._log_k(tau, legs, offset)  # (M, N)
     db_m = DB_PER_NEPER * log_e
     energy = torch.exp(log_e).mean(0)
-    outside = (x[None] - xc).abs() / self.sd[:, None]  # (M, N, F)
+    xr = torch.maximum(torch.minimum(x[None], self.hi[:, None]), self.lo[:, None])  # 학습 범위 (진단용)
+    outside = (x[None] - xr).abs() / self.sd[:, None]  # (M, N, F)
     return dict(
       energy=energy,
       db=DB_PER_NEPER * torch.log(energy.clamp_min(1e-30)),
@@ -125,23 +156,3 @@ def _ood_frac_impl(out_mask, mask):
 
 
 DiffImpactNoiseModel._ood_frac = staticmethod(_ood_frac_impl)
-
-
-@dataclass
-class DiffImpactCostCfg:
-  table_path: str = str(DEFAULT_TABLE)
-  floor_db: float | None = None  # None: 학습 실측 발별 예측 dB 의 1 백분위. 이보다 조용해도 이득 없음.
-  ref_db: float | None = None  # None: 50 백분위. (ref - floor) 가 비용 1 단위.
-  ood_weight: float = 0.1  # 범위 밖 거리 [σ] 당 비용. 범위 안으로 돌아오는 신호.
-  failure_cost: float = 1.0
-
-  def __post_init__(self):
-    if self.ood_weight < 0:
-      raise ValueError("ood_weight must be nonnegative.")
-
-
-def touchdown_cost(out: dict[str, torch.Tensor], floor_db: float, ref_db: float, ood_weight: float):
-  """착지별 비용 (N,). 하한만 클립하고 상한은 두지 않는다 (시끄러울수록 계속 감소 신호)."""
-  if ref_db <= floor_db:
-    raise ValueError("ref_db must exceed floor_db.")
-  return (out["db"] - floor_db).clamp_min(0.0) / (ref_db - floor_db) + ood_weight * out["ood"]

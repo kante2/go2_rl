@@ -1,4 +1,4 @@
-"""DiffImpact 앙상블 소음 모델(RL 비용)의 방향·클리핑·비용 경계를 검증한다. 시뮬레이터 불필요.
+"""DiffImpact 앙상블 소음 모델의 방향·클리핑·조용한 쪽 외삽·스텝 소음(에너지 합 → dB)을 검증한다. 시뮬레이터 불필요.
 
 원본 DiffImpact 합성과의 수치 일치는 로컬 검증 스크립트(src/diffimpact, 저장소 밖)로 확인했다.
 """
@@ -7,12 +7,9 @@ import unittest
 
 import torch
 
-from src.locomotion_rl.go2_noise_aware.noise_model.diffimpact import (
-  DiffImpactNoiseModel,
-  touchdown_cost,
-)
+from src.locomotion_rl.go2_noise_aware.noise_model.diffimpact import DiffImpactNoiseModel
 from src.locomotion_rl.go2_noise_aware.noise_model.touchdown_features import (
-  DiffImpactNoiseCost,
+  DiffImpactStepNoise,
   TouchdownFeatureTracker,
   leg_kinematics,
   torque_grf_z,
@@ -59,6 +56,23 @@ class NoiseModelTest(unittest.TestCase):
     self.assertTrue(torch.allclose(at_edge["db"], beyond["db"], atol=1e-3))
     self.assertTrue(torch.all(beyond["ood"] > at_edge["ood"]))
 
+  def test_quiet_side_extrapolates(self):
+    # 발 vz: 학습 범위의 조용한 끝(hi)보다 더 느리게 내려도 예측이 계속 작아짐 (클리핑 안 함)
+    for name in ("foot_vz_pre", "body_vz_pre"):
+      k = self.nm.feature_index(name)
+      self.assertEqual(self.nm.quiet_direction[name], +1)
+      edge = self.nm.hi[:, k].min()
+      at_edge = self.energy({name: edge})
+      beyond = self.energy({name: edge + 0.1})
+      self.assertTrue(torch.all(beyond["db"] < at_edge["db"] - 1e-3), (name, at_edge["db"], beyond["db"]))
+      self.assertTrue(torch.all(beyond["ood"] > 0))  # 학습 범위 밖으로는 계속 셈 (진단)
+    off = DiffImpactNoiseModel(extrapolate_quiet=())  # 끄면 양쪽 클리핑
+    k = off.feature_index("foot_vz_pre")
+    x = self.mid.repeat(4, 1)
+    x[:, k] = off.hi[:, k].max(); a = off.foot_energy(x, self.legs)["db"]
+    x[:, k] = off.hi[:, k].max() + 0.1; b = off.foot_energy(x, self.legs)["db"]
+    self.assertTrue(torch.allclose(a, b, atol=1e-4))
+
   def test_posture_outside_range_has_no_penalty(self):
     k = self.nm.feature_index("foot_z")
     out = self.energy({"foot_z": self.nm.lo[:, k].min() - 0.05})
@@ -70,15 +84,6 @@ class NoiseModelTest(unittest.TestCase):
     later = self.energy(offset=torch.full((4,), 0.01))["energy"]
     self.assertTrue(torch.all(torch.isfinite(later)))
     self.assertFalse(torch.allclose(first, later))
-
-  def test_cost_floor_and_no_ceiling(self):
-    out = {"db": torch.tensor([-90.0, -60.0, -30.0]), "ood": torch.zeros(3)}
-    cost = touchdown_cost(out, floor_db=-70.0, ref_db=-60.0, ood_weight=0.1)
-    self.assertEqual(cost[0].item(), 0.0)
-    self.assertAlmostEqual(cost[1].item(), 1.0, places=5)
-    self.assertGreater(cost[2].item(), 1.0)
-    with self.assertRaises(ValueError):
-      touchdown_cost(out, floor_db=-60.0, ref_db=-60.0, ood_weight=0.1)
 
 
 class TrackerTest(unittest.TestCase):
@@ -137,25 +142,39 @@ class TrackerTest(unittest.TestCase):
     self.assertAlmostEqual(tr.feats[0, 0, names.index("foot_vz_pre")].item(), -0.6, places=5)
     self.assertAlmostEqual(tr.feats[0, 0, names.index("body_vz_pre")].item(), 0.6, places=5)  # FL·RR 입각 발 −(−0.6)
 
-  def test_cost_wrapper(self):
-    cost = DiffImpactNoiseCost(1, "cpu")
-    cost.begin_step()
-    self.run_pair(cost.tracker)  # 직접 tracker 로는 비용이 쌓이지 않음
-    c, _ = cost.end_step()
-    self.assertEqual(c.item(), 0.0)
-    cost = DiffImpactNoiseCost(1, "cpu")
+  def test_step_noise_sums_energy(self):
+    noise = DiffImpactStepNoise(1, "cpu")
     q = torch.tensor([[0.0, 0.8, -1.6] * 4]); pos, _ = leg_kinematics(q)
     vel = torch.zeros(1, 4, 3); vel[..., 2] = -0.6
-    contact = torch.zeros(1, 4); contact[0, [1, 2]] = 100.0
-    cost.begin_step()
-    for i in range(8):
-      if i >= 2:
-        contact[0, 0] = 100.0
-      cost.sample(vel, pos, contact.clone(), q, torch.zeros(1, 12), torch.tensor([[1.0, 0, 0, 0]]),
-                  torch.tensor([[0.5, 0.0, 0.0]]))
-    c, log = cost.end_step()
-    self.assertGreater(c.item(), 0.0)
-    self.assertEqual(log["touchdowns"].item(), 3.0)  # 처음 닿아 있던 FL·RR + FR
+    contact = torch.zeros(1, 4); contact[0, [1, 2]] = 100.0  # FL, RR 입각 → reset 직후 착지로 처리
+    steps = []
+    for k in range(3):  # 정책 스텝 3 개 × substep 4
+      noise.begin_step()
+      for i in range(4):
+        n = 4 * k + i
+        if n >= 2:
+          contact[0, 0] = 100.0  # FR 착지
+        noise.sample(vel, pos, contact.clone(), q, torch.zeros(1, 12), torch.tensor([[1.0, 0, 0, 0]]),
+                     torch.tensor([[0.5, 0.0, 0.0]]))
+      steps.append(noise.end_step())
+    first, second, third = steps
+    # 스텝 0: 확정 없음 (substep 4 에 FL·RR 확정 = 스텝 1 의 첫 substep)
+    self.assertFalse(first["touchdown"].item())
+    self.assertEqual(first["energy"].item(), 0.0)
+    self.assertEqual(first["db"].item(), float("-inf"))
+    # 스텝 1: FL·RR (substep 4), FR (substep 6) 확정 → 에너지 선형 합의 dB
+    self.assertTrue(second["touchdown"].item())
+    self.assertEqual(second["log"]["touchdowns"].item(), 3.0)
+    fe = second["foot_energy"][0]
+    self.assertEqual(int((fe > 0).sum()), 3)
+    self.assertAlmostEqual(second["energy"].item(), fe.sum().item(), places=10)
+    self.assertAlmostEqual(second["db"].item(), 10 * torch.log10(fe.sum()).item(), places=4)
+    self.assertGreater(second["db"].item(), second["foot_db"][0].max().item())  # 합 > 가장 큰 발
+    self.assertEqual(second["foot_db"][0, 3].item(), float("-inf"))  # RL 은 착지 없음
+    self.assertFalse(third["touchdown"].item())
+    nt = DiffImpactStepNoise(1, "cpu", model=noise.model, no_touchdown_db=-100.0)
+    nt.begin_step()
+    self.assertEqual(nt.end_step()["db"].item(), -100.0)
 
 
 if __name__ == "__main__":
