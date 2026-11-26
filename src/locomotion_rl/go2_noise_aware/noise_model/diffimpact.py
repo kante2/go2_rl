@@ -9,16 +9,23 @@
                                                                          + 하중이 실리는 소리 A0 (에너지 합)
   접촉 시간   τ = clamp( τ0_다리 · (v/v_ref)^(−β), 0.3 ms, 20 ms )          Hertz: t_c = 2.87 (m²/(R E*² v))^(1/5)
               τ0_다리 = 0.3 ms + 19.7 ms · sigmoid(τraw_다리)
-  기본 표 (diffimpact_ensemble.pt): α = 1, β = 0.2 이론값 고정. 다리별 m, τ0, A0 만 실측 녹음으로 학습했다
+  기본 표 (diffimpact_ensemble.pt, 실측 녹화 31개 · 11/26 데이터 포함): α = 1, β = 0.2 이론값 고정. 다리별 m, τ0, A0 만 실측 녹음으로 학습했다
   (m 에는 유효 질량·반발계수·마이크 감도, τ0 에는 유효 질량·발끝 반지름·탄성계수가 묶여 있다).
   Δ_i 는 세트(대각 쌍) 첫 착지 기준 그 발의 착지 시각 [s] (첫 발 = 0). 모델 소리가 힘 센서 착지보다 몇 ms 먼저
-  시작해 첫 발은 창(0~80 ms) 앞부분이 잘리므로 Δ 에 따라 K 가 다르다. K 표는 학습된 모델의 진동 모드·반향·확률적
-  충격음으로 미리 계산한 것이다 (크기 1 펄스, 폭 τ, 시각 Δ). 파형 합성은 하지 않는다.
+  시작해 첫 발은 창(0~80 ms) 앞부분이 잘리므로 Δ 에 따라 K 가 다르다. K 표는 학습된 모델의 진동 모드·반향으로
+  미리 계산한 것이다 (크기 1 펄스, 폭 τ, 시각 Δ). 확률적 충격음 성분은 없다 (원 DiffImpact 구성). 파형 합성은 하지 않는다.
+  두 발 에너지는 더하므로, 두 발이 5 ms 안에 거의 동시에 닿으면 원본 합성(모드 간섭)보다 약 0.2 dB 낮게 나온다.
 
 입력 x 는 착지 특징 12개 (실로봇 학습 데이터와 같은 정의 · 단위, touchdown_features.py 가 만든다).
 계산에는 foot_vz_pre, body_vz_pre 두 개만 쓰고 클리핑하지 않는다 (물리 법칙으로 외삽).
 나머지 특징은 학습 범위(1~99 백분위) 밖 정도를 진단값(ood, ood_frac)으로만 돌려준다.
 비용(보상) 변환은 이 모듈에 없다. db_ref (학습 실측 착지의 발별 예측 dB 백분위) 는 비용 설계 참고용이다.
+
+실제 음압 (잠정): db_spl = db + SPL_OFFSET_DB  [dBA SPL, 마이크 위치, 0~80 ms 평균]
+  UMIK-1 #7208479 교정 파일 Sens Factor −0.343 dB (94 dB SPL, 입력 볼륨 최대 = 디지털 +24 dB 기준) 에서
+  C = 94 − (−0.343 − 24) − 0.3 (주파수 응답, A-가중 착지 소리) ≈ 118.0 dB.
+  제조사 사양 (최대 133 dB SPL − 내부 게인 18 dB + 3.01) 과 일치. 녹음 조건: ALSA Mic Capture Volume 127 (0 dB),
+  내부 게인 18 dB (기본) 가정. 교정기 미사용 → 불확실성 약 ±1~3 dB. 학습(상대 비교)에는 영향 없음.
 """
 
 from pathlib import Path
@@ -28,6 +35,7 @@ import torch
 DEFAULT_TABLE = Path(__file__).with_name("diffimpact_ensemble.pt")
 DB_PER_NEPER = 10.0 / 2.302585092994046  # 10/ln(10)
 OOD_FEATURES = ("foot_vx_pre", "foot_vy_pre", "foot_vz_pre", "body_vz_pre")
+SPL_OFFSET_DB = 118.0  # 잠정 마이크 보정 상수: dB re FS² → dBA SPL (위 설명, ±1~3 dB)
 
 
 class DiffImpactNoiseModel:
@@ -121,6 +129,7 @@ class DiffImpactNoiseModel:
       ood_frac=self._ood_frac(outside.mean(0) > 0, mask),
       tau_ms=tau.mean(0) * 1e3,
       contact_speed=v,
+      db_spl=DB_PER_NEPER * torch.log(energy.clamp_min(1e-30)) + SPL_OFFSET_DB,  # 잠정 dBA SPL
     )
 
 

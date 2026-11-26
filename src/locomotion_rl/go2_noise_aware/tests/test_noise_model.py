@@ -81,6 +81,11 @@ class NoiseModelTest(unittest.TestCase):
     self.assertTrue(torch.all(out["ood"] == 0))  # 자세는 ood 합에서 제외
     self.assertGreater(out["ood_frac"][k].item(), 0)  # 감시용 비율에는 남음
 
+  def test_spl_offset(self):
+    out = self.energy()
+    self.assertTrue(torch.allclose(out["db_spl"], out["db"] + 118.0))
+    self.assertTrue(torch.all((out["db_spl"] > 30) & (out["db_spl"] < 90)))  # 마이크 위치 착지 소리, 상식 범위
+
   def test_offset_inside_window(self):
     first = self.energy(offset=torch.zeros(4))["energy"]
     later = self.energy(offset=torch.full((4,), 0.01))["energy"]

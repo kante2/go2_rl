@@ -299,6 +299,7 @@ class DiffImpactStepNoise:
   def end_step(self):
     """반환 dict (모두 환경별):
       db (B,)          스텝 소음 [dB re FS²] = 10·log10(Σ 확정 착지 에너지), 착지 없으면 no_touchdown_db
+      db_spl (B,)      같은 값의 잠정 dBA SPL (= db + SPL_OFFSET_DB 118.0, 마이크 위치, ±1~3 dB)
       energy (B,)      Σ 확정 착지 에너지 [FS²] (착지 없으면 0)
       touchdown (B,)   이번 스텝에 확정된 착지가 있는지
       foot_energy (B, 4), foot_db (B, 4)  발별 값 (확정 안 된 발은 0, -inf)
@@ -314,6 +315,8 @@ class DiffImpactStepNoise:
     touchdown = self.step_ready.any(-1)
     db = torch.where(touchdown, 10.0 * torch.log10(energy.clamp_min(1e-30)),
                      torch.full_like(energy, self.no_touchdown_db))
+    from .diffimpact import SPL_OFFSET_DB
+    db_spl = torch.where(touchdown, db + SPL_OFFSET_DB, db)  # 잠정 dBA SPL (착지 없으면 no_touchdown_db 그대로)
     foot_db = torch.where(self.step_ready, out["db"].view(B, 4), torch.full_like(foot_e, float("-inf")))
     n_td, n_step = mask.sum(), touchdown.float().sum()
     log = {
@@ -322,5 +325,5 @@ class DiffImpactStepNoise:
       "ensemble_db_std": (out["db_std"].view(B, 4) * mask).sum() / n_td.clamp_min(1),
     }
     log.update({f"ood_frac/{f}": v for f, v in zip(self.model.features, out["ood_frac"])})
-    return dict(db=db, energy=energy, touchdown=touchdown, foot_energy=foot_e, foot_db=foot_db,
+    return dict(db=db, db_spl=db_spl, energy=energy, touchdown=touchdown, foot_energy=foot_e, foot_db=foot_db,
                 ood=(out["ood"].view(B, 4) * mask).sum(-1), log=log)
