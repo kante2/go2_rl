@@ -1,5 +1,7 @@
 """Conditional PPO-Lagrangian with an episode-start discounted cost budget."""
 
+from turtle import st
+
 import torch
 
 from ..go2_quietpaw.step_03_training.ppo import unitree_go2_ppo_runner_cfg
@@ -45,9 +47,16 @@ class QuietWalkPPO(QuietPawPPO):
     limits = st.cost_limits[0, :, 0]
     if not torch.allclose(st.cost_limits[..., 0], limits.expand_as(st.cost_limits[..., 0])):
       raise ValueError("Each environment must keep its constraint fixed during training.")
+    # <Actor학습>
+    # 1.critic호출 -> critic의 예측으로 보상/비용 advantage를 각각 구한다.
     final_values = self.critic(obs)
     returns, advantages = generalized_advantage(
-      torch.cat((st.rewards, st.costs), dim=-1), st.values, st.dones, final_values, self.gamma, self.lam
+        torch.cat((st.rewards, st.costs), dim=-1),  # signals: 스텝별 [reward, cost]
+        st.values,                                 # values: 스텝별 critic 예측 [V_r, V_c]
+        st.dones,                                  # dones: 스텝별 에피소드 종료 여부
+        final_values,                              # last_values: rollout 끝의 관측에 대한 [V_r, V_c]
+        self.gamma,                                # gamma: 할인율 (기본 0.99)
+        self.lam,                                  # lam: GAE 계수 (기본 0.95)
     )
     st.returns.copy_(returns)
     multipliers = self.pid.multipliers

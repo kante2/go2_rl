@@ -15,10 +15,15 @@ N은 <dir>의 같은 <base> 파일을 보고 자동으로 매긴다. 시각은 �
 실로봇 npz에는 R2가 정책 스텝마다 보내는 명령(UDP --command-port 9904)도 cmd_*로 저장한다
 (cmd_t, cmd_vel = 정책에 들어간 [vx, vy, wz]). 시뮬은 terminal2_simulation.sh --real-command-port 9905로
 같은 명령을 직접 받는다. 정렬에는 두 파일 모두 ls_t_sync(로봇 tick / sim_time 기준, 지터 없음)를 쓴다.
+
+시뮬 수신·저장은 별도 프로세스(sim_worker)에서 한다. 같은 프로세스의 스레드로 받으면 ROS 콜백
+(초당 ~1700개)과 GIL을 나눠 200 Hz를 못 따라가고 (2026-11-26 확인: 0.57배), 시뮬 파일이 잘린다.
 """
 import argparse
+from collections import deque
 from datetime import datetime
 import json
+import multiprocessing
 from pathlib import Path
 import re
 import select
@@ -36,6 +41,118 @@ from sync_record_rl import COMMAND_SCHEMA, FS, SCHEMAS, DiskStream, RemoteAudio,
 from record_sim import PROJECT_ROOT, SimRecorder
 
 
+def sim_worker(port, conn, total, rows, gaps):
+    """자식 프로세스: 시뮬 UDP(200 Hz)를 받아 녹화 구간을 SimRecorder로 저장한다.
+
+    부모 → ('start', path, started) / ('stop', finished, events) / ('quit',)
+    자식 → ('ready',) / ('saved', n, gaps) / ('error', message)
+    """
+    signal.signal(signal.SIGINT, signal.SIG_IGN)  # Ctrl+C는 부모가 받아 stop을 보낸다
+    receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        receiver.bind(('127.0.0.1', port))
+    except OSError as error:
+        conn.send(('error', str(error)))
+        return
+    receiver.settimeout(.02)
+    conn.send(('ready',))
+    recent = deque(maxlen=100)  # start 메시지가 오기 직전(최대 0.5초)에 받은 패킷
+    recorder, last = None, None
+
+    def add(received, payload):
+        nonlocal last
+        try:
+            packet = json.loads(payload)
+            recorder.add(received, packet)
+            key = (packet['session'], packet['tick'])
+        except (ValueError, KeyError, TypeError) as error:
+            print('!! 잘못된 시뮬 패킷: %s' % error, flush=True)
+            return
+        if last and key[0] == last[0] and key[1] != last[1] + 1:
+            gaps.value += 1
+        last = key
+        rows.value = len(recorder.rows)
+
+    try:
+        while True:
+            while conn.poll():
+                message = conn.recv()
+                if message[0] == 'start':
+                    _, path, started = message
+                    recorder, last = SimRecorder(Path(path)), None
+                    rows.value = gaps.value = 0
+                    for received, payload in recent:
+                        if received >= started:
+                            add(received, payload)
+                    recent.clear()
+                elif message[0] == 'stop':
+                    _, finished, events = message
+                    recorder.rows = [row for row in recorder.rows if row[0] <= finished]
+                    recorder.events = events
+                    try:
+                        conn.send(('saved', recorder.save(), gaps.value))
+                    except Exception as error:  # noqa: BLE001
+                        conn.send(('error', '%s: %s' % (type(error).__name__, error)))
+                    recorder = None
+                elif message[0] == 'quit':
+                    return
+            try:
+                payload, _ = receiver.recvfrom(65536)
+            except socket.timeout:
+                continue
+            received = time.monotonic()  # 부모와 같은 시스템 monotonic 시계
+            total.value += 1
+            if recorder is None:
+                recent.append((received, payload))
+            else:
+                add(received, payload)
+    except (EOFError, OSError):  # 부모 종료
+        return
+    finally:
+        receiver.close()
+
+
+class SimLink:
+    """부모 쪽 sim_worker 핸들."""
+
+    def __init__(self, port):
+        context = multiprocessing.get_context('spawn')  # ROS/스레드 시작 전에 깨끗한 프로세스로
+        self.conn, child = context.Pipe()
+        self.total, self.rows, self.gaps = (context.Value('q', 0, lock=False) for _ in range(3))
+        self.process = context.Process(target=sim_worker, args=(port, child, self.total, self.rows, self.gaps),
+                                       daemon=True, name='record_session_sim')
+        self.process.start()
+        child.close()
+        if not self.conn.poll(20):
+            self.close()
+            raise RuntimeError('시뮬 수신 프로세스가 응답하지 않습니다')
+        reply = self.conn.recv()
+        if reply[0] != 'ready':
+            self.close()
+            raise RuntimeError(reply[1])
+
+    def start(self, path, started):
+        self.conn.send(('start', str(path), started))
+
+    def stop(self, finished, events):
+        self.conn.send(('stop', finished, [(float(t), str(label)) for t, label in events]))
+        if not self.conn.poll(120):
+            raise RuntimeError('시뮬 저장 응답 없음')
+        reply = self.conn.recv()
+        if reply[0] != 'saved':
+            raise RuntimeError(reply[1])
+        return reply[1], reply[2]
+
+    def close(self):
+        try:
+            self.conn.send(('quit',))
+        except OSError:
+            pass
+        self.process.join(timeout=3)
+        if self.process.is_alive():
+            self.process.terminate()
+
+
 def next_version(directory, base):
     pattern = re.compile(re.escape(base) + r'_v(\d+)_')
     found = [int(m.group(1)) for p in directory.iterdir()
@@ -46,7 +163,7 @@ def next_version(directory, base):
 class Take:
     """녹화 한 번. 콜백 스레드(ROS, 시뮬 UDP)는 add()로만 쓴다."""
 
-    def __init__(self, directory, base, args, device):
+    def __init__(self, directory, base, args, device, sim):
         self.name = '%s_v%d' % (base, next_version(directory, base))
         self.prefix = directory / (self.name + '_' + datetime.now().strftime('%Y%m%d_%H%M%S'))
         for suffix in ('.npz', '.wav', '_sim.npz'):
@@ -57,8 +174,7 @@ class Take:
         if args.command_port:
             self.streams['cmd'] = DiskStream(self.tmp, 'cmd', COMMAND_SCHEMA)
         self.audio = RemoteAudio(args.host, device, self.tmp)
-        self.sim = SimRecorder(Path(str(self.prefix) + '_sim.npz')) if args.sim_port else None
-        self.sim_gaps, self.sim_last = 0, None
+        self.sim, self.sim_path = sim, Path(str(self.prefix) + '_sim.npz')
         self.args, self.device = args, device
         self.lock = threading.Lock()
         self.closed = False
@@ -66,7 +182,7 @@ class Take:
         self.audio_ok = None
         self.events = [(self.started, 'move_start')]
         if self.sim:
-            self.sim.events = self.events  # same recording events in both files
+            self.sim.start(self.sim_path, self.started)
         self.audio.start()
 
     def add(self, stream, row):
@@ -74,22 +190,12 @@ class Take:
             if not self.closed:
                 self.streams[stream].append(row)
 
-    def add_sim(self, received, packet):
-        with self.lock:
-            if self.closed:
-                return
-            self.sim.add(received, packet)
-            key = (packet['session'], packet['tick'])
-            if self.sim_last and key[0] == self.sim_last[0] and key[1] != self.sim_last[1] + 1:
-                self.sim_gaps += 1
-            self.sim_last = key
-
     def status(self, now):
         return '%.0f초 | lowstate=%d sport=%d lowcmd=%d%s | audio=%.1f초%s' % (
             now - self.started, self.streams['ls'].count, self.streams['sp'].count,
             self.streams['lc'].count,
             ' R2명령=%d' % self.streams['cmd'].count if 'cmd' in self.streams else '', self.audio.samples / FS,
-            ' | sim=%d 끊김 %d' % (len(self.sim.rows), self.sim_gaps) if self.sim else '')
+            ' | sim=%d 끊김 %d' % (self.sim.rows.value, self.sim.gaps.value) if self.sim else '')
 
     def finish(self, reason):
         with self.lock:
@@ -114,7 +220,7 @@ class Take:
                     topics=dict(low=a.low, sport=a.sport, lowcmd=a.lowcmd),
                     counts={k: s.count for k, s in self.streams.items()},
                     audio_error=self.audio.error, timestamp_clock='PC time.monotonic receive time',
-                    recorder='record_session', sim_file=str(self.sim.path) if self.sim else None)
+                    recorder='record_session', sim_file=str(self.sim_path) if self.sim else None)
         try:
             save_recording(self.prefix, self.streams, self.audio, self.events, meta)
         except Exception:
@@ -124,8 +230,13 @@ class Take:
         else:
             shutil.rmtree(self.tmp)
         if self.sim:
-            n = self.sim.save()
-            print('저장: %s (물리 스텝 %d, 끊김 %d)' % (self.sim.path, n, self.sim_gaps), flush=True)
+            try:
+                n, gaps = self.sim.stop(finished, self.events)  # same recording events in both files
+            except Exception as error:  # noqa: BLE001
+                n = -1
+                print('!! 시뮬 저장 실패: %s' % error, file=sys.stderr, flush=True)
+            else:
+                print('저장: %s (물리 스텝 %d, 끊김 %d)' % (self.sim_path, n, gaps), flush=True)
             if 'cmd' in self.streams and not self.streams['cmd'].count:
                 print('!! R2 명령 수신 없음: real_closed_loop.json command_mirror_ports에 %d이 있는지, '
                       'R2를 새 코드로 다시 켰는지 확인' % a.command_port, flush=True)
@@ -208,25 +319,6 @@ def main():
                 take.add('lc', (time.monotonic(), *[[getattr(m, k) for m in motors]
                                                     for k in ('kp', 'kd', 'q', 'dq', 'tau')]))
 
-    def sim_loop(receiver):
-        # 대기 중에도 계속 비워서, 녹화 시작 시 쌓인 옛 패킷이 들어가지 않게 한다.
-        while not quit_event.is_set():
-            try:
-                payload, _ = receiver.recvfrom(65536)
-            except socket.timeout:
-                continue
-            except OSError:
-                return
-            received = time.monotonic()
-            counts['sim'] += 1
-            take = state['take']
-            if take is None or take.sim is None:
-                continue
-            try:
-                take.add_sim(received, json.loads(payload))
-            except (ValueError, KeyError, TypeError) as error:
-                print('!! 잘못된 시뮬 패킷: %s' % error, flush=True)
-
     def command_loop(receiver):
         while not quit_event.is_set():
             try:
@@ -254,15 +346,6 @@ def main():
     def on_signal(number, frame):
         quit_event.set()
 
-    receiver = None
-    if args.sim_port:
-        receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            receiver.bind(('127.0.0.1', args.sim_port))
-        except OSError:
-            parser.error('UDP %d 사용 중: 기존 sim_record.sh(S3)를 끄세요. 이 세션이 시뮬도 녹화합니다.'
-                         % args.sim_port)
-        receiver.settimeout(.1)
     command_receiver = None
     if args.command_port:
         command_receiver = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -271,14 +354,19 @@ def main():
         except OSError:
             parser.error('UDP %d 사용 중: 다른 record_session이 켜져 있는지 확인하세요.' % args.command_port)
         command_receiver.settimeout(.1)
+    sim = None
+    if args.sim_port:
+        try:
+            sim = SimLink(args.sim_port)  # rclpy.init 전에 시작
+        except RuntimeError as error:
+            parser.error('시뮬 UDP %d 수신 불가 (%s): 기존 sim_record.sh(S3)를 끄세요. '
+                         '이 세션이 시뮬도 녹화합니다.' % (args.sim_port, error))
 
     rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
     node = Listener()
     executor = SingleThreadedExecutor()
     executor.add_node(node)
     threads = [threading.Thread(target=spin_loop, args=(executor,), daemon=True)]
-    if receiver:
-        threads.append(threading.Thread(target=sim_loop, args=(receiver,), daemon=True))
     if command_receiver:
         threads.append(threading.Thread(target=command_loop, args=(command_receiver,), daemon=True))
     for thread in threads:
@@ -296,8 +384,9 @@ def main():
     print('※ 실로봇 제어(R2)보다 먼저 켜 두고, 끝날 때까지 이 세션을 유지하세요.', flush=True)
     try:
         tty.setcbreak(sys.stdin.fileno())
-        before, mark = dict(counts), time.monotonic()
+        before, mark = dict(counts, sim=sim.total.value if sim else 0), time.monotonic()
         time.sleep(2)
+        counts['sim'] = sim.total.value if sim else 0
         rates = {k: (counts[k] - before[k]) / (time.monotonic() - mark) for k in counts}
         print('수신 확인: lowstate %.0fHz | sport %.0fHz | lowcmd %.0fHz | sim %.0fHz | R2명령 %.0fHz' % (
             rates['ls'], rates['sp'], rates['lc'], rates['sim'], rates['cmd']), flush=True)
@@ -316,7 +405,7 @@ def main():
                     break
                 if key in (b'\n', b'\r'):
                     try:
-                        state['take'] = take = Take(directory, base, args, device)
+                        state['take'] = take = Take(directory, base, args, device, sim)
                     except Exception as error:
                         print('!! 녹화 시작 실패: %s' % error, flush=True)
                         prompt()
@@ -362,8 +451,8 @@ def main():
             signal.signal(sig, handler)
         for thread in threads:
             thread.join(timeout=2)
-        if receiver:
-            receiver.close()
+        if sim:
+            sim.close()
         if command_receiver:
             command_receiver.close()
         executor.shutdown()

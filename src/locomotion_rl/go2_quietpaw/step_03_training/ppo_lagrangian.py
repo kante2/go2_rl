@@ -12,6 +12,7 @@ import torch
 from tensordict import TensorDict
 from rsl_rl.algorithms import PPO
 from rsl_rl.utils import resolve_callable
+#  resolve callable : 설정에 문자열로 적힌 이름을 실제 클래스나 함수로 찾아주는 것,
 
 from .pid_lagrangian import PidLagrangian, PidLagrangianCfg
 from .storage import QuietPawStorage, generalized_advantage
@@ -151,6 +152,7 @@ class QuietPawPPO(PPO):
         -advantage * ratio,
         -advantage * ratio.clamp(1.0 - self.clip_param, 1.0 + self.clip_param),
       ).mean()
+      # value loss을 통해, 
       reward_loss, cost_loss = self._value_loss(values, batch.values, batch.returns)
       loss = (surrogate + self.value_loss_coef * reward_loss
               + self.cost_value_loss_coef * cost_loss - self.entropy_coef * entropy)

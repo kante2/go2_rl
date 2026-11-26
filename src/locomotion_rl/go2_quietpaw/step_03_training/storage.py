@@ -6,6 +6,8 @@ from rsl_rl.storage import RolloutStorage
 
 def generalized_advantage(signals, values, dones, last_values, gamma, lam):
   """[T, B, K] 신호의 GAE. K=2이면 reward/cost를 같은 종료 경계로 처리한다."""
+  # lam : GAE(Generalized Advantage Estimation)에서 사용하는 게수
+  # advantage: 실제 보상 OR 비용이, critic이 예측보다 얼마나 크거나 작았는지,
   advantage = torch.zeros_like(last_values)
   returns = torch.empty_like(values)
   for step in reversed(range(signals.shape[0])):
@@ -13,8 +15,11 @@ def generalized_advantage(signals, values, dones, last_values, gamma, lam):
     alive = 1.0 - dones[step].float()
     delta = signals[step] + gamma * alive * next_value - values[step]
     advantage = delta + gamma * lam * alive * advantage
-    returns[step] = values[step] + advantage
-  return returns, returns - values
+    # 두 critiC 의 학습용 목표값
+      # reward critic - reward return
+      # cost critc  - cost return 을 예측하도록 학습
+    returns[step] = values[step] + advantage # critic 학습용 목표값
+  return returns, returns - values 
 
 
 class QuietPawStorage(RolloutStorage):

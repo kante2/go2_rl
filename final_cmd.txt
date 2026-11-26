@@ -23,7 +23,11 @@ bash $GO2_ROOT/scripts/run_go2_real_closed_loop.sh --execute --model "$MODEL" \
 bash $GO2_ROOT/scripts/run_go2_real_keyboard.sh --speed "$SPEED" --lateral-speed "$LATERAL_SPEED" --yaw-rate "$YAW_RATE" --mirror-sim
 
 # ── 녹화 (S3 → R4 연달아 실행, 30초 뒤 둘 다 자동 종료·저장) ──
+# NEW CMD
+bash $GO2_ROOT/sh_folder/record_session.sh --base "$(exp_base)" --dir "$DATA_DIR" --duration "$DURATION"
+
+# OLD CMD
 # S3: 시뮬 녹화
-bash $GO2_ROOT/sh_folder/sim_record.sh --name "$(exp_name)" --dir "$DATA_DIR" --duration "$DURATION"
+# bash $GO2_ROOT/sh_folder/sim_record.sh --name "$(exp_name)" --dir "$DATA_DIR" --duration "$DURATION"
 # R4: 실로봇 녹화
-bash $GO2_ROOT/sh_folder/terminal4_noise_record.sh --name "$(exp_name)" --dir "$DATA_DIR" --duration "$DURATION"
+# bash $GO2_ROOT/sh_folder/terminal4_noise_record.sh --name "$(exp_name)" --dir "$DATA_DIR" --duration "$DURATION"
