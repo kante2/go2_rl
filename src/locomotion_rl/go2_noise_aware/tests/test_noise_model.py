@@ -1,4 +1,4 @@
-"""DiffImpact 앙상블 소음 모델의 방향·클리핑·조용한 쪽 외삽·스텝 소음(에너지 합 → dB)을 검증한다. 시뮬레이터 불필요.
+"""DiffImpact 물리 법칙 소음 모델(충격량 ∝ v, Hertz τ ∝ v^-1/5)과 착지 추적·스텝 소음(에너지 합 → dB)을 검증한다. 시뮬레이터 불필요.
 
 원본 DiffImpact 합성과의 수치 일치는 로컬 검증 스크립트(src/diffimpact, 저장소 밖)로 확인했다.
 """
@@ -7,7 +7,7 @@ import unittest
 
 import torch
 
-from src.locomotion_rl.go2_noise_aware.noise_model.diffimpact import PHYS_TABLE, DiffImpactNoiseModel
+from src.locomotion_rl.go2_noise_aware.noise_model.diffimpact import DiffImpactNoiseModel
 from src.locomotion_rl.go2_noise_aware.noise_model.touchdown_features import (
   DiffImpactStepNoise,
   TouchdownFeatureTracker,
@@ -17,17 +17,23 @@ from src.locomotion_rl.go2_noise_aware.noise_model.touchdown_features import (
 
 
 class NoiseModelTest(unittest.TestCase):
+  """충돌 물리 법칙 표: A = sqrt((m (v/v_ref)^α)² + A0²), τ = τ0 (v/v_ref)^(−β), v = −(발 vz + 몸통 vz)."""
+
   @classmethod
   def setUpClass(cls):
     cls.nm = DiffImpactNoiseModel()
     cls.mid = ((cls.nm.lo + cls.nm.hi) / 2).mean(0)  # 학습 범위 중앙의 착지
     cls.legs = torch.arange(4)
+    cls.kf, cls.kb = cls.nm.feature_index("foot_vz_pre"), cls.nm.feature_index("body_vz_pre")
 
   def energy(self, change=None, offset=None):
     x = self.mid.repeat(4, 1)
     for name, value in (change or {}).items():
       x[:, self.nm.feature_index(name)] = value
     return self.nm.foot_energy(x, self.legs, offset)
+
+  def db(self, foot_vz, body_vz=0.0):
+    return self.energy({"foot_vz_pre": foot_vz, "body_vz_pre": body_vz})
 
   def test_shapes_and_units(self):
     out = self.energy()
@@ -36,47 +42,43 @@ class NoiseModelTest(unittest.TestCase):
     self.assertTrue(torch.all(out["db"] < 0))  # dB re FS²
     self.assertTrue(torch.all(out["ood"] == 0))
 
+  def test_theory_exponents(self):
+    self.assertEqual(self.nm.amp_mode, "phys")
+    self.assertTrue(torch.allclose(self.nm.alpha, torch.ones_like(self.nm.alpha)))  # 충격량 ∝ v
+    self.assertTrue(torch.allclose(self.nm.beta, torch.full_like(self.nm.beta, 0.2)))  # Hertz τ ∝ v^(−1/5)
+
   def test_slower_descent_is_quieter(self):
-    k = self.nm.feature_index("foot_vz_pre")
     base = self.energy()["db"]
-    slow = self.energy({"foot_vz_pre": self.mid[k] * 0.7})["db"]  # vz < 0: 하강 30% 느리게
-    self.assertTrue(torch.all(slow <= base + 1e-4), (base, slow))
+    slow = self.energy({"foot_vz_pre": self.mid[self.kf] * 0.7})["db"]  # vz < 0: 하강 30% 느리게
+    self.assertTrue(torch.all(slow < base), (base, slow))
 
-  def test_slower_body_drop_is_not_louder(self):
-    k = self.nm.feature_index("body_vz_pre")
-    base = self.energy()["db"]
-    slow = self.energy({"body_vz_pre": self.mid[k] * 0.7})["db"]
-    self.assertTrue(torch.all(slow <= base + 1e-4), (base, slow))
+  def test_faster_contact_is_louder_beyond_range(self):
+    # 학습 범위(가장 빠른 하강 ≈ −1 m/s)를 넘어서도 계속 커짐 (클리핑 없음)
+    dbs = torch.stack([self.db(v)["db"] for v in (-0.2, -0.6, -1.0, -1.5, -2.0)])
+    self.assertTrue(torch.all(dbs[1:] > dbs[:-1]), dbs)
+    self.assertTrue(torch.all(self.db(-2.0)["ood"] > 0))  # 학습 범위 밖은 진단으로 셈
 
-  def test_clipping_freezes_prediction_and_adds_ood(self):
-    k = self.nm.feature_index("foot_vz_pre")
-    edge = self.nm.lo[:, k].max()
-    at_edge = self.energy({"foot_vz_pre": edge})
-    beyond = self.energy({"foot_vz_pre": edge - 1.0})  # 범위보다 1 m/s 더 빠른 하강
-    self.assertTrue(torch.allclose(at_edge["db"], beyond["db"], atol=1e-3))
-    self.assertTrue(torch.all(beyond["ood"] > at_edge["ood"]))
+  def test_contact_speed_is_foot_plus_body(self):
+    a = self.db(-0.6, 0.0)
+    b = self.db(-0.4, -0.2)  # 같은 v = 0.6
+    self.assertTrue(torch.allclose(a["db"], b["db"], atol=1e-4))
+    self.assertTrue(torch.allclose(a["contact_speed"], torch.full((4,), 0.6), atol=1e-6))
 
-  def test_quiet_side_extrapolates(self):
-    # 발 vz: 학습 범위의 조용한 끝(hi)보다 더 느리게 내려도 예측이 계속 작아짐 (클리핑 안 함)
-    for name in ("foot_vz_pre", "body_vz_pre"):
-      k = self.nm.feature_index(name)
-      self.assertEqual(self.nm.quiet_direction[name], +1)
-      edge = self.nm.hi[:, k].min()
-      at_edge = self.energy({name: edge})
-      beyond = self.energy({name: edge + 0.1})
-      self.assertTrue(torch.all(beyond["db"] < at_edge["db"] - 1e-3), (name, at_edge["db"], beyond["db"]))
-      self.assertTrue(torch.all(beyond["ood"] > 0))  # 학습 범위 밖으로는 계속 셈 (진단)
-    off = DiffImpactNoiseModel(extrapolate_quiet=())  # 끄면 양쪽 클리핑
-    k = off.feature_index("foot_vz_pre")
-    x = self.mid.repeat(4, 1)
-    x[:, k] = off.hi[:, k].max(); a = off.foot_energy(x, self.legs)["db"]
-    x[:, k] = off.hi[:, k].max() + 0.1; b = off.foot_energy(x, self.legs)["db"]
-    self.assertTrue(torch.allclose(a, b, atol=1e-4))
+  def test_contact_time_follows_hertz(self):
+    t1, t2 = self.db(-0.4)["tau_ms"], self.db(-0.8)["tau_ms"]  # 속도 2배 → τ × 2^(−0.2) (클램프 안쪽)
+    self.assertTrue(torch.allclose(t2 / t1, torch.full((4,), 2 ** -0.2), rtol=1e-3), (t1, t2))
 
-  def test_posture_outside_range_has_no_penalty(self):
+  def test_gentle_contact_floor(self):
+    # v → 0 이어도 하중 소리 A0 가 남아 유한한 값에서 멈춤
+    d0 = self.db(0.0)["db"]
+    self.assertTrue(torch.all(torch.isfinite(d0)))
+    self.assertTrue(torch.all(d0 < self.db(-0.6)["db"] - 1.0))
+
+  def test_other_features_do_not_change_prediction(self):
     k = self.nm.feature_index("foot_z")
     out = self.energy({"foot_z": self.nm.lo[:, k].min() - 0.05})
-    self.assertTrue(torch.all(out["ood"] == 0))
+    self.assertTrue(torch.allclose(out["db"], self.energy()["db"]))
+    self.assertTrue(torch.all(out["ood"] == 0))  # 자세는 ood 합에서 제외
     self.assertGreater(out["ood_frac"][k].item(), 0)  # 감시용 비율에는 남음
 
   def test_offset_inside_window(self):
@@ -84,53 +86,6 @@ class NoiseModelTest(unittest.TestCase):
     later = self.energy(offset=torch.full((4,), 0.01))["energy"]
     self.assertTrue(torch.all(torch.isfinite(later)))
     self.assertFalse(torch.allclose(first, later))
-
-
-class PhysModelTest(unittest.TestCase):
-  """충돌 법칙 표: A = sqrt((m (v/v_ref)^α)² + A0²), τ = τ0 (v/v_ref)^(−β), v = −(발 vz + 몸통 vz)."""
-
-  @classmethod
-  def setUpClass(cls):
-    cls.nm = DiffImpactNoiseModel(PHYS_TABLE)
-    cls.mid = ((cls.nm.lo + cls.nm.hi) / 2).mean(0)
-    cls.legs = torch.arange(4)
-    cls.kf, cls.kb = cls.nm.feature_index("foot_vz_pre"), cls.nm.feature_index("body_vz_pre")
-
-  def db(self, foot_vz, body_vz=0.0):
-    x = self.mid.repeat(4, 1)
-    x[:, self.kf], x[:, self.kb] = foot_vz, body_vz
-    return self.nm.foot_energy(x, self.legs)
-
-  def test_mode_and_constants(self):
-    self.assertEqual(self.nm.amp_mode, "phys")
-    self.assertTrue(torch.all((self.nm.alpha >= 0.5) & (self.nm.alpha <= 1.5)))
-    self.assertTrue(torch.all((self.nm.beta >= 0.05) & (self.nm.beta <= 0.35)))
-    self.assertTrue(torch.all(self.nm.w == 0))  # 나머지 특징은 쓰지 않음
-
-  def test_faster_contact_is_louder_beyond_range(self):
-    # 학습 범위(가장 빠른 하강 ≈ −1 m/s)를 넘어서도 계속 커짐 (양쪽 모두 클리핑 없음)
-    vz = [-0.2, -0.6, -1.0, -1.5, -2.0]
-    dbs = torch.stack([self.db(v)["db"] for v in vz])
-    self.assertTrue(torch.all(dbs[1:] > dbs[:-1]), dbs)
-    self.assertTrue(torch.all(self.db(-2.0)["ood"] > 0))  # 학습 범위 밖은 진단으로 셈
-
-  def test_contact_speed_is_foot_plus_body(self):
-    a = self.db(-0.6, 0.0)["db"]
-    b = self.db(-0.4, -0.2)["db"]  # 같은 v = 0.6
-    self.assertTrue(torch.allclose(a, b, atol=1e-4))
-
-  def test_gentle_contact_floor(self):
-    # v → 0 이어도 하중 소리 A0 가 남아 유한한 값에서 멈춤
-    d0, d1 = self.db(0.0)["db"], self.db(-0.01)["db"]
-    self.assertTrue(torch.all(torch.isfinite(d0)))
-    self.assertTrue(torch.allclose(d0, d1, atol=2.0))  # 0 → 0.01 m/s: A0 가 지배 (A0 가 작은 RL 다리도 2 dB 안)
-    self.assertTrue(torch.all(d0 < self.db(-0.6)["db"] - 1.0))
-
-  def test_step_noise_with_phys(self):
-    noise = DiffImpactStepNoise(1, "cpu", model=self.nm)
-    noise.begin_step()
-    out = noise.end_step()
-    self.assertEqual(out["db"].item(), float("-inf"))
 
 
 class TrackerTest(unittest.TestCase):
