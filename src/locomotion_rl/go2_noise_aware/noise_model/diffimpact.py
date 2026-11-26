@@ -21,6 +21,15 @@
   ood/ood_frac 은 외삽 구간도 학습 범위 밖으로 센다.
 ood 는 OOD_FEATURES (착지 동작 = 속도) 만 합산한다. 자세·명령 특징은 시뮬-실제 차이가 원래 크다
 (같은 정책에서 MuJoCo 착지 발 높이가 실로봇보다 ~3 cm 낮음). 특징별 범위 밖 비율은 ood_frac 으로 모두 돌려준다.
+
+충격 크기·접촉 시간 식은 두 가지 (표의 amp_mode, 앙상블 안에서 같아야 함):
+  'linear' (diffimpact_ensemble.pt): log A = w_다리·z + b_다리 (특징 12개의 1차식),
+           τ = τmin + τspan·sigmoid(c_다리 + k_다리·z[발 vz])
+  'phys'   (diffimpact_phys_ensemble.pt): 충돌 법칙. 접촉 속도 v = max(−(foot_vz_pre + body_vz_pre), 1e-3) [m/s]
+           A = sqrt((m_다리·(v/v_ref)^α_다리)² + A0_다리²)   충격량-운동량 (A ∝ v^α, 이론 α=1) + 하중 소리 A0
+           τ = clamp(τ0_다리·(v/v_ref)^(−β_다리), τmin, τmin+τspan)   Hertz 접촉 시간 (이론 β=0.2)
+           접촉 속도 두 특징은 **양쪽 모두 클리핑하지 않는다** (물리 법칙으로 외삽: sport mode 에서 자르지 않아도
+           최대 과대 예측 +7 dB 로 자른 경우와 같음, 1차식은 +19 dB). 나머지 특징은 가중치 0.
 비용(보상) 변환은 이 모듈에 없다. db_ref (학습 실측 착지의 발별 예측 dB 백분위) 는 비용 설계 참고용으로 남긴다.
 """
 
@@ -29,6 +38,7 @@ from pathlib import Path
 import torch
 
 DEFAULT_TABLE = Path(__file__).with_name("diffimpact_ensemble.pt")
+PHYS_TABLE = Path(__file__).with_name("diffimpact_phys_ensemble.pt")
 DB_PER_NEPER = 10.0 / 2.302585092994046  # 10/ln(10)
 OOD_FEATURES = ("foot_vx_pre", "foot_vy_pre", "foot_vz_pre", "body_vz_pre")
 QUIET_EXTRAPOLATE_FEATURES = ("foot_vz_pre", "body_vz_pre")
@@ -64,10 +74,23 @@ class DiffImpactNoiseModel:
     self.offset_grid = blob["offset_grid"].to(device)  # (O,) 등간격 [s]
     self.logK = blob["logK"].to(device)  # (M, 4, O, T)
     self.n_models = self.w.shape[0]
+    modes = {m.get("amp_mode", "linear") for m in ens}
+    if len(modes) != 1:
+      raise ValueError("Ensemble members must share amp_mode.")
+    self.amp_mode = modes.pop()
 
     # 클리핑 경계: 기본은 학습 범위 (lo, hi). 조용한 쪽 외삽 특징은 그 쪽 경계를 ±inf 로.
     self.clip_lo, self.clip_hi = self.lo.clone(), self.hi.clone()
     self.quiet_direction: dict[str, int] = {}  # +1: 값이 클수록 조용, -1: 작을수록 조용
+    if self.amp_mode == "phys":
+      self.clip_lo, self.clip_hi = stack("clip_lo"), stack("clip_hi")  # 접촉 속도 특징: ±inf
+      self.alpha, self.beta, self.logA0 = stack("alpha"), stack("beta"), stack("logA0")  # (M, 4)
+      v_idx = {tuple(m["v_idx"]) for m in ens}
+      v_ref = {float(m["v_ref"]) for m in ens}
+      if len(v_idx) != 1 or len(v_ref) != 1:
+        raise ValueError("Ensemble members must share v_idx and v_ref.")
+      self.v_idx, self.v_ref = v_idx.pop(), v_ref.pop()
+      extrapolate_quiet = ()  # 물리 법칙이 양쪽 외삽을 맡음
     for name in extrapolate_quiet:
       if name not in self.features:
         continue
@@ -92,8 +115,8 @@ class DiffImpactNoiseModel:
 
   @staticmethod
   def _pos(v, g):
-    p = ((v - g[0]) / (g[-1] - g[0]) * (len(g) - 1)).clamp(0, len(g) - 1 - 1e-6)
-    i = p.floor().long()
+    p = ((v - g[0]) / (g[-1] - g[0]) * (len(g) - 1)).clamp(0, len(g) - 1)
+    i = p.floor().long().clamp(max=len(g) - 2)  # 격자 끝(float32 반올림 포함)에서도 i+1 이 범위 안
     return i, p - i
 
   def _log_k(self, tau: torch.Tensor, legs: torch.Tensor, offset: torch.Tensor) -> torch.Tensor:
@@ -130,9 +153,17 @@ class DiffImpactNoiseModel:
     m_idx = torch.arange(self.n_models, device=x.device)[:, None]
     log_a = (self.w[m_idx, legs[None]] * z).sum(-1) + self.b[m_idx, legs[None]]  # (M, N)
     zt = self.tau_raw[m_idx, legs[None]]
-    if self.tf >= 0:
-      zt = zt + self.tau_w[m_idx, legs[None]] * z[..., self.tf]
-    tau = self.tau_min + self.tau_span * torch.sigmoid(zt)
+    if self.amp_mode == "phys":
+      i, j = self.v_idx
+      lv = torch.log((-(x[:, i] + x[:, j])).clamp_min(1e-3) / self.v_ref)[None]  # (1, N), 원 단위
+      log_imp = log_a + self.alpha[m_idx, legs[None]] * lv  # log m + α log(v/v_ref)
+      log_a = 0.5 * torch.logaddexp(2 * log_imp, 2 * self.logA0[m_idx, legs[None]])
+      tau0 = self.tau_min + self.tau_span * torch.sigmoid(zt)
+      tau = (tau0 * torch.exp(-self.beta[m_idx, legs[None]] * lv)).clamp(self.tau_min, self.tau_min + self.tau_span)
+    else:
+      if self.tf >= 0:
+        zt = zt + self.tau_w[m_idx, legs[None]] * z[..., self.tf]
+      tau = self.tau_min + self.tau_span * torch.sigmoid(zt)
     log_e = 2 * log_a + self._log_k(tau, legs, offset)  # (M, N)
     db_m = DB_PER_NEPER * log_e
     energy = torch.exp(log_e).mean(0)

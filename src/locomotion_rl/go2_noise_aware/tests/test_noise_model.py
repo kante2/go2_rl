@@ -7,7 +7,7 @@ import unittest
 
 import torch
 
-from src.locomotion_rl.go2_noise_aware.noise_model.diffimpact import DiffImpactNoiseModel
+from src.locomotion_rl.go2_noise_aware.noise_model.diffimpact import PHYS_TABLE, DiffImpactNoiseModel
 from src.locomotion_rl.go2_noise_aware.noise_model.touchdown_features import (
   DiffImpactStepNoise,
   TouchdownFeatureTracker,
@@ -84,6 +84,53 @@ class NoiseModelTest(unittest.TestCase):
     later = self.energy(offset=torch.full((4,), 0.01))["energy"]
     self.assertTrue(torch.all(torch.isfinite(later)))
     self.assertFalse(torch.allclose(first, later))
+
+
+class PhysModelTest(unittest.TestCase):
+  """충돌 법칙 표: A = sqrt((m (v/v_ref)^α)² + A0²), τ = τ0 (v/v_ref)^(−β), v = −(발 vz + 몸통 vz)."""
+
+  @classmethod
+  def setUpClass(cls):
+    cls.nm = DiffImpactNoiseModel(PHYS_TABLE)
+    cls.mid = ((cls.nm.lo + cls.nm.hi) / 2).mean(0)
+    cls.legs = torch.arange(4)
+    cls.kf, cls.kb = cls.nm.feature_index("foot_vz_pre"), cls.nm.feature_index("body_vz_pre")
+
+  def db(self, foot_vz, body_vz=0.0):
+    x = self.mid.repeat(4, 1)
+    x[:, self.kf], x[:, self.kb] = foot_vz, body_vz
+    return self.nm.foot_energy(x, self.legs)
+
+  def test_mode_and_constants(self):
+    self.assertEqual(self.nm.amp_mode, "phys")
+    self.assertTrue(torch.all((self.nm.alpha >= 0.5) & (self.nm.alpha <= 1.5)))
+    self.assertTrue(torch.all((self.nm.beta >= 0.05) & (self.nm.beta <= 0.35)))
+    self.assertTrue(torch.all(self.nm.w == 0))  # 나머지 특징은 쓰지 않음
+
+  def test_faster_contact_is_louder_beyond_range(self):
+    # 학습 범위(가장 빠른 하강 ≈ −1 m/s)를 넘어서도 계속 커짐 (양쪽 모두 클리핑 없음)
+    vz = [-0.2, -0.6, -1.0, -1.5, -2.0]
+    dbs = torch.stack([self.db(v)["db"] for v in vz])
+    self.assertTrue(torch.all(dbs[1:] > dbs[:-1]), dbs)
+    self.assertTrue(torch.all(self.db(-2.0)["ood"] > 0))  # 학습 범위 밖은 진단으로 셈
+
+  def test_contact_speed_is_foot_plus_body(self):
+    a = self.db(-0.6, 0.0)["db"]
+    b = self.db(-0.4, -0.2)["db"]  # 같은 v = 0.6
+    self.assertTrue(torch.allclose(a, b, atol=1e-4))
+
+  def test_gentle_contact_floor(self):
+    # v → 0 이어도 하중 소리 A0 가 남아 유한한 값에서 멈춤
+    d0, d1 = self.db(0.0)["db"], self.db(-0.01)["db"]
+    self.assertTrue(torch.all(torch.isfinite(d0)))
+    self.assertTrue(torch.allclose(d0, d1, atol=2.0))  # 0 → 0.01 m/s: A0 가 지배 (A0 가 작은 RL 다리도 2 dB 안)
+    self.assertTrue(torch.all(d0 < self.db(-0.6)["db"] - 1.0))
+
+  def test_step_noise_with_phys(self):
+    noise = DiffImpactStepNoise(1, "cpu", model=self.nm)
+    noise.begin_step()
+    out = noise.end_step()
+    self.assertEqual(out["db"].item(), float("-inf"))
 
 
 class TrackerTest(unittest.TestCase):

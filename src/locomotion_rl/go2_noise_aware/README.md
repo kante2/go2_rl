@@ -17,7 +17,8 @@
 
 | 파일 | 역할 |
 |---|---|
-| `diffimpact_ensemble.pt` (+ `.json`) | 모델 3개(시드)의 계수·정규화·입력 범위·K 표, 213 KB (아래 "모델 출처") |
+| `diffimpact_ensemble.pt` (+ `.json`) | **1차식 모델** 3개(시드)의 계수·정규화·입력 범위·K 표, 213 KB. 기본값 (`DEFAULT_TABLE`) |
+| `diffimpact_phys_ensemble.pt` (+ `.json`) | **물리 법칙 모델** 3개(시드). 충돌 법칙 상수(α, β, A₀, τ₀, m)·K 표 (`PHYS_TABLE`) |
 | `diffimpact.py` | `DiffImpactNoiseModel`: 착지 특징 → 발별 A-가중 에너지·dB |
 | `touchdown_features.py` | `TouchdownFeatureTracker`: 물리 substep 상태 → 착지 특징 (학습 데이터와 같은 정의). `DiffImpactStepNoise`: 추적 + 모델 → 정책 스텝별 소음 dB (env용 래퍼) |
 
@@ -26,15 +27,40 @@
 착지 한 번(발 i)마다 **착지 후 0~80 ms A-가중 기대 에너지**를 계산합니다. 배경소음은 빠집니다.
 
 ```
-E_i = A_i² · K_다리(Δ_i, τ_i)                     파형 합성 없이 표 보간
-log A_i = w_다리 · z_i + b_다리                    z_i = (clip(x_i) − μ) / σ
-τ_i = 0.3 ms + 19.7 ms · sigmoid(c_다리 + k_다리 · z_i[발 vz])   접촉 시간, 빠른 하강일수록 짧음
+E_i = A_i² · K_다리(Δ_i, τ_i)          파형 합성 없이 표 보간 (A = 충격량 = 접촉력 펄스 넓이, τ = 접촉 시간)
 앙상블: E = 모델 3개의 E_i 선형 평균,  dB = 10·log10(E)
 ```
 
+충격 크기 A와 접촉 시간 τ를 정하는 식은 표에 따라 다릅니다.
+
+| | 1차식 (`diffimpact_ensemble.pt`, 기본) | 물리 법칙 (`diffimpact_phys_ensemble.pt`) |
+|---|---|---|
+| 충격 크기 | log A = w_다리 · z + b_다리 (특징 12개, z = (clip(x) − μ)/σ) | v = max(−(foot_vz_pre + body_vz_pre), 1e-3) [m/s]<br>A = √( (m_다리 · (v/0.5)^α_다리)² + A0_다리² ) |
+| 접촉 시간 | τ = 0.3 ms + 19.7 ms · sigmoid(c_다리 + k_다리 · z[발 vz]) | τ = clamp(τ0_다리 · (v/0.5)^(−β_다리), 0.3 ms, 20 ms) |
+| 근거 | 데이터 회귀 + 부호 제약 | 충격량-운동량 관계 (A ∝ v, 이론 α = 1), Hertz 접촉 시간 (τ ∝ v^−1/5, 이론 β = 0.2), 하중 소리 A0 |
+| 학습 상수 | 다리별 가중치 12 + 편향 + τ 계수 2 = 60개 | 다리별 m, α, A0, τ0, β = 20개 (α ∈ [0.5, 1.5], β ∈ [0.05, 0.35]) |
+| 학습 범위 밖 | 수직 속도는 시끄러운 쪽 클리핑, 조용한 쪽 외삽 | 접촉 속도는 **양쪽 모두 클리핑 없음** (법칙으로 외삽) |
+
+두 모델 비교 (학습에 안 쓴 실측 녹화 4개 / sport mode 녹화 29개, 시드 3개 앙상블):
+
+| 지표 | 1차식 | 물리 법칙 |
+|---|---|---|
+| 실측 검증: 레벨 MAE / 녹화 내 순위 상관 | **0.85 dB / 0.55** | 1.00 dB / 0.36 |
+| MuJoCo 착지 적용: 녹화별 중앙값 상관 | 0.64 | **0.92** |
+| sport mode (다른 보행): MAE / 편향 / 속도별 중앙값 상관 | 3.63 / −3.6 dB / 0.36 | **2.46 / −2.1 dB / 0.60** |
+| sport mode, 수직 속도를 자르지 않을 때 최대 과대 예측 | +18.8 dB (폭주) | **+7.1 dB** (자른 경우와 같음) |
+| 학습된 지수 (FR/FL/RR/RL) | – | α 1.10 / 1.19 / 1.08 / 0.74, β 0.22 / 0.20 / 0.15 / 0.08 |
+
+- **선택:** 정책이 baseline 보행 안에서 착지별 차이를 줄이는 데는 1차식이 낫고, 학습 범위 밖 안정성과 시뮬-실측 일관성은 물리 법칙이 낫습니다.
+  - 물리 법칙 표 사용: `DiffImpactStepNoise(num_envs, device, table_path=PHYS_TABLE)`
+- **물리 법칙 모델의 한계:**
+  - 같은 접촉 속도의 착지는 다리별로 같은 값을 냅니다. 그래서 녹화 안에서 착지별 순위를 잘 가리지 못합니다(0.36).
+  - sport mode 데이터로 따로 학습해 보니 β(0.14)는 baseline 보행(0.16)과 비슷했습니다. 하지만 α(0.62 vs 0.84)와 A0(m의 2.4배 vs 0.5배)는 크게 달랐습니다. 소리 크기와 접촉 속도의 관계는 보행(제어기)에 따라 달라집니다.
+  - 접촉 속도 → 0에서 A0가 작은 RL 다리는 약 −89 dB까지 내려갑니다(다른 다리는 −71 ~ −77 dB에서 멈춤).
+
 - **단위:** dB re FS²입니다. 녹음 디지털 풀스케일 기준이고 마이크 보정이 없는 **상대값**입니다. 실로봇 RL 보행 착지 한 발이 대략 -73 ~ -57 dB입니다. 절대 dBA는 UMIK-1 교정 상수를 더하면 됩니다.
 - **Δ:** 세트(대각 쌍) 첫 착지 기준 이 발의 착지 시각입니다. 모델 소리가 힘 센서 착지보다 몇 ms 먼저 시작해서, 첫 발은 창 앞부분이 잘리기 때문에 필요합니다.
-- **원본 모델과의 일치:** 로컬 검증 스크립트로 확인했습니다. 세트 dB 중앙값 차이가 실로봇·MuJoCo·sport mode에서 +0.05 ~ +0.11 dB, 상관 0.997 이상입니다.
+- **원본 모델과의 일치:** 로컬 검증 스크립트로 확인했습니다. 세트 dB 중앙값 차이가 실로봇·MuJoCo·sport mode에서 1차식 +0.05 ~ +0.11 dB(상관 0.997 이상), 물리 법칙 −0.17 ~ −0.01 dB(상관 0.991 이상)입니다.
 - **속도:** 노트북 RTX 2060에서 착지 16k개 추론이 1.35 ms입니다. CPU 로봇 1대 기준 정책 스텝당 착지 추적 5.9 ms + 추론 1.0 ms입니다.
 
 ### 입력: MuJoCo에서 넘길 값
@@ -153,8 +179,8 @@ self.noise.reset(env_ids)
 python3 -m unittest src.locomotion_rl.go2_noise_aware.tests.test_noise_model   # 저장소 루트, docker (mjlab 필요)
 ```
 
-단위 테스트(11개)는 방향, 클리핑, 조용한 쪽 외삽, 스텝 소음(에너지 합 → dB), 다리 기구학, 토크 기반 접촉력, 착지 시점·세트 판정을 검사합니다. `src/locomotion_rl/__init__.py`가 mjlab 태스크를 등록하므로 mjlab이 있는 환경에서 실행합니다.
+단위 테스트(16개)는 방향, 클리핑, 조용한 쪽 외삽, 물리 법칙 모델(접촉 속도 = 발 + 몸통, 범위 밖 단조 증가, 하중 소리 하한), 스텝 소음(에너지 합 → dB), 다리 기구학, 토크 기반 접촉력, 착지 시점·세트 판정을 검사합니다. `src/locomotion_rl/__init__.py`가 mjlab 태스크를 등록하므로 mjlab이 있는 환경에서 실행합니다.
 
 ## 모델 출처
 
-`diffimpact_ensemble.pt`는 실로봇 녹음으로 학습한 DiffImpact 모델 3개(`w100_200hz_body_tau_1band_sign_s0~s2`)를 RL용 표로 내보낸 파일입니다. 이 저장소에는 **모델 파일과 예측 코드만** 올립니다. 학습·내보내기·검증 코드(`src/diffimpact/`의 `train_diffimpact.py`, `export_noise_model.py`, `validate_noise_model.py`, `validate_tracker.py`)와 원본 체크포인트는 로컬에 보관합니다. 위에 적은 일치 검증 수치는 그 로컬 스크립트로 얻은 값입니다.
+`diffimpact_ensemble.pt`는 실로봇 녹음으로 학습한 DiffImpact 모델 3개(`w100_200hz_body_tau_1band_sign_s0~s2`)를, `diffimpact_phys_ensemble.pt`는 같은 데이터로 학습한 물리 법칙 모델 3개(`w100_200hz_body_phys_1band_sign_s0~s2`)를 RL용 표로 내보낸 파일입니다. 이 저장소에는 **모델 파일과 예측 코드만** 올립니다. 학습·내보내기·검증 코드(`src/diffimpact/`의 `train_diffimpact.py`, `export_noise_model.py`, `validate_noise_model.py`, `validate_tracker.py`)와 원본 체크포인트는 로컬에 보관합니다. 위에 적은 일치 검증 수치는 그 로컬 스크립트로 얻은 값입니다.
