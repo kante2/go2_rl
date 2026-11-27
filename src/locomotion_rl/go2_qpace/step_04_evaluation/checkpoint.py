@@ -14,7 +14,9 @@ def load_evaluation_settings(env_cfg, path):
   if f"{family}_agent" not in infos or family not in infos:
     raise ValueError(f"Expected a {family} checkpoint with saved model and cost settings.")
   saved = infos[family]
-  env_cfg.noise_cost = type(env_cfg.noise_cost)(**saved["noise_cost"])
+  cost = dict(saved["noise_cost"])
+  cost.setdefault("uncertainty_k", 0.0)  # 2026-11-27 이전 체크포인트: 불확실성 반영 없이 학습 (평균 소음)
+  env_cfg.noise_cost = type(env_cfg.noise_cost)(**cost)
   env_cfg.noise_condition = NoiseConditionCfg(**saved["noise_condition"])
   # Actor에 전달되는 ε의 범위를 학습과 같게 유지한다.
   return deepcopy(infos[f"{family}_agent"])
