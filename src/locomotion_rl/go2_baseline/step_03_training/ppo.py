@@ -67,6 +67,8 @@ def unitree_go2_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
       lam=0.95,  # GAE advantage 추정의 lambda; 편향과 분산 사이의 균형을 조절한다.
       desired_kl=0.01,  # adaptive 학습률 조절이 기준으로 삼는 정책 간 KL 크기.
       max_grad_norm=1.0,  # 전체 gradient norm의 클립 상한, 과도한 갱신을 억제한다.
+      # 학습은 기본 PPO와 같고, GAE/advantage/KL 진단 값을 Loss/* 로그에 추가한다.
+      class_name="src.locomotion_rl.go2_baseline.step_03_training.diagnostic_ppo:DiagnosticPPO",
     ),
     # 경험 수집/ 실행 주기를 설정
     experiment_name="go2_velocity",  # logs/rsl_rl 아래 실험 폴더 이름.

@@ -1,0 +1,41 @@
+{
+ "features": [
+  "foot_vx_pre",
+  "foot_vy_pre",
+  "foot_vz_pre",
+  "foot_x",
+  "foot_y",
+  "foot_z",
+  "cmd_vx",
+  "cmd_vy",
+  "cmd_wz",
+  "body_vz_pre",
+  "log_grf_impulse20",
+  "is_second"
+ ],
+ "db_ref": {
+  "p1": -72.55906994221759,
+  "p5": -71.02217683411749,
+  "p50": -63.691267948606935,
+  "p95": -57.93683093022434,
+  "p99": -56.861135637682715
+ },
+ "meta": {
+  "runs": [
+   "w100_200hz_body_tau_1band_sign_s0",
+   "w100_200hz_body_tau_1band_sign_s1",
+   "w100_200hz_body_tau_1band_sign_s2"
+  ],
+  "window_s": [
+   0.0,
+   0.08
+  ],
+  "weighting": "A",
+  "clip_percentiles": [
+   1.0,
+   99.0
+  ],
+  "unit": "A-weighted dB re FS^2 (uncalibrated)",
+  "energy": "E_foot = A^2 K_leg(offset, tau), ensemble = mean of linear energy"
+ }
+}
