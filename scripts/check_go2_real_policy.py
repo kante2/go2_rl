@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import onnxruntime as ort
 from go2_autonomous_driving.real.real_control import PolicyMapping
-from go2_autonomous_driving.real.real_quietpaw import QuietPawMapping
+from go2_autonomous_driving.real.real_quietpaw import CONDITION_FAMILIES, QuietPawMapping
 
 
 def main():
@@ -17,7 +17,7 @@ def main():
                         default=Path(__file__).resolve().parents[1] / 'artifacts/go2_real')
     directory = parser.parse_args().policy_dir
     metadata = json.loads((directory / 'policy.json').read_text())
-    quietpaw = metadata.get('policy_family') == 'quietpaw'
+    quietpaw = metadata.get('policy_family') in CONDITION_FAMILIES  # 48 inputs: QuietPaw or QPace
     mapping = QuietPawMapping(metadata) if quietpaw else PolicyMapping(metadata)
     if hashlib.sha256((directory / 'policy.onnx').read_bytes()).hexdigest() != metadata['onnx_sha256']:
         raise SystemExit('ONNX hash does not match metadata')
@@ -33,7 +33,7 @@ def main():
     mapping_error = 0.0
     for sample, obs in zip(samples, data['observations']):
         if quietpaw:
-            mapping = QuietPawMapping(metadata, sample['quietness'])
+            mapping = QuietPawMapping(metadata, sample.get('quietness', 0.5), sample.get('target_db'))
         actual = mapping.observation(mapping.to_sdk(sample['q']), mapping.to_sdk(sample['dq']),
                                      sample['quaternion'], sample['gyro'], obs[6:9],
                                      sample['step'], obs[35:47])[0]

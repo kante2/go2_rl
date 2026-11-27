@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Export the saved QuietPaw actor, including its 48-input normalization.
+"""Export the saved QuietPaw or QPace actor, including its 48-input normalization.
+
+QuietPaw (infos 'quietpaw'): last input = cost limit from quietness.
+QPace (infos 'go2_qpace', e.g. model_1000): last input = normalized target dB.
 
 Run in the mjlab Docker environment. No ROS nodes or motor publishers.
 QuietPaw Flat and this repository's baseline share robot, actions and the
@@ -19,32 +22,51 @@ from tensordict import TensorDict
 from rsl_rl.models import MLPModel
 
 from go2_autonomous_driving.real.real_quietpaw import (
-    BASE_OBSERVATIONS, QUIETPAW_OBSERVATIONS, cost_limit_from_quietness,
+    BASE_OBSERVATIONS, QUIETPAW_OBSERVATIONS, cost_limit_from_quietness, default_target_db,
+    qpace_condition_from_target_db,
 )
+
+FAMILIES = {'quietpaw': ('quietpaw', 'quietpaw_agent'), 'qpace': ('go2_qpace', 'go2_qpace_agent')}
+
+
+def checkpoint_family(checkpoint):
+    infos = checkpoint.get('infos') or {}
+    for family, (settings, agent) in FAMILIES.items():
+        if settings in infos and agent in infos:
+            return family
+    raise ValueError('Expected a QuietPaw or QPace checkpoint with saved model and cost settings')
+
+
+def condition_samples(family, condition):
+    """(label dict, actor input) at both ends and the middle/reference of the trained condition."""
+    if family == 'quietpaw':
+        return [(dict(quietness=q), cost_limit_from_quietness(q, condition)) for q in (0.0, 0.5, 1.0)]
+    targets = (condition['min_db'], default_target_db(condition), condition['max_db'])
+    return [(dict(target_db=float(t)), qpace_condition_from_target_db(t, condition)) for t in targets]
 
 
 def load_actor(checkpoint):
-    infos = checkpoint.get('infos') or {}
-    if 'quietpaw' not in infos or 'quietpaw_agent' not in infos:
-        raise ValueError('Expected a QuietPaw checkpoint with saved model and cost settings')
-    agent = infos['quietpaw_agent']
-    condition = deepcopy(infos['quietpaw']['noise_condition'])
-    cost_limit_from_quietness(0.5, condition)  # Reject invalid/non-finite saved ranges.
+    family = checkpoint_family(checkpoint)
+    settings_key, agent_key = FAMILIES[family]
+    infos = checkpoint['infos']
+    agent = infos[agent_key]
+    condition = deepcopy(infos[settings_key]['noise_condition'])
+    condition_samples(family, condition)  # Reject invalid/non-finite saved ranges.
     if tuple(agent['obs_groups']['actor']) != ('actor',):
         raise ValueError('Only a single Flat actor observation group is supported')
     actor_cfg = deepcopy(agent['actor'])
     if actor_cfg.pop('class_name') != 'MLPModel':
-        raise ValueError('Only the saved QuietPaw MLPModel actor is supported')
+        raise ValueError('Only the saved QuietPaw/QPace MLPModel actor is supported')
     state = checkpoint['actor_state_dict']
     if state['mlp.0.weight'].shape[1] != 48:
-        raise ValueError('Expected QuietPaw Flat with 48 actor inputs')
+        raise ValueError('Expected a QuietPaw/QPace Flat actor with 48 inputs')
     if any(not torch.isfinite(value).all() for value in state.values()):
         raise ValueError('Checkpoint actor contains non-finite parameters')
     dummy = TensorDict({'actor': torch.zeros(1, 48)}, batch_size=[1])
     actor = MLPModel(dummy, {'actor': ['actor']}, 'actor', 12, **actor_cfg)
     actor.load_state_dict(state, strict=True)
     actor.eval()
-    return actor, agent, condition
+    return actor, agent, condition, family
 
 
 def main():
@@ -55,7 +77,8 @@ def main():
     args = parser.parse_args()
     torch.set_num_threads(1)
     checkpoint = torch.load(args.checkpoint, map_location='cpu', weights_only=True)
-    actor, agent, condition = load_actor(checkpoint)
+    actor, agent, condition, family = load_actor(checkpoint)
+    settings = checkpoint['infos'][FAMILIES[family][0]]
 
     # Heavy simulation imports only after validating the checkpoint structure.
     from mjlab.envs import ManagerBasedRlEnv
@@ -71,13 +94,13 @@ def main():
         metadata = get_base_metadata(env, args.checkpoint.name)
         if metadata['observation_names'] != BASE_OBSERVATIONS:
             raise ValueError('Base observation layout changed; verify QuietPaw compatibility')
-        if not np.isclose(env.step_dt, checkpoint['infos']['quietpaw']['step_dt'], rtol=0, atol=1e-9):
-            raise ValueError('Environment policy period differs from the saved QuietPaw period')
+        if not np.isclose(env.step_dt, settings['step_dt'], rtol=0, atol=1e-9):
+            raise ValueError(f'Environment policy period differs from the saved {family} period')
         sdk_names = [f'{leg}_{joint}_joint' for leg in ('FR', 'FL', 'RR', 'RL')
                      for joint in ('hip', 'thigh', 'calf')]
         model = env.sim.mj_model
         metadata.update(
-            version=1, policy_family='quietpaw', observation_size=48,
+            version=1, policy_family=family, observation_size=48,
             observation_names=QUIETPAW_OBSERVATIONS, noise_condition=condition,
             checkpoint_sha256=hashlib.sha256(args.checkpoint.read_bytes()).hexdigest(),
             policy_to_sdk=[sdk_names.index(name) for name in metadata['joint_names']],
@@ -98,14 +121,14 @@ def main():
         wrapped = RslRlVecEnvWrapper(env, clip_actions=agent['clip_actions'])
         wrapped.reset()
         observations, actions, samples = [], [], []
+        conditions = condition_samples(family, condition)
         with torch.inference_mode():
             for index in range(120):
-                quietness = (0.0, 0.5, 1.0)[index // 40]
+                label, value = conditions[index // 40]
                 base = wrapped.get_observations()['actor'].cpu()
                 if base.shape != (1, 47):
-                    raise ValueError('Expected 47 base observations before the QuietPaw condition')
-                cost_limit = cost_limit_from_quietness(quietness, condition)
-                obs = torch.cat((base, torch.full((1, 1), cost_limit)), dim=1)
+                    raise ValueError('Expected 47 base observations before the noise condition')
+                obs = torch.cat((base, torch.full((1, 1), value)), dim=1)
                 action = actor(TensorDict({'actor': obs}, batch_size=[1]))
                 if action.shape != (1, 12) or not torch.isfinite(action).all():
                     raise ValueError('Invalid QuietPaw actor output')
@@ -115,13 +138,13 @@ def main():
                 samples.append(dict(q=robot.joint_pos[0].cpu().tolist(), dq=robot.joint_vel[0].cpu().tolist(),
                                     quaternion=robot.root_link_quat_w[0].cpu().tolist(),
                                     gyro=robot.root_link_ang_vel_b[0].cpu().tolist(),
-                                    step=int(env.episode_length_buf[0]), quietness=quietness))
+                                    step=int(env.episode_length_buf[0]), **label))
                 wrapped.step(action.to(env.device))
         np.savez(args.output / 'parity.npz', observations=np.concatenate(observations),
                  actions=np.concatenate(actions))
         (args.output / 'samples.json').write_text(json.dumps(samples) + '\n')
         (args.output / 'policy.json').write_text(json.dumps(metadata, indent=2, allow_nan=False) + '\n')
-        print('Exported QuietPaw actor (48 -> 12), normalization and saved cost limits to', args.output)
+        print(f'Exported {family} actor (48 -> 12), normalization and saved condition range to', args.output)
     finally:
         env.close()
 

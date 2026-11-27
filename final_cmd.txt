@@ -24,7 +24,7 @@ bash $GO2_ROOT/scripts/run_go2_real_keyboard.sh --speed "$SPEED" --lateral-speed
 
 # ── 녹화 (S3 → R4 연달아 실행, 30초 뒤 둘 다 자동 종료·저장) ──
 # NEW CMD
-bash $GO2_ROOT/sh_folder/record_session.sh --base "$(exp_base)" --dir "$DATA_DIR" --duration "$DURATION"
+source /home/kante/go2_rl/sh_folder/experiment.sh && bash $GO2_ROOT/sh_folder/record_session.sh --base "$(exp_base)" --dir "$DATA_DIR" --duration "$DURATION"
 
 # OLD CMD
 # S3: 시뮬 녹화

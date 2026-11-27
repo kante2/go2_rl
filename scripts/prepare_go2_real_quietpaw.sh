@@ -28,14 +28,19 @@ bash "$go2_project/scripts/run_go2_docker.sh" python - "$go2_stage" "$(id -u)" "
 import os
 from pathlib import Path
 import sys
+import json
 stage = Path(sys.argv[1])
-output = Path('artifacts/go2_real_quietpaw')
+meta = json.loads((stage / 'policy.json').read_text())
+# QuietPaw keeps its original folder; QPace models go to artifacts/go2_real_qpace/<checkpoint sha256>.
+output = (Path('artifacts/go2_real_quietpaw') if meta['policy_family'] == 'quietpaw'
+          else Path('artifacts/go2_real_qpace') / meta['checkpoint_sha256'])
 output.mkdir(parents=True, exist_ok=True)
 owner = (int(sys.argv[2]), int(sys.argv[3]))
-os.chown(output, *owner)
+for folder in [output, *output.parents][:2 if meta['policy_family'] == 'qpace' else 1]:
+    os.chown(folder, *owner)
 # Metadata last: a partial replacement cannot pass the runner's hash check.
 for name in ('policy.onnx', 'parity.npz', 'samples.json', 'policy.json'):
     os.replace(stage / name, output / name)
     os.chown(output / name, *owner)
 PY
-echo 'Prepared artifacts/go2_real_quietpaw. Baseline artifacts/go2_real was not changed.'
+echo 'Prepared (QuietPaw: artifacts/go2_real_quietpaw, QPace: artifacts/go2_real_qpace/<sha256>). Baseline artifacts/go2_real was not changed.'

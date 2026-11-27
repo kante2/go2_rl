@@ -257,6 +257,31 @@ class SimulationTransport:
             self.real_receiver.close()
 
 
+def quietpaw_policy(state, family, condition_value, device):
+    """QuietPaw/QPace actor (with its saved obs normalization) fed 47 Flat inputs + the fixed condition."""
+    from copy import deepcopy
+    import torch
+    from rsl_rl.models import MLPModel
+    from tensordict import TensorDict
+    agent = state["infos"]["quietpaw_agent" if family == "quietpaw" else "go2_qpace_agent"]
+    actor_cfg = deepcopy(agent["actor"])
+    if actor_cfg.pop("class_name") != "MLPModel" or tuple(agent["obs_groups"]["actor"]) != ("actor",):
+        raise ValueError("Only the saved QuietPaw/QPace Flat MLPModel actor is supported")
+    dummy = TensorDict({"actor": torch.zeros(1, 48)}, batch_size=[1])
+    actor = MLPModel(dummy, {"actor": ["actor"]}, "actor", 12, **actor_cfg)
+    actor.load_state_dict(state["actor_state_dict"], strict=True)
+    actor.to(device).eval()
+    condition = torch.full((1, 1), condition_value, device=device)
+
+    def policy(obs):
+        base = obs["actor"]
+        if base.shape[-1] != 47:
+            raise ValueError(f"Expected 47 Flat observations before the noise condition, got {base.shape}")
+        full = torch.cat((base, condition.expand(base.shape[0], 1)), dim=-1)
+        return actor(TensorDict({"actor": full}, batch_size=[base.shape[0]]))
+    return policy, agent["clip_actions"]
+
+
 def run(args):
     # Imported only in the mjlab process, not in the ROS nodes.
     import mujoco
@@ -291,8 +316,27 @@ def run(args):
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint}")
     state = torch.load(checkpoint, weights_only=True, map_location="cpu")
     actor = state["actor_state_dict"]
-    if tuple(actor["mlp.0.weight"].shape) != (512, 47) or tuple(actor["mlp.6.weight"].shape) != (12, 128):
-        raise ValueError("This simulation requires the existing Go2 Flat 47-input/12-action policy")
+    inputs = actor["mlp.0.weight"].shape[1]
+    # 48-input noise-conditioned Flat models: the same 47 Flat inputs + one condition scalar computed
+    # from the PT's saved settings, with the same rule as the real robot (real_quietpaw.py):
+    #   QuietPaw (e.g. model_9999): cost limit from --quietness;  QPace (e.g. model_1000): normalized --target-db.
+    infos = state.get("infos") or {}
+    family = ("quietpaw" if "quietpaw" in infos else "qpace" if "go2_qpace" in infos else None) if inputs == 48 else None
+    quietpaw = family is not None
+    if inputs not in (47, 48) or (inputs == 48 and not quietpaw) or tuple(actor["mlp.6.weight"].shape)[0] != 12:
+        raise ValueError("This simulation requires a Go2 Flat 47-input or QuietPaw/QPace Flat 48-input, 12-action policy")
+    condition_value, condition_text = None, ""
+    if family == "quietpaw":
+        from ..real.real_quietpaw import cost_limit_from_quietness
+        condition_value = cost_limit_from_quietness(args.quietness, infos["quietpaw"]["noise_condition"])
+        condition_text = f"quietness={args.quietness:g} cost_limit={condition_value:g} (same as R2 --quietness)"
+    elif family == "qpace":
+        from ..real.real_quietpaw import default_target_db, qpace_condition_from_target_db
+        saved = infos["go2_qpace"]["noise_condition"]
+        target_db = default_target_db(saved) if args.target_db is None else args.target_db
+        condition_value = qpace_condition_from_target_db(target_db, saved)
+        condition_text = (f"target_db={target_db:g} (trained {saved['min_db']:g}..{saved['max_db']:g}) "
+                          f"condition={condition_value:.4f} (same as R2 --target-db)")
     device = args.device or ("cuda:0" if torch.cuda.is_available() else "cpu")
     configure_torch_backends()
     transport = SimulationTransport(config)
@@ -342,12 +386,18 @@ def run(args):
     try:
         env = ManagerBasedRlEnv(cfg=cfg, device=device)
         agent_cfg = load_rl_cfg("Unitree-Go2-Flat")
-        wrapped = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
-        runner = load_runner_cls("Unitree-Go2-Flat")(wrapped, asdict(agent_cfg), device=device)
-        runner.load(str(checkpoint), load_cfg={"actor": True}, strict=True, map_location=device)
-        policy = runner.get_inference_policy(device=device)
+        if quietpaw:
+            policy, clip_actions = quietpaw_policy(state, family, condition_value, device)
+            wrapped = RslRlVecEnvWrapper(env, clip_actions=clip_actions)
+        else:
+            wrapped = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
+            runner = load_runner_cls("Unitree-Go2-Flat")(wrapped, asdict(agent_cfg), device=device)
+            runner.load(str(checkpoint), load_cfg={"actor": True}, strict=True, map_location=device)
+            policy = runner.get_inference_policy(device=device)
         wrapped.reset()
         print(f"Loaded {checkpoint}, iter={state.get('iter')}; navigation is initially stopped", flush=True)
+        if quietpaw:
+            print(f"{family.upper()}: 48 inputs, {condition_text}", flush=True)
         if config.get("real_command_port"):
             print(f"Real command mirror: UDP {config['real_command_port']} (R2 per-step command overrides "
                   f"the bridge while fresh)", flush=True)
@@ -407,6 +457,12 @@ def main():
     parser.add_argument("--state-port", "--noise-port", dest="noise_port", type=int,
                         help="Stream real-robot-like physics states (200 Hz) to sim_record.sh or the "
                              "noise predictor, e.g. 9881")
+    parser.add_argument("--quietness", type=float, default=0.5,
+                        help="QuietPaw (48-input) models only: 0 loose .. 1 strict noise condition; "
+                             "use the same value as the real robot (R2 --quietness)")
+    parser.add_argument("--target-db", type=float,
+                        help="QPace (48-input) models only: target robot noise [dB] in the trained range "
+                             "(default reference_db); use the same value as the real robot (R2 --target-db)")
     parser.add_argument("--real-command-port", type=int,
                         help="Follow the real robot's per-step policy command (R2 command_mirror_ports), "
                              "e.g. 9905 for real+sim recording; falls back to the bridge command when stale")

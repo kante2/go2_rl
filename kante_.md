@@ -97,7 +97,7 @@ bash /home/kante/go2_rl/sh_folder/terminal4_noise_record.sh
 bash /home/kante/go2_rl/sh_folder/noise_prediction_ui.sh
 ```
 
-- 보행 모델은 `--model <번호>` (예: `--model 34997` → `src/go2_autonomous_driving/model_pt/model_34997.pt`, .pt 경로도 가능). 실로봇은 모델별로 변환된 정책(`artifacts/go2_real/baseline/<해시>/`)이 필요하다. 현재 변환됨: **34997, 10000** (실로봇 기본 34997). 시뮬·실로봇 모두 Flat 47-입력 모델만 (9999 QuietPaw 불가). 새 모델은 먼저 변환:
+- 보행 모델은 `--model <번호>` (예: `--model 34997` → `src/go2_autonomous_driving/model_pt/model_34997.pt`, .pt 경로도 가능). 실로봇은 모델별로 변환된 정책(`artifacts/go2_real/baseline/<해시>/`)이 필요하다. 현재 변환됨: **34997, 10000** (실로봇 기본 34997). 48-입력 소음 조건 모델도 시뮬·실로봇 모두 사용 가능 (2026-11-27~): **9999** QuietPaw `--quietness Q` (0 느슨 .. 1 엄격, 기본 0.5), **1000** QPace `--target-db L` (학습 범위 −60..−45 dB, 기본 −52.5). S2·R2에 같은 값을 준다 (`experiment.sh`의 `QUIETNESS`, `TARGET_DB`; 해당 없는 모델은 무시). 실로봇 변환본: QuietPaw `artifacts/go2_real_quietpaw/`, QPace `artifacts/go2_real_qpace/<sha256>/` (`prepare_go2_real_quietpaw.sh --checkpoint PT`). R2 스크립트가 체크포인트를 보고 실행기를 자동으로 고른다. 새 모델은 먼저 변환:
   `bash scripts/prepare_go2_real_robot.sh --model <번호>`
 - 비상 정지: 터미널 2에서 Ctrl+C (damping 후 제어 종료), 또는 리모컨 L2+B.
 - 실제로봇에서 속도를 올릴 때는 조금씩 올리며 확인한다.

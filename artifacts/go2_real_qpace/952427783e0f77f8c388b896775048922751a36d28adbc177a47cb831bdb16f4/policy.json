@@ -1,0 +1,152 @@
+{
+  "run_path": "model_1000.pt",
+  "joint_names": [
+    "FL_hip_joint",
+    "FL_thigh_joint",
+    "FL_calf_joint",
+    "FR_hip_joint",
+    "FR_thigh_joint",
+    "FR_calf_joint",
+    "RL_hip_joint",
+    "RL_thigh_joint",
+    "RL_calf_joint",
+    "RR_hip_joint",
+    "RR_thigh_joint",
+    "RR_calf_joint"
+  ],
+  "joint_stiffness": [
+    20.0,
+    20.0,
+    40.0,
+    20.0,
+    20.0,
+    40.0,
+    20.0,
+    20.0,
+    40.0,
+    20.0,
+    20.0,
+    40.0
+  ],
+  "joint_damping": [
+    1.0,
+    1.0,
+    2.0,
+    1.0,
+    1.0,
+    2.0,
+    1.0,
+    1.0,
+    2.0,
+    1.0,
+    1.0,
+    2.0
+  ],
+  "default_joint_pos": [
+    -0.10000000149011612,
+    0.8999999761581421,
+    -1.7999999523162842,
+    0.10000000149011612,
+    0.8999999761581421,
+    -1.7999999523162842,
+    -0.10000000149011612,
+    0.8999999761581421,
+    -1.7999999523162842,
+    0.10000000149011612,
+    0.8999999761581421,
+    -1.7999999523162842
+  ],
+  "command_names": [
+    "twist"
+  ],
+  "observation_names": [
+    "base_ang_vel",
+    "projected_gravity",
+    "command",
+    "phase",
+    "joint_pos",
+    "joint_vel",
+    "actions",
+    "noise_condition"
+  ],
+  "action_scale": 0.25,
+  "version": 1,
+  "policy_family": "qpace",
+  "observation_size": 48,
+  "noise_condition": {
+    "min_db": -60.0,
+    "max_db": -45.0,
+    "reference_db": -52.5,
+    "target_db": null
+  },
+  "checkpoint_sha256": "952427783e0f77f8c388b896775048922751a36d28adbc177a47cb831bdb16f4",
+  "policy_to_sdk": [
+    3,
+    4,
+    5,
+    0,
+    1,
+    2,
+    9,
+    10,
+    11,
+    6,
+    7,
+    8
+  ],
+  "joint_limits": [
+    [
+      -1.0472,
+      1.0472
+    ],
+    [
+      -1.5708,
+      3.4907
+    ],
+    [
+      -2.7227,
+      -0.83776
+    ],
+    [
+      -1.0472,
+      1.0472
+    ],
+    [
+      -1.5708,
+      3.4907
+    ],
+    [
+      -2.7227,
+      -0.83776
+    ],
+    [
+      -1.0472,
+      1.0472
+    ],
+    [
+      -0.5236,
+      4.5379
+    ],
+    [
+      -2.7227,
+      -0.83776
+    ],
+    [
+      -1.0472,
+      1.0472
+    ],
+    [
+      -0.5236,
+      4.5379
+    ],
+    [
+      -2.7227,
+      -0.83776
+    ]
+  ],
+  "step_dt": 0.02,
+  "phase_period": 0.6,
+  "clip_actions": null,
+  "normalization_included": true,
+  "onnx_sha256": "57ef37cb499ce45e70cc5d36996f7686e0cc260c33f80d93051c68456ce4013c"
+}

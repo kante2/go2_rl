@@ -63,7 +63,7 @@ def test_baseline_and_quietpaw_cannot_silently_load_each_others_layout(metadata)
     for field, value in [('policy_family', 'baseline'), ('observation_size', 47),
                          ('observation_names', BASE_OBSERVATIONS),
                          ('observation_names', ['noise_condition'] + BASE_OBSERVATIONS)]:
-        with pytest.raises(ValueError, match='QuietPaw 48-input'):
+        with pytest.raises(ValueError, match='QuietPaw/QPace 48-input'):
             QuietPawMapping({**metadata, field: value})
 
 
@@ -74,3 +74,26 @@ def test_quietpaw_keeps_joint_limits_and_imu_validation(metadata):
     with pytest.raises(ValueError, match='quaternion'):
         mapping.observation(mapping.to_sdk(mapping.default), np.zeros(12), [0, 0, 0, 0],
                             [0, 0, 0], [0, 0, 0], 0, np.zeros(12))
+
+
+@pytest.fixture
+def qpace_metadata(metadata):
+    return {**metadata, 'policy_family': 'qpace',
+            'noise_condition': dict(min_db=-60., max_db=-45., reference_db=-52.5, target_db=None)}
+
+
+@pytest.mark.parametrize('target_db,expected', [(-60, 0.), (-52.5, .5), (-45, 1.), (None, .5)])
+def test_qpace_last_input_is_normalized_target_db(qpace_metadata, target_db, expected):
+    mapping = QuietPawMapping(qpace_metadata, target_db=target_db)
+    baseline = PolicyMapping({**qpace_metadata, 'observation_names': BASE_OBSERVATIONS})
+    args = (mapping.to_sdk(mapping.default), np.zeros(12), [1, 0, 0, 0], [0, 0, 0], [.3, 0, 0], 3, np.zeros(12))
+    actual = mapping.observation(*args)
+    assert actual.shape == (1, 48)
+    np.testing.assert_allclose(actual[0, :47], baseline.observation(*args)[0])
+    assert actual[0, 47] == pytest.approx(expected)
+
+
+@pytest.mark.parametrize('bad', [-61, -44.9, float('nan')])
+def test_qpace_target_outside_trained_range_is_rejected(qpace_metadata, bad):
+    with pytest.raises(ValueError):
+        QuietPawMapping(qpace_metadata, target_db=bad)

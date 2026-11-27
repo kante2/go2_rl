@@ -9,6 +9,8 @@ MODEL=${MODEL:-34997}                 # 보행 모델 번호 (src/go2_autonomous
 SPEED=${SPEED:-0.5}                   # 전진·후진 속도 [m/s]      (W/X, ↑/↓)
 LATERAL_SPEED=${LATERAL_SPEED:-0.5}   # 횡방향 속도 [m/s]        (A/D, ←/→)
 YAW_RATE=${YAW_RATE:-0.3}             # 제자리 회전 속도 [rad/s]  (Q/E)
+QUIETNESS=${QUIETNESS:-0.5}           # QuietPaw(MODEL=9999)만: 0 느슨 .. 1 엄격 소음 조건 (S2·R2 --quietness, 다른 모델은 무시)
+TARGET_DB=${TARGET_DB:--52.5}         # QPace(MODEL=1000)만: 목표 소음 [dB], 학습 범위 −60..−45 (S2·R2 --target-db, 다른 모델은 무시)
 DURATION=${DURATION:-30}              # 녹화 시간 [초] (S3·R4 --duration, 지나면 자동 종료·저장)
 LABEL=${LABEL:-NORMAL}                # 파일 이름 앞부분
 DATA_DIR=${DATA_DIR:-src/sim_to_real_data/real_sim}   # 녹화 저장 폴더 (프로젝트 기준)
@@ -28,4 +30,4 @@ exp_name() {
   echo "${base}_v$((n + 1))"
 }
 
-echo "실험 설정: MODEL=$MODEL SPEED=$SPEED LATERAL_SPEED=$LATERAL_SPEED YAW_RATE=$YAW_RATE DURATION=${DURATION}s → 다음 녹화 이름 $(exp_name)"
+echo "실험 설정: MODEL=$MODEL QUIETNESS=$QUIETNESS TARGET_DB=$TARGET_DB SPEED=$SPEED LATERAL_SPEED=$LATERAL_SPEED YAW_RATE=$YAW_RATE DURATION=${DURATION}s → 다음 녹화 이름 $(exp_name)"
