@@ -66,6 +66,7 @@ class QuietPawEnv(ManagerBasedRlEnv):
     self.step_noise = DiffImpactStepNoise(
       self.num_envs, self.device, model=DiffImpactNoiseModel(device=self.device),
       foot_floor_db=cost_cfg.foot_floor_db, count_rejected=cost_cfg.count_rejected_contacts,
+      uncertainty_k=cost_cfg.uncertainty_k, uncertainty_max_db=cost_cfg.uncertainty_max_db,
       air=tuple(cost_cfg.touchdown_air_n), on_delta=cost_cfg.touchdown_on_delta,
       off_delta=cost_cfg.touchdown_off_delta, rise_delta=cost_cfg.touchdown_rise_delta,
       min_swing=cost_cfg.touchdown_min_swing_s, min_stance=cost_cfg.touchdown_min_stance_s,
@@ -73,6 +74,18 @@ class QuietPawEnv(ManagerBasedRlEnv):
     names = self.reward_manager.active_terms
     self._termination_reward_idx = names.index("is_terminated") if "is_terminated" in names else None
     self._noise_out = None
+    # 목표 커리큘럼 게이트용: 마지막 pop 이후 정책 스텝 평균 속도 추종 오차 [m/s] (GPU 누적, pop 때만 동기화)
+    self._tracking_sum = torch.zeros((), device=self.device)
+    self._tracking_steps = 0
+
+  def pop_tracking_error(self) -> float:
+    """마지막 호출 이후 (보통 rollout 1회) 환경·스텝 평균 xy 속도 추종 오차 [m/s]. 기록이 없으면 nan."""
+    if self._tracking_steps == 0:
+      return float("nan")
+    value = (self._tracking_sum / self._tracking_steps).item()
+    self._tracking_sum.zero_()
+    self._tracking_steps = 0
+    return value
 
   # ------------------------------------------------------------------ 소음 비용
   @property
@@ -151,6 +164,8 @@ class QuietPawEnv(ManagerBasedRlEnv):
     noise = self._noise_out
     command = self.command_manager.get_command("twist")
     tracking_error = torch.linalg.vector_norm(robot.data.root_link_lin_vel_b[:, :2] - command[:, :2], dim=-1)
+    self._tracking_sum += tracking_error.mean()
+    self._tracking_steps += 1
     terminal_obs = None
     if self.reset_time_outs.any() and not self.cfg.is_finite_horizon:
       # timeout bootstrap은 reset 후가 아니라 종료 직전 상태의 critic 관측을 쓴다.
@@ -187,6 +202,7 @@ class QuietPawEnv(ManagerBasedRlEnv):
     log = {
       "QPace/robot_power_db": 10.0 * torch.log10(mean_power.clamp_min(1e-30)),
       "QPace/target_db": self.noise_condition.target_db.mean(),
+      "QPace/tracking_error_mps": tracking_error.mean(),  # 이번 스텝 xy 속도 추종 오차 [m/s] (목표 게이트와 같은 값)
       "QPace/touchdowns_per_step": noise["log"]["touchdowns"] / self.num_envs,
       "QPace/touchdowns_per_s": noise["log"]["touchdowns"] / (self.num_envs * self.step_dt),
       "QPace/touchdown_step_db": noise["log"]["step_db"],

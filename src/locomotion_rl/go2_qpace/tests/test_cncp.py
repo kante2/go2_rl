@@ -149,6 +149,51 @@ class QPaceTests(unittest.TestCase):
     self.assertEqual(gains, [(20., 1.), (20., 1.), (40., 2.)])
     self.assertFalse(agent.algorithm.use_clipped_value_loss)
     self.assertEqual((agent.max_iterations, agent.experiment_name), (10000, "go2_qpace"))
+    # C 방식 재학습 구조 (2026-11-27 붕괴 대책)
+    self.assertEqual(cfg.gait_curriculum.minimum_scale, 1.0)  # 보행 리듬 보상 유지
+    self.assertGreater(agent.algorithm.anchor_coef, 0)  # baseline 앵커
+    self.assertIsNotNone(agent.algorithm.max_std)
+    self.assertGreater(cfg.noise_cost.uncertainty_k, 0)
+    self.assertIsNotNone(cfg.qpace_curriculum.target_gate_tracking_error)
+
+  def test_target_gate_holds_ramp(self):
+    from src.locomotion_rl.go2_qpace.step_03_training.runner import QuietPawOnPolicyRunner
+    cur = QPaceCurriculumCfg(critic_warmup_iterations=1, noise_start_iteration=2, target_start_min_db=-50.,
+                             target_ramp_iterations=4, target_gate_tracking_error=0.5)
+    self.assertTrue(cur.target_gate_open(0.4) and cur.target_gate_open(float("nan")))
+    self.assertFalse(cur.target_gate_open(0.6))
+    cond_cfg = NoiseConditionCfg(min_db=-58., max_db=-45., reference_db=-52.5)
+    errors = iter([0.4, 0.4, 0.9, 0.9, 0.4, 0.4, 0.4])
+    env = SimpleNamespace(cfg=SimpleNamespace(noise_condition=cond_cfg, qpace_curriculum=cur),
+                          noise_condition=NoiseCondition(cond_cfg, 2, "cpu"),
+                          pop_tracking_error=lambda: next(errors))
+    fake = SimpleNamespace(env=SimpleNamespace(unwrapped=env), alg=SimpleNamespace(target_progress=0))
+    got = [QuietPawOnPolicyRunner._update_target_range(fake, i) for i in range(1, 8)]
+    # iter 1, 2: ramp 전. 3, 4: 오차 0.9 → 멈춤. 이후 다시 진행.
+    self.assertEqual(got, [-50., -50., -50., -50., -52., -54., -56.])
+
+  def test_anchor_pulls_toward_baseline_and_std_cap(self):
+    alg, obs = _algorithm()
+    alg.anchor_coef, alg.max_std = 10.0, 0.5
+    alg.set_anchor()
+    with torch.no_grad():
+      alg.actor.mlp[-1].bias.add_(1.0)  # 평균 행동을 baseline 에서 행동 차원마다 1 만큼 옮긴다
+      alg.actor.distribution.std_param.fill_(2.0)
+
+    def rollout():
+      with torch.no_grad():
+        alg.act(obs)
+        alg.process_env_step(obs, torch.zeros(2), torch.zeros(2), {
+          "noise_cost": torch.zeros(2), "cost_limit": torch.ones(2)})
+        alg.compute_returns(obs)
+      return alg.update()["anchor_mse"]
+
+    mse = [rollout() for _ in range(5)]
+    self.assertAlmostEqual(mse[0], 2.0, places=4)  # Σ_dim 1²
+    self.assertTrue(all(b < a for a, b in zip(mse, mse[1:])), mse)  # 보상·비용 신호가 없으면 baseline 으로 돌아간다
+    self.assertTrue(torch.all(alg.actor.distribution.std_param <= 0.5))
+    state = alg.save()
+    self.assertIn("cncp_anchor_state_dict", state)
 
   def test_curriculum_schedule(self):
     c = QPaceCurriculumCfg(critic_warmup_iterations=10, noise_start_iteration=20,
@@ -157,6 +202,22 @@ class QPaceTests(unittest.TestCase):
     self.assertEqual([c.lambda_cap(i) for i in (0, 19, 20, 24, 29, 100)], [0., 0., 2., 10., 20., 20.])
     with self.assertRaises(ValueError):
       QPaceCurriculumCfg(critic_warmup_iterations=50, noise_start_iteration=10)
+
+  def test_target_range_curriculum(self):
+    c = QPaceCurriculumCfg(critic_warmup_iterations=10, noise_start_iteration=20, target_start_min_db=-52.,
+                           target_ramp_iterations=10)
+    lo, hi = -60., -45.
+    self.assertEqual([c.target_min_db(i, lo, hi) for i in (0, 19, 20, 25, 30, 100)],
+                     [-52., -52., -52., -56., -60., -60.])
+    self.assertEqual(QPaceCurriculumCfg(target_start_min_db=None).target_min_db(0, lo, hi), lo)
+    cond = NoiseCondition(NoiseConditionCfg(min_db=lo, max_db=hi, reference_db=-52.5), 4, "cpu")
+    cond.set_min_db(-51.)
+    torch.testing.assert_close(cond.target_db, torch.tensor([-51., -49., -47., -45.]))
+    # 정책 입력 정규화는 전체 범위 기준 (목표 dB 의 의미가 커리큘럼 중에도 같다)
+    torch.testing.assert_close(cond.normalized, (cond.target_db - lo) / (hi - lo))
+    cond.set_target_db(-50.)  # 고정 목표(평가·배치)는 커리큘럼이 바꾸지 않는다
+    cond.set_min_db(-60.)
+    self.assertTrue(torch.all(cond.target_db == -50.))
 
   def test_frozen_actor_and_lambda_cap(self):
     alg, obs = _algorithm()

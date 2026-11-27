@@ -237,6 +237,29 @@ class TrackerTest(unittest.TestCase):
     one = noise.model.foot_energy(x, torch.tensor([0]))["energy"].item()
     self.assertAlmostEqual(e_on - e_off, rej_on * one, delta=1e-6 * e_on + 1e-12)
 
+  def test_uncertainty_penalty_raises_energy(self):
+    q = torch.tensor([[0.0, 0.8, -1.6] * 4]); pos, _ = leg_kinematics(q)
+    vel = torch.zeros(1, 4, 3); vel[..., 2] = -0.6
+    seq = [0.] * 20 + [60.] * 20 + ([0.] * 2 + [60.] * 2) * 5
+
+    def total(k, cap=3.0):
+      noise = DiffImpactStepNoise(1, "cpu", uncertainty_k=k, uncertainty_max_db=cap, foot_floor_db=float("-inf"))
+      e = 0.0
+      for j in range(len(seq) // 4):
+        noise.begin_step()
+        for i in range(4):
+          contact = torch.zeros(1, 4); contact[0, 0] = seq[4 * j + i]
+          noise.sample(vel, pos, contact, q, torch.zeros(1, 12), torch.tensor([[1.0, 0, 0, 0]]),
+                       torch.tensor([[0.5, 0.0, 0.0]]))
+        e += noise.end_step()["energy"].item()
+      return e
+
+    e0, e1, e2 = total(0.0), total(1.0), total(2.0)
+    self.assertGreater(e0, 0)
+    self.assertTrue(e0 < e1 < e2)
+    # 가산 상한: k 가 아무리 커도 에너지는 10^(cap/10) 배를 넘지 않는다
+    self.assertLessEqual(total(100.0, cap=1.0), e0 * 10 ** 0.1 * (1 + 1e-6))
+
   def test_step_noise_sums_energy(self):
     noise = DiffImpactStepNoise(1, "cpu")
     q = torch.tensor([[0.0, 0.8, -1.6] * 4]); pos, _ = leg_kinematics(q)

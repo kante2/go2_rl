@@ -69,9 +69,10 @@ c_t = E_t / (Δt · 10^(reference_db/10))
 ## dB 단위와 범위
 
 - 단위: **dB re FS²/s, A-가중, 미보정 상대값**. 소음 모델 출력(녹음 풀스케일 기준)을 시간으로 나눈 로봇 소음 파워.
-- 기본 범위 `min_db=-60`, `max_db=-45`, `reference_db=-52.5`: **측정값 기준** (2026-11-27, 탈락 접촉 포함).
+- 기본 범위 `min_db=-58`, `max_db=-45`, `reference_db=-52.5`: **측정값 기준** (2026-11-27, 탈락 접촉 포함).
   baseline 보행(model_34997, actor 고정, 2048 env, 60 iter)의 로봇 소음 파워가 −50.1 dB(착지 초당 6.1회 + 탈락 접촉
-  5.0회, 탈락 접촉의 에너지 몫 6%)이라, baseline 대비 −10 ~ +5 dB를 학습 범위로 둔다.
+  5.0회, 탈락 접촉의 에너지 몫 6%), 불확실성 반영 비용(k = 1)을 켜면 −49.3 dB. baseline 대비 약 −8 ~ +5 dB가 학습 범위.
+  하한 −60 → −58: 측정 하한(약 −62.5 dB)에 너무 가깝고, −60 목표에서 λ 가 상한에 붙은 채 보행이 무너졌다.
   탈락 접촉은 대부분 입각 중 힘이 잠깐 빠졌다 돌아오는 느린 접촉이라 29%가 발별 하한에 걸린다.
 - 실제 음압: 소음 모델의 착지 한 발 `db_spl = db + 118` (잠정 dBA SPL, 마이크 위치, 0~80 ms 평균, ±1~3 dB).
   로봇 소음 파워(초당 합)를 방의 dBA 한도로 쓰려면 기준 시간(예: 1초 Leq)을 정해 변환식을 따로 정해야 한다.
@@ -81,11 +82,16 @@ c_t = E_t / (Δt · 10^(reference_db/10))
 
 | 옵션 | 기본 | 뜻 |
 |---|---|---|
-| `--env.noise-condition.min-db / max-db` | −60 / −45 | 학습 목표 dB 범위 |
+| `--env.noise-condition.min-db / max-db` | −58 / −45 | 학습 목표 dB 범위 |
 | `--env.noise-condition.reference-db` | −52.5 | 비용 정규화 기준 |
 | `--env.noise-cost.foot-floor-db` | None (= db_ref p1, −76.2) | 착지 한 발 소음 하한 [dB] |
 | `--env.noise-cost.count-rejected-contacts` | True | 착지 규칙에서 빠진 짧은 접촉도 비용에 넣음 |
 | `--env.noise-cost.failure-margin-db` | 3 | 넘어짐 비용 (max_db + 이 값) |
+| `--env.noise-cost.uncertainty-k` | 1.0 | 접촉 소음 = 앙상블 평균 + k·표준편차 [dB] (0 이면 평균만) |
+| `--env.noise-cost.uncertainty-max-db` | 3.0 | 불확실성 가산 상한 [dB] |
+| `--agent.algorithm.anchor-coef` | 1.0 | baseline 보행 앵커 세기 (0 이면 끔) |
+| `--agent.algorithm.max-std` | 0.5 | 행동 표준편차 상한 |
+| `--env.qpace-curriculum.target-gate-tracking-error` | 0.20 | 목표 ramp 게이트 [m/s] (None 이면 끔) |
 | `--agent.algorithm.pid.max-multiplier` | 100 | PID λ 절대 상한 (커리큘럼 `lambda_max`가 이보다 작으면 그 값) |
 
 ## 단계 학습 (`step_02_learning/curriculum.py`의 `QPaceCurriculumCfg`)
@@ -98,15 +104,43 @@ c_t = E_t / (Δt · 10^(reference_db/10))
 |---|---|---|---|
 | 0 ~ critic_warmup | **고정** (critic만 학습) | 0 | `--env.qpace-curriculum.critic-warmup-iterations` (100) |
 | ~ noise_start | 학습 | 0 (소음 제약 없음) | `--env.qpace-curriculum.noise-start-iteration` (300) |
-| ~ noise_start + ramp | 학습 | PID, 상한 0 → lambda_max 선형 증가 | `--env.qpace-curriculum.lambda-ramp-iterations` (500) |
-| 이후 | 학습 | PID, 상한 lambda_max | `--env.qpace-curriculum.lambda-max` (20, 낮추면 속도 우선) |
+| ~ noise_start + ramp | 학습 | PID, 상한 0 → lambda_max 선형 증가 | `--env.qpace-curriculum.lambda-ramp-iterations` (2000) |
+| 이후 | 학습 | PID, 상한 lambda_max | `--env.qpace-curriculum.lambda-max` (5, 낮추면 속도 우선) |
+
+**목표 dB 범위 커리큘럼** (`target_start_min_db` −52, `target_ramp_iterations` 3000): 가장 엄격한 목표를
+baseline 근처(−52 dB)에서 시작해 noise_start부터 3000회 동안 `min_db`(−60)까지 선형으로 내린다.
+환경별 목표 = 현재 하한 + u_i·(max_db − 현재 하한), u_i는 환경마다 고정. 정책 입력 정규화는 전체 범위 기준이라
+목표 dB의 의미는 바뀌지 않는다. 목표는 rollout 사이에만 바뀐다. 현재 하한은 `Loss/target_min_db`.
+
+- 왜 넣었나 (2026-11-27 확인 학습, model_34997 시작, 탈락 접촉 포함, 목표 −60 ~ −45 처음부터, λ 상한 500회에 20):
+  정책이 목표 조건을 배우기 전에 엄격한 목표 환경의 압력으로 모든 환경이 "거의 안 걷기"로 무너졌다
+  (500회째 목표와 상관없이 약 −61 dB, 1.0 m/s 명령에 추종 오차 0.8 m/s). 그래서 λ 상한도 20 → 5,
+  ramp 500 → 2000회로 낮추고, 엔트로피 계수를 0.01 → 0.005로 줄였다 (행동 노이즈 증가 억제).
 
 - 가중치 이식 (`step_03_training/warm_start.py`): actor 47→48 입력 (조건 열 가중치 0 → 시작 시 baseline과 같은 행동),
   baseline critic의 정규화와 앞 3층을 reward·cost critic의 상태 인코더에 복사. optimizer·λ는 새로 시작.
 - 처음부터 학습: `--env.qpace-curriculum.init-checkpoint ""` 와 함께 `noise-start-iteration`을 보행이 자리 잡는 시점(예: 2000)으로 늦춘다.
 - 재개(`--agent.resume`)할 때는 이식하지 않고 체크포인트를 그대로 읽는다. iteration도 이어서 센다.
-- 속도 명령 단계 `VELOCITY_STAGES`: 처음 vx −0.5~0.7 m/s (소음 모델이 아는 범위), 4000회 이후 −0.7~1.0 m/s.
-- 보행 리듬 보상 감소 `GaitCurriculumCfg`: 2000회 중심 sigmoid (논문).
+- 속도 명령 단계 `VELOCITY_STAGES`: 처음 vx −0.5~0.7 m/s (소음 모델이 아는 범위), 5000회 이후 −0.7~1.0 m/s
+  (목표 ramp 가 끝난 뒤. 소음 압박과 겹치지 않게).
+- 보행 리듬 보상 `GaitCurriculumCfg`: **끝까지 유지** (`minimum_scale = 1`). 논문의 2000회 sigmoid 감소는 처음부터 학습할 때용.
+
+### C 방식: 상한 + 여유 활용 (2026-11-27 붕괴 대책)
+
+제약은 그대로 **로봇 소음 ≤ 목표 dB** 이다 (λ ≥ 0, 일부러 시끄럽게 걷는 법은 배우지 않는다).
+남는 여유를 baseline 보행 유지에 쓰게 해서 소음이 목표 근처에 머물게 한다.
+
+| 장치 | 위치 | 하는 일 |
+|---|---|---|
+| baseline 앵커 | `cncp_ppo.py` (`anchor_coef`) | actor 손실 + anchor_coef·Σ(μ − μ_base)². μ_base 는 warm start 직후 actor 의 고정 복사본(model_34997). λ = 0 인 느슨한 환경은 baseline 보행에 머물고, 엄격한 환경만 λ 가 미는 만큼 벗어난다. baseline 은 소음 데이터를 녹음한 보행이라 모델의 데이터 범위 안에 묶는 효과도 있다. 지표 `Loss/anchor_mse`. |
+| 보행 리듬 유지 | `GaitCurriculumCfg.minimum_scale = 1` | trot 리듬 보상을 끄지 않는다. |
+| 불확실성 반영 비용 | `DiffImpactStepNoise` (`uncertainty_k`, 상한 3 dB) | 접촉 소음 = 평균 + k·앙상블 표준편차. 모델이 모르는 영역은 시끄럽다고 본다. |
+| 표준편차 상한 | `cncp_ppo.py` (`max_std` 0.5) | 행동 노이즈가 커져 발 떨기 해로 가는 것을 막는다. |
+| 목표 ramp 게이트 | `runner.py` (`target_gate_tracking_error` 0.20 m/s) | rollout 평균 추종 오차가 한계를 넘으면 그 iteration 은 목표를 더 내리지 않는다. 지표 `Loss/target_progress`. |
+
+이전 학습(`qpace_34997_full`, 2026-11-27)이 무너진 과정: 리듬 보상이 사라진 2500회부터 trot 이 풀림 → 목표 −58 ~ −60 dB 압박
+→ 접촉 초당 11 → 19.5회(탈락 72%), 행동 표준편차 0.30 → 1.40, 소음 모델 데이터 밖 접촉 25 → 95%, 앙상블 σ 0.8 → 2.3 dB
+→ 속도 추종 붕괴 (평균 보상 57 → 0). 무너지기 전 쓸 만한 체크포인트는 2000 ~ 2300회.
 
 ## 확인할 지표 (tensorboard)
 
@@ -120,6 +154,9 @@ c_t = E_t / (Δt · 10^(reference_db/10))
 - `QPace/floored_frac`: 발별 하한에 걸린 접촉 비율 (baseline 29%, 대부분 느린 탈락 접촉).
 - `QPace/contact_speed`: 모든 접촉의 평균 접촉 속도 [m/s] (baseline 0.54). 소음이 줄 때 이 값이 같이 줄어야 정상.
 - `Loss/entropy`: 행동 노이즈. 계속 오르면 정책이 불안정하다 (탈락 접촉 미포함 학습에서 3 → 14).
+- `QPace/tracking_error_mps`: 속도 추종 오차 [m/s] (baseline 0.166, 목표 게이트 0.20).
+- `Loss/anchor_mse`, `Loss/target_progress`, `Policy/mean_std`: baseline 이탈 정도, 게이트를 통과한 목표 진행, 행동 표준편차.
+- 학습 모니터: `python src/locomotion_rl/go2_qpace/step_04_evaluation/monitor.py` → http://localhost:6007
 - `Metrics/twist/error_vel_xy`: 속도 추종. mjlab 정의상 에피소드 동안 |오차|/400을 누적한 값이라 m/s가 아니다
   (1000 step 에피소드면 평균 오차 × 2.5). 같은 지표로 baseline `model_10000` 학습 끝값은 1.54.
 - `Loss/lambda_cap`, `Loss/actor_frozen`: 단계 학습 진행 상태.

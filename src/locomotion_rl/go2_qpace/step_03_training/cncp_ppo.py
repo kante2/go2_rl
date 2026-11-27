@@ -8,6 +8,9 @@
 - Â_i = (A_r − λ_i A_c)/(1 + λ_i) (식 8). advantage를 만든 뒤 λ를 갱신한다 (Algorithm 1).
 - 두 critic은 각각 제곱오차로 학습한다 (식 7).
 - 실패 종료 뒤에는 failure_cost(학습 범위 상단 + margin dB 파워)가 영원히 이어진다고 보고 bootstrap한다.
+- [C 방식] baseline 앵커: actor 손실에 anchor_coef·Σ(μ − μ_base)² 를 더한다 (μ_base: warm start 시점 actor 의
+  고정 복사본). 제약이 느슨하면 baseline 보행에 머물고, λ 가 미는 만큼만 벗어난다.
+- 행동 표준편차는 max_std 로 위를 자른다.
 """
 
 from copy import deepcopy
@@ -53,7 +56,8 @@ class EpisodeCostReturn:
 class QuietPawPPO(PPO):
   storage: QuietPawStorage
 
-  def __init__(self, actor, critic, storage, pid, cost_value_loss_coef=1.0, **kwargs):
+  def __init__(self, actor, critic, storage, pid, cost_value_loss_coef=1.0, anchor_coef=0.0, max_std=None,
+               **kwargs):
     if kwargs.get("multi_gpu_cfg"):
       raise ValueError("CNCP currently supports a single training process/GPU.")
     if kwargs.get("rnd_cfg") or kwargs.get("symmetry_cfg"):
@@ -61,11 +65,43 @@ class QuietPawPPO(PPO):
     super().__init__(actor, critic, storage, **kwargs)
     self.pid = PidLagrangian(storage.num_envs, PidLagrangianCfg(**pid), self.device)
     self.cost_value_loss_coef = cost_value_loss_coef
+    if anchor_coef < 0 or (max_std is not None and not max_std > 0):
+      raise ValueError("anchor_coef must be nonnegative and max_std positive or None.")
+    self.anchor_coef = anchor_coef
+    self.max_std = max_std
+    self.anchor_actor = None  # set_anchor() 로 만든다 (warm start 직후 또는 체크포인트 재개)
+    # 목표 커리큘럼 게이트를 통과한 iteration 수 (runner.py). 체크포인트에 저장해 재개 시 이어 간다.
+    self.target_progress = 0
     self.episode_cost = EpisodeCostReturn(storage.num_envs, self.device, self.gamma)
     self.failure_cost = 1.0  # Runner가 환경 설정값으로 맞춘다.
     self.curriculum = None  # QPaceCurriculumCfg. Runner가 환경 설정에서 넣는다 (None: 단계 없음)
     self.iteration = 0
+    # Runner가 넣는 콜백: rollout이 끝날 때 다음 iteration 번호로 환경 목표 범위를 갱신하고 현재 하한 [dB]을 돌려준다.
+    # rollout 사이에만 바뀌므로 한 rollout 안의 ε 는 고정이다 (compute_returns 검사).
+    self.on_iteration = None
     self.constraint_metrics = {}
+
+  def set_anchor(self, state_dict=None):
+    """현재 actor(또는 state_dict)의 고정 복사본을 baseline 앵커로 둔다. anchor_coef = 0 이면 만들지 않는다."""
+    if self.anchor_coef == 0:
+      return
+    anchor = deepcopy(self.actor)
+    if state_dict is not None:
+      anchor.load_state_dict(state_dict)
+    anchor.eval()
+    for param in anchor.parameters():
+      param.requires_grad_(False)
+    self.anchor_actor = anchor
+
+  @torch.no_grad()
+  def _clamp_std(self):
+    dist = getattr(self.actor, "distribution", None)
+    if self.max_std is None or dist is None:
+      return
+    if hasattr(dist, "std_param"):
+      dist.std_param.clamp_(max=self.max_std)
+    elif hasattr(dist, "log_std_param"):
+      dist.log_std_param.clamp_(max=float(torch.log(torch.tensor(self.max_std))))
 
   @property
   def failure_value(self):
@@ -164,7 +200,10 @@ class QuietPawPPO(PPO):
       self.pid.integral.zero_()
       self.pid.multipliers.zero_()
     self.iteration += 1
+    target_min = self.on_iteration(self.iteration) if self.on_iteration is not None else float("nan")
     self.constraint_metrics = {
+      "target_min_db": target_min,  # 목표 범위 커리큘럼의 현재 가장 엄격한 목표
+      "target_progress": float(self.target_progress),  # 게이트를 통과한 목표 ramp 진행 iteration 수
       "noise_cost": st.raw_costs.mean().item(),
       "noise_excess_db": excess_db.mean().item(),  # L_robot − 목표 (환경 평균)
       "noise_violation_db": excess_db.clamp_min(0).mean().item(),
@@ -191,7 +230,7 @@ class QuietPawPPO(PPO):
     return loss.mean(dim=0)  # [reward critic loss, cost critic loss]
 
   def update(self):
-    totals = {"reward_value": 0.0, "cost_value": 0.0, "surrogate": 0.0, "entropy": 0.0}
+    totals = {"reward_value": 0.0, "cost_value": 0.0, "surrogate": 0.0, "entropy": 0.0, "anchor_mse": 0.0}
     updates = 0
     # compute_returns가 iteration을 이미 올렸으므로 이번 업데이트는 iteration − 1 기준이다.
     frozen = self.curriculum is not None and self.curriculum.actor_frozen(self.iteration - 1)
@@ -222,10 +261,17 @@ class QuietPawPPO(PPO):
         -advantage * ratio,
         -advantage * ratio.clamp(1.0 - self.clip_param, 1.0 + self.clip_param),
       ).mean()
+      if self.anchor_actor is not None:
+        with torch.no_grad():
+          base_mean = self.anchor_actor(batch.observations)
+        anchor = (self.actor.output_mean - base_mean).square().sum(-1).mean()
+      else:
+        anchor = torch.zeros((), device=self.device)
       reward_loss, cost_loss = self._value_loss(values, batch.values, batch.returns)
       value_loss = self.value_loss_coef * reward_loss + self.cost_value_loss_coef * cost_loss
       # critic 워밍업: actor 손실을 빼서 actor 가중치를 고정한다 (gradient 없음 → optimizer가 건너뜀).
-      loss = value_loss if frozen else surrogate + value_loss - self.entropy_coef * entropy
+      loss = value_loss if frozen else (surrogate + value_loss - self.entropy_coef * entropy
+                                        + self.anchor_coef * anchor)
       if not torch.isfinite(loss):
         raise FloatingPointError("CNCP loss is not finite.")
       self.optimizer.zero_grad(set_to_none=True)
@@ -233,7 +279,9 @@ class QuietPawPPO(PPO):
       torch.nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
       torch.nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
       self.optimizer.step()
-      for key, value in zip(totals, (reward_loss, cost_loss, surrogate, entropy)):
+      if not frozen:
+        self._clamp_std()
+      for key, value in zip(totals, (reward_loss, cost_loss, surrogate, entropy, anchor)):
         totals[key] += value.item()
       updates += 1
     self.storage.clear()
@@ -244,6 +292,9 @@ class QuietPawPPO(PPO):
     state["cncp_pid"] = self.pid.state_dict()
     state["cncp_learning_rate"] = self.learning_rate
     state["cncp_iteration"] = self.iteration
+    state["cncp_target_progress"] = self.target_progress
+    if self.anchor_actor is not None:
+      state["cncp_anchor_state_dict"] = self.anchor_actor.state_dict()
     return state
 
   def load(self, loaded_dict, load_cfg=None, strict=True):
@@ -253,5 +304,9 @@ class QuietPawPPO(PPO):
       self.pid.load_state_dict(loaded_dict["cncp_pid"], strict=True)
       self.learning_rate = loaded_dict["cncp_learning_rate"]
       self.iteration = loaded_dict.get("cncp_iteration", 0)
+      self.target_progress = loaded_dict.get("cncp_target_progress", max(0, self.iteration - (
+        self.curriculum.noise_start_iteration if self.curriculum is not None else 0)))
+      if "cncp_anchor_state_dict" in loaded_dict:
+        self.set_anchor(loaded_dict["cncp_anchor_state_dict"])
       self.episode_cost.reset()  # 재개 시 환경은 새 에피소드에서 시작한다.
     return resume

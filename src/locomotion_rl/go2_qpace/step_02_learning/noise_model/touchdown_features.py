@@ -378,17 +378,24 @@ class DiffImpactStepNoise:
   그 접촉 속도로 소음 에너지를 계산해 더한다 (물리 법칙 모델은 접촉 속도만 쓰므로 짧은 접촉에도 쓸 수 있다).
   세트 첫 발 기준(Δ = 0)으로 계산하고 발별 하한도 같이 적용한다. 탈락한 substep 마다 바로 추론하므로
   한 정책 스텝 안에 같은 발의 탈락 접촉이 여러 번 있어도 모두 더해진다.
+
+  [go2_qpace] 불확실성 반영 uncertainty_k: 접촉 한 번의 에너지에 10^(k·σ_dB/10) 을 곱한다 (σ_dB = 앙상블 dB 표준편차).
+  dB 로는 평균 + min(k·σ, uncertainty_max_db). 모델이 모르는 영역(데이터 밖)일수록 앙상블이 갈라져 시끄럽게 본다 → 정책이 모델 오차를
+  이용하지 못하게 한다 (2026-11-27 학습: 데이터 밖 접촉 95%, σ 0.8 → 2.3 dB 에서 보행 붕괴). 하한보다 먼저 적용.
   """
 
   def __init__(self, num_envs: int, device: str, model=None, table_path=None,
                no_touchdown_db: float = float("-inf"), foot_floor_db: float | None = None,
-               count_rejected: bool = True, **tracker_kwargs):
+               count_rejected: bool = True, uncertainty_k: float = 0.0,
+               uncertainty_max_db: float = 3.0, **tracker_kwargs):
     from .diffimpact import DEFAULT_TABLE, DiffImpactNoiseModel
     self.model = model or DiffImpactNoiseModel(table_path or DEFAULT_TABLE, device)
     self.no_touchdown_db = no_touchdown_db
     self.foot_floor_db = float(self.model.db_ref["p1"] if foot_floor_db is None else foot_floor_db)
     self.foot_floor_energy = 10.0 ** (self.foot_floor_db / 10.0)
     self.count_rejected = count_rejected
+    self.uncertainty_k = float(uncertainty_k)
+    self.uncertainty_max_db = float(uncertainty_max_db)
     self.tracker = TouchdownFeatureTracker(num_envs, self.model.features, device, **tracker_kwargs)
     self.num_envs, self.device = num_envs, device
     self.step_feats = torch.zeros_like(self.tracker.feats)
@@ -417,18 +424,26 @@ class DiffImpactStepNoise:
       B, F = self.num_envs, len(self.model.features)
       rej = self.tracker.rejected.float()
       out = self.model.foot_energy(self.tracker.rejected_feats.view(B * 4, F), self.legs)
-      raw = out["energy"].view(B, 4)
+      raw = self._pessimistic(out).view(B, 4)
       self.rej_energy += raw.clamp_min(self.foot_floor_energy) * rej
       self.rej_floored += (raw < self.foot_floor_energy).float() * rej
       self.rej_speed += out["contact_speed"].view(B, 4) * rej
       self.rej_count += rej
+
+  def _pessimistic(self, out):
+    """앙상블 평균 에너지 × 10^(min(k·σ_dB, max)/10)  (k = 0 이면 평균 그대로).
+    상한: 극단적인 범위 밖 접촉 몇 개(예: reset 직후 낙하)가 수십 dB 로 부풀어 평균 에너지를 지배하지 않게 한다."""
+    if self.uncertainty_k == 0.0:
+      return out["energy"]
+    extra_db = (self.uncertainty_k * out["db_std"]).clamp(0.0, self.uncertainty_max_db)
+    return out["energy"] * 10.0 ** (extra_db / 10.0)
 
   @torch.no_grad()
   def end_step(self):
     """반환 dict (모두 환경별):
       db (B,)          스텝 소음 [dB re FS²] = 10·log10(Σ 착지·탈락 접촉 에너지), 둘 다 없으면 no_touchdown_db
       db_spl (B,)      같은 값의 잠정 dBA SPL (db + SPL_OFFSET_DB, 마이크 위치, ±1~3 dB)
-      energy (B,)      Σ 확정 착지 + 탈락 접촉 에너지 [FS²] (없으면 0), 발별 하한 적용 후
+      energy (B,)      Σ 확정 착지 + 탈락 접촉 에너지 [FS²] (없으면 0), 불확실성 반영·발별 하한 적용 후
       touchdown (B,)   이번 스텝에 확정된 착지 또는 탈락 접촉이 있는지
       foot_energy (B, 4), foot_db (B, 4)  발별 값 (착지 + 탈락 접촉), 하한 적용 후 (없는 발은 0, -inf)
       ood (B,)         확정 착지의 범위 밖 거리 합 [σ] (진단값)
@@ -442,7 +457,7 @@ class DiffImpactStepNoise:
     out = self.model.foot_energy(self.step_feats.view(B * 4, F), self.legs, self.step_offset.view(B * 4),
                                  mask=self.step_ready.view(B * 4))
     mask = self.step_ready.float()
-    raw_e = out["energy"].view(B, 4)
+    raw_e = self._pessimistic(out).view(B, 4)
     floored = self.step_ready & (raw_e < self.foot_floor_energy)
     td_e = raw_e.clamp_min(self.foot_floor_energy) * mask
     foot_e = td_e + self.rej_energy

@@ -39,6 +39,15 @@ class QuietPawCriticCfg(RslRlModelCfg):
 @dataclass
 class QuietPawPpoCfg(RslRlPpoAlgorithmCfg):
   cost_value_loss_coef: float = 1.0
+  # [C 방식: 상한 + 여유 활용] baseline 보행 앵커. actor 평균 행동이 warm start 시점의 baseline 정책
+  # (model_34997, 고정 복사본)과 다른 만큼 손실을 더한다:  anchor_coef · mean_batch Σ_dim (μ − μ_base)².
+  # 목표가 느슨한 환경(λ = 0)은 baseline 보행(가장 잘 걷고, 소음 데이터를 녹음한 보행)에 머물고,
+  # 엄격한 환경만 λ 가 미는 만큼 벗어난다 → 소음이 목표 근처에 머물고 남는 여유는 baseline 보행 유지에 쓴다.
+  # baseline 보행 근처에 묶이므로 소음 모델의 데이터 범위 밖으로 나가는 것도 막는다. 0 이면 끔.
+  # init_checkpoint 가 없으면(처음부터 학습) 앵커도 없다.
+  anchor_coef: float = 1.0
+  # 행동 표준편차 상한. 2026-11-27 학습: 0.30 → 1.40 으로 커지며 발 떨기(짧은 접촉) 해로 무너졌다. None 이면 없음.
+  max_std: float | None = 0.5
   pid: PidLagrangianCfg = field(default_factory=PidLagrangianCfg)
   class_name: str = "src.locomotion_rl.go2_qpace.step_03_training.cncp_ppo:QuietPawPPO"
 
@@ -76,7 +85,7 @@ def unitree_go2_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
       value_loss_coef=1.0,  # Critic 가치 오차가 전체 손실에 기여하는 비중.
       use_clipped_value_loss=False,  # 식 (7): 두 critic 모두 순수 제곱오차.
       clip_param=0.2,  # PPO 정책 확률비 클립 폭: 목적함수에서 1±0.2 범위를 사용한다.
-      entropy_coef=0.01,  # 행동 다양성/탐색을 유지하는 엔트로피 보너스 계수.
+      entropy_coef=0.005,  # 엔트로피 보너스. 0.01 에서는 소음 제약 중 행동 노이즈가 계속 커졌다 (2026-11-27).
       num_learning_epochs=5,  # 수집한 rollout 데이터를 학습에 재사용하는 횟수.
       num_mini_batches=4,  # rollout을 epoch마다 4개 소배치로 분할: 반복당 기본 5×4회 업데이트.
       learning_rate=1.0e-3,  # 새 학습 옵티마이저의 초기 학습률 0.001.
