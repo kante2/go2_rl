@@ -135,6 +135,11 @@ class TouchdownFeatureTracker:
   착지는 j 뒤 (min_stance − 1 substep) = 35 ms 에 확정된다 (원본은 20 ms).
   reset 직후 이미 닿아 있는 발은 유각기가 없으므로 착지로 세지 않는다 (학습 데이터와 같음).
 
+  [go2_qpace] 탈락 접촉: on 을 넘었지만 위 규칙에서 빠진 접촉 (유각기 < min_swing, 또는 입각기 < min_stance).
+  학습 데이터에서는 버렸지만, RL 에서 버리면 "발을 빠르게 두드리기"로 소음 비용을 0 으로 만들 수 있다
+  (2026-11-27 확인: 접촉의 89% 가 탈락). 탈락한 substep 에 rejected (B, 4) 와 그 접촉의 특징 rejected_feats
+  (착지 시각 j 기준, 후보가 없으면 그 substep 기준)를 내놓는다. 세트 묶음(is_second, Δ)에는 넣지 않는다.
+
   사용: 매 물리 substep 후 sample(...) 호출 → 반환된 ready 마스크 (B, 4) 의 착지가 이번 substep 에 확정.
   확정된 착지의 특징은 features (B, 4, F), 세트 안 시각은 offset (B, 4) [s].
   """
@@ -187,6 +192,9 @@ class TouchdownFeatureTracker:
     self.cand_impulse = z(B, 4)
     self.feats = z(B, 4, F)  # 확정된 착지의 특징
     self.offset = z(B, 4)
+    self.rejected = bz()  # 이번 substep 에 탈락한 접촉
+    self.rejected_feats = z(B, 4, F)
+    self.seen_air = bz()  # reset 뒤 한 번이라도 off 아래로 떴는지 (reset 직후 이미 닿은 발은 탈락 접촉도 아님)
     self.last_td = torch.full((B, 4), -1e9, device=device)  # 발별 마지막 (확정) 착지 시각
     self.set_start = torch.full((B, 4), -1e9, device=device)  # 발별 소속 세트의 첫 착지 시각
     self.body_hold = z(B, 2)
@@ -195,7 +203,7 @@ class TouchdownFeatureTracker:
     self._other = torch.tensor([1 - d for d in LEG_DIAG], device=device)
 
   def reset(self, env_ids):
-    for buf in (self.stance, self.above_on, self.above_rise, self.cand_valid):
+    for buf in (self.stance, self.above_on, self.above_rise, self.cand_valid, self.rejected, self.seen_air):
       buf[env_ids] = False
     self.below_first[env_ids] = float("inf")
     self.below_last[env_ids] = float("-inf")
@@ -258,9 +266,13 @@ class TouchdownFeatureTracker:
       self.cand_feats[..., k_imp] = torch.where(done, torch.log(self.cand_impulse.clamp_min(MIN_IMPULSE)),
                                                 self.cand_feats[..., k_imp])
     # 취소: 교차 전에 rise 아래로 떨어짐 / 교차 후 입각기가 min_stance 보다 짧음
-    cancel = active & ((~self.cand_valid & ~above_rise) | (self.cand_valid & below_off & (k < self.stance_steps)))
+    short_stance = active & self.cand_valid & below_off & (k < self.stance_steps)
+    cancel = (active & ~self.cand_valid & ~above_rise) | short_stance
     k = torch.where(cancel, torch.full_like(k, -1), k)
     valid = self.cand_valid & ~cancel
+    # 탈락 접촉 ①: on 을 넘었으나 입각기가 짧음 → 그 후보(j 기준)의 특징 (아래 새 후보가 덮기 전에 복사)
+    rejected = short_stance
+    rejected_feats = torch.where(short_stance[..., None], self.cand_feats, self.rejected_feats)
 
     # 2) 유각기 기록: off 아래 샘플의 첫/마지막 시각 (마지막으로 on 위였던 뒤부터)
     self.below_first = torch.where(below_off & torch.isinf(self.below_first), t, self.below_first)
@@ -276,6 +288,12 @@ class TouchdownFeatureTracker:
     swing_ok = (self.below_last - self.below_first) >= self.min_swing - 1e-9
     has = k >= 0
     validate = crossing & has & swing_ok
+    # 탈락 접촉 ②: on 교차인데 유각기가 짧거나 후보가 없음 → 후보(j) 특징, 후보가 없으면 이 substep 기준 특징
+    self.seen_air |= below_off
+    short_swing = crossing & ~validate & self.seen_air
+    feats_now = torch.where(has[..., None], self.cand_feats, self._pre_feats(foot_pos_b, command))
+    rejected_feats = torch.where(short_swing[..., None], feats_now, rejected_feats)
+    rejected = rejected | short_swing
     k = torch.where(crossing & ~validate, torch.full_like(k, -1), k)
     valid = (valid & ~start) | validate
     # on 위인 샘플이 나오면 유각기 기록을 지운다 (다음 유각기는 그 뒤부터)
@@ -288,25 +306,35 @@ class TouchdownFeatureTracker:
     self.cand_k = torch.where(ready, torch.full_like(k, -1), k)
     self.cand_valid = valid & ~ready
     self.stance, self.above_on, self.above_rise = stance, above_on, above_rise
+    self.rejected, self.rejected_feats = rejected, rejected_feats
     return ready
 
-  def _start(self, td, foot_pos_b, command):
-    """착지 시각 j 후보의 특징을 기록한다 (확정 전)."""
+  def _pre_feats(self, foot_pos_b, command):
+    """이 substep 을 착지 시각으로 볼 때의 특징 (B, 4, F). 충격량·is_second 는 0 (물리 법칙 모델은 쓰지 않음)."""
     pw = self._pw
     vel_pre = (pw[:, None, None, None] * self.hist_vel).sum(0)  # (B, 4, 3)
     body_diag = (pw[:, None, None] * self.hist_body_vz).sum(0)  # (B, 2)
     body_pre = body_diag[:, self._other]  # (B, 4): 착지하는 발의 반대 대각 쌍 추정
-    fz_pre = (pw[:, None, None] * self.hist_fz).sum(0)  # 착지 전 접촉력 기준 (속도와 같은 가중치)
     vals = {
       "foot_vx_pre": vel_pre[..., 0], "foot_vy_pre": vel_pre[..., 1], "foot_vz_pre": vel_pre[..., 2],
       "foot_x": foot_pos_b[..., 0], "foot_y": foot_pos_b[..., 1], "foot_z": foot_pos_b[..., 2],
       "cmd_vx": command[:, None, 0].expand(-1, 4), "cmd_vy": command[:, None, 1].expand(-1, 4),
       "cmd_wz": command[:, None, 2].expand(-1, 4), "body_vz_pre": body_pre,
     }
+    out = torch.zeros_like(self.cand_feats)
     for name, v in vals.items():
       if name in self.idx:
-        c = self.cand_feats[..., self.idx[name]]
-        self.cand_feats[..., self.idx[name]] = torch.where(td, v.float(), c)
+        out[..., self.idx[name]] = v.float()
+    return out
+
+  def _start(self, td, foot_pos_b, command):
+    """착지 시각 j 후보의 특징을 기록한다 (확정 전)."""
+    pw = self._pw
+    fz_pre = (pw[:, None, None] * self.hist_fz).sum(0)  # 착지 전 접촉력 기준 (속도와 같은 가중치)
+    fresh = self._pre_feats(foot_pos_b, command)
+    keep = [i for n, i in self.idx.items() if n not in ("log_grf_impulse20", "is_second")]
+    for i in keep:
+      self.cand_feats[..., i] = torch.where(td, fresh[..., i], self.cand_feats[..., i])
     self.cand_fz_pre = torch.where(td, fz_pre, self.cand_fz_pre)
     # j substep 의 충격량 기여 (k = 0)
     self.cand_impulse = torch.where(td, IMPULSE_WEIGHTS_S[0] * (self.hist_fz[-1] - fz_pre), self.cand_impulse)
@@ -340,22 +368,40 @@ class DiffImpactStepNoise:
   substep 에서는 특징만 모으고, 모델 추론은 end_step 에서 B×4 전체에 한 번 한다 (GPU→CPU 동기화 없음).
   한 발은 정책 스텝(20 ms) 안에 많아야 한 번 확정된다 (착지 후 35 ms 에 확정, go2_qpace).
   대각 두 발이 서로 다른 스텝에 확정되면 각 스텝에 나뉘어 들어간다 (세트 단위 합이 아니라 스텝 단위 합).
+
+  [go2_qpace] 발별 하한 foot_floor_db: 확정된 착지 한 발의 에너지를 10^(floor/10) 아래로 내리지 않는다.
+  물리 법칙 모델은 접촉 속도 → 0 에서 하중 소리 A0 까지 내려가고, A0 가 작은 RL 다리는 약 −106 dB 가 된다.
+  학습 데이터에 없는 영역이라, 정책이 "한 다리만 살살 놓기"로 비용을 지우지 못하게 막는다.
+  None 이면 모델의 db_ref["p1"] (학습 실측 착지 예측 dB 1 백분위), -inf 면 하한 없음.
+
+  [go2_qpace] 탈락 접촉 count_rejected: 착지 규칙(유각기 ≥ 60 ms, 입각기 ≥ 40 ms)에서 빠진 짧은 접촉도
+  그 접촉 속도로 소음 에너지를 계산해 더한다 (물리 법칙 모델은 접촉 속도만 쓰므로 짧은 접촉에도 쓸 수 있다).
+  세트 첫 발 기준(Δ = 0)으로 계산하고 발별 하한도 같이 적용한다. 탈락한 substep 마다 바로 추론하므로
+  한 정책 스텝 안에 같은 발의 탈락 접촉이 여러 번 있어도 모두 더해진다.
   """
 
   def __init__(self, num_envs: int, device: str, model=None, table_path=None,
-               no_touchdown_db: float = float("-inf"), **tracker_kwargs):
+               no_touchdown_db: float = float("-inf"), foot_floor_db: float | None = None,
+               count_rejected: bool = True, **tracker_kwargs):
     from .diffimpact import DEFAULT_TABLE, DiffImpactNoiseModel
     self.model = model or DiffImpactNoiseModel(table_path or DEFAULT_TABLE, device)
     self.no_touchdown_db = no_touchdown_db
+    self.foot_floor_db = float(self.model.db_ref["p1"] if foot_floor_db is None else foot_floor_db)
+    self.foot_floor_energy = 10.0 ** (self.foot_floor_db / 10.0)
+    self.count_rejected = count_rejected
     self.tracker = TouchdownFeatureTracker(num_envs, self.model.features, device, **tracker_kwargs)
     self.num_envs, self.device = num_envs, device
     self.step_feats = torch.zeros_like(self.tracker.feats)
     self.step_offset = torch.zeros(num_envs, 4, device=device)
     self.step_ready = torch.zeros(num_envs, 4, dtype=torch.bool, device=device)
+    z = lambda: torch.zeros(num_envs, 4, device=device)  # noqa: E731
+    self.rej_energy, self.rej_count, self.rej_speed, self.rej_floored = z(), z(), z(), z()
     self.legs = torch.arange(4, device=device).repeat(num_envs)
 
   def begin_step(self):
     self.step_ready.zero_()
+    for buf in (self.rej_energy, self.rej_count, self.rej_speed, self.rej_floored):
+      buf.zero_()
 
   def reset(self, env_ids):
     self.tracker.reset(env_ids)
@@ -367,33 +413,58 @@ class DiffImpactStepNoise:
     self.step_feats = torch.where(ready[..., None], self.tracker.feats, self.step_feats)
     self.step_offset = torch.where(ready, self.tracker.offset, self.step_offset)
     self.step_ready |= ready
+    if self.count_rejected:
+      B, F = self.num_envs, len(self.model.features)
+      rej = self.tracker.rejected.float()
+      out = self.model.foot_energy(self.tracker.rejected_feats.view(B * 4, F), self.legs)
+      raw = out["energy"].view(B, 4)
+      self.rej_energy += raw.clamp_min(self.foot_floor_energy) * rej
+      self.rej_floored += (raw < self.foot_floor_energy).float() * rej
+      self.rej_speed += out["contact_speed"].view(B, 4) * rej
+      self.rej_count += rej
 
   @torch.no_grad()
   def end_step(self):
     """반환 dict (모두 환경별):
-      db (B,)          스텝 소음 [dB re FS²] = 10·log10(Σ 확정 착지 에너지), 착지 없으면 no_touchdown_db
-      energy (B,)      Σ 확정 착지 에너지 [FS²] (착지 없으면 0)
-      touchdown (B,)   이번 스텝에 확정된 착지가 있는지
-      foot_energy (B, 4), foot_db (B, 4)  발별 값 (확정 안 된 발은 0, -inf)
+      db (B,)          스텝 소음 [dB re FS²] = 10·log10(Σ 착지·탈락 접촉 에너지), 둘 다 없으면 no_touchdown_db
+      db_spl (B,)      같은 값의 잠정 dBA SPL (db + SPL_OFFSET_DB, 마이크 위치, ±1~3 dB)
+      energy (B,)      Σ 확정 착지 + 탈락 접촉 에너지 [FS²] (없으면 0), 발별 하한 적용 후
+      touchdown (B,)   이번 스텝에 확정된 착지 또는 탈락 접촉이 있는지
+      foot_energy (B, 4), foot_db (B, 4)  발별 값 (착지 + 탈락 접촉), 하한 적용 후 (없는 발은 0, -inf)
       ood (B,)         확정 착지의 범위 밖 거리 합 [σ] (진단값)
-      log              배치 요약: touchdowns, step_db (착지 있는 스텝 평균), ensemble_db_std, ood_frac/<특징>
+      log              배치 요약: touchdowns (확정 착지 수), rejected (탈락 접촉 수), rejected_frac (접촉 중 탈락 비율),
+                       rejected_energy_frac (소음 에너지 중 탈락 접촉 몫), step_db (소음 있는 스텝 평균),
+                       ensemble_db_std, floored_frac (하한에 걸린 접촉 비율), contact_speed (모든 접촉 평균 [m/s]),
+                       ood_frac/<특징> (확정 착지 기준)
     """
+    from .diffimpact import SPL_OFFSET_DB
     B, F = self.num_envs, len(self.model.features)
     out = self.model.foot_energy(self.step_feats.view(B * 4, F), self.legs, self.step_offset.view(B * 4),
                                  mask=self.step_ready.view(B * 4))
     mask = self.step_ready.float()
-    foot_e = out["energy"].view(B, 4) * mask
+    raw_e = out["energy"].view(B, 4)
+    floored = self.step_ready & (raw_e < self.foot_floor_energy)
+    td_e = raw_e.clamp_min(self.foot_floor_energy) * mask
+    foot_e = td_e + self.rej_energy
     energy = foot_e.sum(-1)
-    touchdown = self.step_ready.any(-1)
+    touchdown = self.step_ready.any(-1) | (self.rej_count > 0).any(-1)
     db = torch.where(touchdown, 10.0 * torch.log10(energy.clamp_min(1e-30)),
                      torch.full_like(energy, self.no_touchdown_db))
-    foot_db = torch.where(self.step_ready, out["db"].view(B, 4), torch.full_like(foot_e, float("-inf")))
-    n_td, n_step = mask.sum(), touchdown.float().sum()
+    db_spl = torch.where(touchdown, db + SPL_OFFSET_DB, db)
+    foot_db = torch.where(foot_e > 0, 10.0 * torch.log10(foot_e.clamp_min(1e-30)),
+                          torch.full_like(foot_e, float("-inf")))
+    n_td, n_rej, n_step = mask.sum(), self.rej_count.sum(), touchdown.float().sum()
+    n_all = (n_td + n_rej).clamp_min(1)
     log = {
       "touchdowns": n_td,
+      "rejected": n_rej,
+      "rejected_frac": n_rej / n_all,
+      "rejected_energy_frac": self.rej_energy.sum() / energy.sum().clamp_min(1e-30),
       "step_db": torch.where(touchdown, db, torch.zeros_like(db)).sum() / n_step.clamp_min(1),
       "ensemble_db_std": (out["db_std"].view(B, 4) * mask).sum() / n_td.clamp_min(1),
+      "floored_frac": (floored.float().sum() + self.rej_floored.sum()) / n_all,
+      "contact_speed": ((out["contact_speed"].view(B, 4) * mask).sum() + self.rej_speed.sum()) / n_all,
     }
     log.update({f"ood_frac/{f}": v for f, v in zip(self.model.features, out["ood_frac"])})
-    return dict(db=db, energy=energy, touchdown=touchdown, foot_energy=foot_e, foot_db=foot_db,
+    return dict(db=db, db_spl=db_spl, energy=energy, touchdown=touchdown, foot_energy=foot_e, foot_db=foot_db,
                 ood=(out["ood"].view(B, 4) * mask).sum(-1), log=log)

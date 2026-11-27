@@ -13,7 +13,11 @@ from mjlab.tasks.registry import load_env_cfg, load_rl_cfg
 from tensordict import TensorDict
 
 from src.locomotion_rl.go2_qpace.step_02_learning.mdp.noise_condition import NoiseCondition, NoiseConditionCfg
-from src.locomotion_rl.go2_qpace.step_02_learning.noise_model import DiffImpactNoiseModel
+from src.locomotion_rl.go2_qpace.step_02_learning.noise_model import (
+  SPL_OFFSET_DB,
+  DiffImpactNoiseModel,
+  DiffImpactStepNoise,
+)
 from src.locomotion_rl.go2_qpace.step_02_learning.curriculum import QPaceCurriculumCfg
 from src.locomotion_rl.go2_qpace.step_03_training.cncp_ppo import EpisodeCostReturn, QuietPawPPO
 from src.locomotion_rl.go2_qpace.step_03_training.warm_start import warm_start_from_baseline
@@ -73,19 +77,28 @@ class QPaceTests(unittest.TestCase):
     with self.assertRaises(ValueError):
       NoiseConditionCfg(target_db=-40.).__post_init__()
 
-  def test_body_vz_extrapolation_is_capped(self):
-    free = DiffImpactNoiseModel()
-    capped = DiffImpactNoiseModel(extrapolation_limits={"body_vz_pre": 0.05})
-    k = free.features.index("body_vz_pre")
-    hi = free.hi[0, k].item()
-    x = free.mu[0].clone().repeat(2, 1)
-    x[0, k] = hi + 0.05
-    x[1, k] = hi + 0.30
-    legs, offset = torch.tensor([3, 3]), torch.zeros(2)
-    db_capped = capped.foot_energy(x, legs, offset)["db"]
-    db_free = free.foot_energy(x, legs, offset)["db"]
-    torch.testing.assert_close(db_capped[0], db_capped[1])  # 상한 너머는 같은 값
-    self.assertLess(db_free[1].item(), db_capped[1].item() - 1.0)  # 원본은 더 조용하다고 외삽
+  def test_gentle_rl_landing_is_floored(self):
+    # 물리 법칙 모델은 v → 0 에서 RL 다리를 약 −106 dB 로 본다. 발별 하한(기본 db_ref p1)에서 멈춰야 한다.
+    model = DiffImpactNoiseModel()
+    kf, kb = model.features.index("foot_vz_pre"), model.features.index("body_vz_pre")
+    x = model.mu[0].clone().repeat(2, 1)
+    x[:, kb] = 0.0
+    x[0, kf], x[1, kf] = -0.02, 0.0  # 거의 멈춘 채 내려놓기
+    raw = model.foot_energy(x, torch.tensor([3, 3]))["db"]
+    floor = model.db_ref["p1"]
+    self.assertTrue(torch.all(raw < floor - 5.0), raw)  # 원본은 하한보다 훨씬 조용하다고 본다
+    noise = DiffImpactStepNoise(1, "cpu", model=model)
+    self.assertAlmostEqual(noise.foot_floor_db, floor)
+    noise.step_ready[0, 3] = True
+    noise.step_feats[0, 3] = x[1]
+    out = noise.end_step()
+    self.assertAlmostEqual(out["foot_db"][0, 3].item(), floor, places=4)
+    self.assertAlmostEqual(out["log"]["floored_frac"].item(), 1.0)
+    self.assertAlmostEqual(out["db_spl"][0].item(), floor + SPL_OFFSET_DB, places=4)
+    off = DiffImpactStepNoise(1, "cpu", model=model, foot_floor_db=float("-inf"))
+    off.step_ready[0, 3] = True
+    off.step_feats[0, 3] = x[1]
+    self.assertAlmostEqual(off.end_step()["foot_db"][0, 3].item(), raw[1].item(), places=3)
 
   def test_episode_cost_return_spans_rollouts(self):
     ret = EpisodeCostReturn(2, "cpu", .5)

@@ -30,8 +30,9 @@ class QPaceCurriculumCfg:
   """
 
   # 사전학습 보행 체크포인트 (baseline 47차원 actor/74차원 critic). 저장소 루트 기준 경로. ""이면 처음부터.
-  # 기본값은 실로봇에 배포된 baseline 정책이다.
-  init_checkpoint: str = "src/go2_autonomous_driving/model_pt/model_10000.pt"
+  # 기본값 model_34997: 실로봇 기본 보행이자 소음 모델 학습 녹음(real_sim*)에 쓴 정책 (kante_.md, final_cmd.txt).
+  # 소음 모델이 본 보행에서 시작하므로 초기 예측이 가장 믿을 만하다. 이전 기본값은 model_10000.
+  init_checkpoint: str = "src/go2_autonomous_driving/model_pt/model_34997.pt"
   critic_warmup_iterations: int = 100
   noise_start_iteration: int = 300
   lambda_ramp_iterations: int = 500

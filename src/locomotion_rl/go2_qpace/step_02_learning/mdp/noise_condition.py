@@ -16,11 +16,13 @@ import torch
 @dataclass
 class NoiseConditionCfg:
   # 단위: 로봇 전체 착지 소음 파워 [dB re FS²/s, A-가중, 미보정 상대값].
-  # 기본 범위는 소음 모델 db_ref(학습 실측 착지의 발별 1/50/99 백분위)에
-  # 걸음 주기 0.6 s의 착지 빈도(초당 6.7회, +8.2 dB)를 더한 값이다. 측정 후 조정한다.
-  min_db: float = -64.0  # 가장 엄격한 목표
-  max_db: float = -49.0  # 가장 느슨한 목표
-  reference_db: float = -56.0  # 비용 정규화 기준. c_t = E_t / (Δt · 10^(reference_db/10))
+  # 기본 범위는 측정값 기준이다 (2026-11-27, 소음 모델 go2_noise_aware 8d4270d, 탈락 접촉 포함):
+  # baseline 보행(model_34997, actor 고정, 2048 env, 60 iter)의 로봇 소음 파워 −50.1 dB
+  # (착지 초당 6.1회 + 탈락 접촉 5.0회, 탈락 접촉의 에너지 몫 6%).
+  # baseline 대비 −10 ~ +5 dB를 학습 범위로, baseline −2.5 dB를 비용 정규화 기준으로 둔다.
+  min_db: float = -60.0  # 가장 엄격한 목표 (baseline보다 약 10 dB 조용)
+  max_db: float = -45.0  # 가장 느슨한 목표 (baseline보다 약 5 dB 시끄러움, 빠른 속도용)
+  reference_db: float = -52.5  # 비용 정규화 기준. c_t = E_t / (Δt · 10^(reference_db/10))
   target_db: float | None = None  # None: 환경별 균등 배정 (학습), 숫자: 모든 환경 같은 목표 (play·배치)
 
   def __post_init__(self):

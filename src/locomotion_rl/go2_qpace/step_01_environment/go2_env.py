@@ -130,7 +130,7 @@ def unitree_go2_rough_env_cfg(
   # Apply play mode overrides.
   if play:
     cfg.scene.num_envs = 1
-    cfg.noise_condition.target_db = -56.0  # play.py의 --target-db로 변경 가능.
+    cfg.noise_condition.target_db = -52.5  # play.py의 --target-db로 변경 가능.
     cfg.gait_curriculum.enabled = False
     # Effectively infinite episode length.
     cfg.episode_length_s = int(1e9)  # 평가 중 시간 초과를 사실상 해제하는 초 단위 길이.

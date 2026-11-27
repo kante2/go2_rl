@@ -63,10 +63,9 @@ class QuietPawEnv(ManagerBasedRlEnv):
     self.unitree_joint_ids = unitree_joint_order(list(robot.joint_names))
     self.unitree_actuator_ids = unitree_joint_order(list(robot.actuator_names))  # 액추에이터는 관절 종류별 순서
     cost_cfg = self.cfg.noise_cost
-    model = DiffImpactNoiseModel(device=self.device,
-                                 extrapolation_limits={"body_vz_pre": cost_cfg.body_vz_extrapolation})
     self.step_noise = DiffImpactStepNoise(
-      self.num_envs, self.device, model=model,
+      self.num_envs, self.device, model=DiffImpactNoiseModel(device=self.device),
+      foot_floor_db=cost_cfg.foot_floor_db, count_rejected=cost_cfg.count_rejected_contacts,
       air=tuple(cost_cfg.touchdown_air_n), on_delta=cost_cfg.touchdown_on_delta,
       off_delta=cost_cfg.touchdown_off_delta, rise_delta=cost_cfg.touchdown_rise_delta,
       min_swing=cost_cfg.touchdown_min_swing_s, min_stance=cost_cfg.touchdown_min_stance_s,
@@ -192,6 +191,11 @@ class QuietPawEnv(ManagerBasedRlEnv):
       "QPace/touchdowns_per_s": noise["log"]["touchdowns"] / (self.num_envs * self.step_dt),
       "QPace/touchdown_step_db": noise["log"]["step_db"],
       "QPace/ensemble_db_std": noise["log"]["ensemble_db_std"],
+      "QPace/floored_frac": noise["log"]["floored_frac"],  # 발별 하한에 걸린 접촉 비율 (계속 커지면 모델 속이기 의심)
+      "QPace/contact_speed": noise["log"]["contact_speed"],  # 모든 접촉(착지 + 탈락) 평균 접촉 속도 [m/s]
+      "QPace/contacts_per_s": (noise["log"]["touchdowns"] + noise["log"]["rejected"]) / (self.num_envs * self.step_dt),
+      "QPace/rejected_frac": noise["log"]["rejected_frac"],  # 접촉 중 착지 규칙에서 빠진 비율 (커지면 두드리기)
+      "QPace/rejected_energy_frac": noise["log"]["rejected_energy_frac"],  # 소음 에너지 중 탈락 접촉 몫
       "QPace/peak_force": self.landing.peak_forces.mean(),
       "QPace/gait_scale": gait_reward_scale(self),
     }

@@ -14,20 +14,25 @@ class NoiseCostCfg:
   touchdown_min_swing_s: float = 0.06  # 착지 직전 공중 최소 시간
   touchdown_min_stance_s: float = 0.04  # 착지 후 접지 최소 시간 (확정이 착지 후 35 ms로 늦어진다)
   contact_force_threshold: float = 1.0  # 진단값(최대 접촉력)용 접촉 기준 [N]. 소음 비용에는 쓰지 않는다.
-  # 소음 모델은 몸통 수직 속도의 조용한 쪽(위로 움직이며 착지)을 무한히 외삽한다.
-  # 학습 데이터에 없는 영역이므로 학습 범위 상단 + 이 값 [m/s]에서 자른다 (모델 속이기 방지).
-  body_vz_extrapolation: float = 0.05
+  # 착지 한 발의 소음 하한 [dB re FS²]. 물리 법칙 모델은 접촉 속도 → 0 에서 하중 소리 A0 까지 내려가고
+  # A0 가 작은 RL 다리는 약 −106 dB 가 된다 (학습 데이터 밖). 이 값 아래는 같은 비용으로 본다 (모델 속이기 방지).
+  # None: 모델 db_ref["p1"] (학습 실측 착지 예측 dB 1 백분위, 현재 표 −76.2 dB).
+  foot_floor_db: float | None = None
+  # 착지 규칙(유각기 ≥ 60 ms, 입각기 ≥ 40 ms)에서 빠진 짧은 접촉에도 접촉 속도로 소음 비용을 매긴다.
+  # 끄면 발을 빠르게 두드려 비용을 0 으로 만드는 해가 생긴다 (2026-11-27 학습에서 확인, 접촉의 89% 탈락).
+  count_rejected_contacts: bool = True
   # 실패 종료 뒤에는 학습 범위 상단(max_db)보다 이 값 [dB]만큼 시끄러운 소음이 영원히 이어진다고 보고
   # cost critic을 bootstrap한다. 넘어져서 제약을 피하는 해를 막는다.
   failure_margin_db: float = 3.0
 
   def __post_init__(self):
-    if not all(math.isfinite(v) for v in (self.contact_force_threshold, self.body_vz_extrapolation,
-                                          self.failure_margin_db)):
+    if not all(math.isfinite(v) for v in (self.contact_force_threshold, self.failure_margin_db)):
       raise ValueError("Noise cost parameters must be finite.")
+    if self.foot_floor_db is not None and (math.isnan(self.foot_floor_db) or self.foot_floor_db == math.inf):
+      raise ValueError("foot_floor_db must be a number below +inf (use -inf to disable).")
     if not 0 <= self.touchdown_rise_delta < self.touchdown_off_delta < self.touchdown_on_delta:
       raise ValueError("Require 0 <= rise < off < on for touchdown detection.")
     if self.touchdown_min_swing_s < 0 or self.touchdown_min_stance_s < 0.025:
       raise ValueError("min_swing must be >= 0 and min_stance >= 25 ms (impulse window).")
-    if self.contact_force_threshold < 0 or self.body_vz_extrapolation < 0:
-      raise ValueError("contact_force_threshold and body_vz_extrapolation must be nonnegative.")
+    if self.contact_force_threshold < 0:
+      raise ValueError("contact_force_threshold must be nonnegative.")
